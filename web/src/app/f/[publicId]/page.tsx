@@ -456,7 +456,7 @@ export default function PublicFormPage({
 											</button>
 										</div>
 										<div className="mt-2 grid gap-3">
-											{field.itemFields.map((sub) => (
+											{(field.itemFields ?? []).map((sub) => (
 												<div key={sub.key} className="space-y-1">
 													<label className="block text-sm">
 														{sub.label}
