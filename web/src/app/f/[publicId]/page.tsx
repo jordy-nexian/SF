@@ -445,7 +445,9 @@ export default function PublicFormPage({
 												type="button"
 												className="text-sm text-red-600"
 												onClick={() => {
-													const arr = ([...(values[field.key] as any[])] ?? []);
+													const arr = Array.isArray(values[field.key])
+														? [...(values[field.key] as any[])]
+														: [];
 													arr.splice(idx, 1);
 													onChange(field.key, arr);
 												}}
@@ -465,7 +467,9 @@ export default function PublicFormPage({
 														className="w-full rounded border px-3 py-2"
 														value={(row?.[sub.key] as any) ?? ""}
 														onChange={(e) => {
-															const arr = ([...(values[field.key] as any[])] ?? []);
+															const arr = Array.isArray(values[field.key])
+																? [...(values[field.key] as any[])]
+																: [];
 															const updated = { ...(arr[idx] ?? {}) };
 															updated[sub.key] =
 																sub.type === "number"
@@ -490,7 +494,9 @@ export default function PublicFormPage({
 										type="button"
 										className="rounded border px-3 py-1 text-sm"
 										onClick={() => {
-											const arr = ([...(values[field.key] as any[])] ?? []);
+											const arr = Array.isArray(values[field.key])
+												? [...(values[field.key] as any[])]
+												: [];
 											arr.push({});
 											onChange(field.key, arr);
 										}}
