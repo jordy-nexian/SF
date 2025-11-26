@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-	_request: Request,
-	{ params }: { params: { publicId: string } }
+	_request: NextRequest,
+	context: { params: Promise<{ publicId: string }> }
 ) {
 	try {
+		const { publicId } = await context.params;
 		const form = await prisma.form.findUnique({
-			where: { publicId: params.publicId },
+			where: { publicId },
 			include: {
 				currentVersion: true,
 				tenant: {

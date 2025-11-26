@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 import crypto from 'node:crypto';
@@ -16,11 +16,12 @@ function getClientIp(req: Request): string | null {
 }
 
 export async function POST(
-	request: Request,
-	{ params }: { params: { publicId: string } }
+	request: NextRequest,
+	context: { params: Promise<{ publicId: string }> }
 ) {
 	const start = Date.now();
 	let submissionId = crypto.randomUUID();
+	const { publicId } = await context.params;
 
 	// Enforce payload size by reading raw text first
 	const raw = await request.text();
@@ -84,7 +85,7 @@ export async function POST(
 
 	// Lookup form and tenant
 	const form = await prisma.form.findUnique({
-		where: { publicId: params.publicId },
+		where: { publicId },
 		include: {
 			tenant: true,
 			currentVersion: true,
