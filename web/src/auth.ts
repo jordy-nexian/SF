@@ -26,11 +26,14 @@ export const authOptions: NextAuthOptions = {
 					return null;
 				}
 				const email = emailRaw.trim().toLowerCase();
-				const user =
-					(await prisma.user.findFirst({
-						where: { email: { equals: email, mode: "insensitive" } as any },
-					})) ||
-					(await prisma.user.findFirst({ where: { email: emailRaw } }));
+				const user = await prisma.user.findFirst({
+					where: {
+						OR: [
+							{ email: emailRaw },
+							{ email },
+						],
+					},
+				});
 				if (!user?.passwordHash) return null;
 				const ok = await compare(passwordRaw, user.passwordHash);
 				if (!ok) return null;
