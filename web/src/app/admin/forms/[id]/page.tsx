@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 
 async function getForm(id: string) {
-  const hdrs = headers();
+  const hdrs = await headers();
   const host = hdrs.get("host");
   const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
   const base =
@@ -28,7 +28,7 @@ export default async function FormDetail({ params }: { params: { id: string } })
 
   async function setCurrent(versionId: string) {
     "use server";
-    const hdrs = headers();
+    const hdrs = await headers();
     const host = hdrs.get("host");
     const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
     const base =

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-	const hdrs = headers();
+	const hdrs = await headers();
 	const host = hdrs.get("host");
 	const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
 	const base =
