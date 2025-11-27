@@ -30,9 +30,11 @@ export default function RootLayout({
           <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
             <Link href="/" className="text-lg font-semibold">Stateless Forms</Link>
             <nav className="flex items-center gap-4 text-sm text-gray-700">
-              <Link href="/admin">Admin</Link>
-              <Link href="/admin/forms/new" className="text-blue-600">Create form</Link>
-              <Link href="/signin">Sign in</Link>
+              <Link href="/features">Product</Link>
+              <Link href="/pricing">Pricing</Link>
+              <Link href="/admin" className="hidden sm:inline">Admin</Link>
+              <Link href="/admin/forms/new" className="hidden sm:inline text-blue-600">Create form</Link>
+              <Link href="/signin" className="rounded border px-3 py-1">Log in</Link>
             </nav>
           </div>
         </header>
