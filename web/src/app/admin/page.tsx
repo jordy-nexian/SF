@@ -1,11 +1,20 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-	const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/admin/forms`, {
-		cache: "no-store",
-	});
+	const hdrs = headers();
+	const host = hdrs.get("host");
+	const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
+	const base =
+		baseEnv && /^https?:\/\//i.test(baseEnv)
+			? baseEnv
+			: host
+			? `https://${host}`
+			: "";
+
+	const res = await fetch(`${base}/api/admin/forms`, { cache: "no-store" });
 	// If running on the server without NEXT_PUBLIC_BASE_URL, relative fetch still works.
 	const data = res.ok ? await res.json() : { forms: [] as any[] };
 	const forms: { id: string; name: string; publicId: string; status: string; updatedAt: string }[] =

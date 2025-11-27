@@ -1,9 +1,19 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 async function getForm(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/admin/forms/${id}`, { cache: "no-store" });
+  const hdrs = headers();
+  const host = hdrs.get("host");
+  const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
+  const base =
+    baseEnv && /^https?:\/\//i.test(baseEnv)
+      ? baseEnv
+      : host
+      ? `https://${host}`
+      : "";
+  const res = await fetch(`${base}/api/admin/forms/${id}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }
@@ -18,7 +28,16 @@ export default async function FormDetail({ params }: { params: { id: string } })
 
   async function setCurrent(versionId: string) {
     "use server";
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/admin/forms/${params.id}`, {
+    const hdrs = headers();
+    const host = hdrs.get("host");
+    const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
+    const base =
+      baseEnv && /^https?:\/\//i.test(baseEnv)
+        ? baseEnv
+        : host
+        ? `https://${host}`
+        : "";
+    await fetch(`${base}/api/admin/forms/${params.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ currentVersionId: versionId }),
