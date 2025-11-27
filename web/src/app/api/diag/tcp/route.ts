@@ -20,11 +20,15 @@ export async function GET() {
 		return NextResponse.json({ ok: false, error: "Invalid DATABASE_URL" }, { status: 400 });
 	}
 	try {
-		const ips = await dns.lookup(host, { all: true });
-		const ipList = ips.map((i) => `${i.address}/${i.family}`).join(", ");
+		// Try IPv4 first explicitly, then IPv6
+		const v4 = await dns.lookup(host, { all: true, family: 4 }).catch(() => []);
+		const v6 = await dns.lookup(host, { all: true, family: 6 }).catch(() => []);
+		const ips = [...v4, ...v6];
+		const ipList = ips.length ? ips.map((i) => `${i.address}/${i.family}`).join(", ") : "none";
+		const target = ips[0]?.address ?? host;
 
 		const outcome = await new Promise<{ ok: boolean; code?: string; message?: string }>((resolve) => {
-			const socket = net.connect({ host, port, timeout: 5000 }, () => {
+			const socket = net.connect({ host: target, port, timeout: 5000 }, () => {
 				socket.destroy();
 				resolve({ ok: true });
 			});
