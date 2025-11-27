@@ -20,12 +20,19 @@ export const authOptions: NextAuthOptions = {
 				password: { label: "Password", type: "password" },
 			},
 			async authorize(raw) {
-				const parsed = credentialsSchema.safeParse(raw);
-				if (!parsed.success) return null;
-				const { email, password } = parsed.data;
-				const user = await prisma.user.findUnique({ where: { email } });
+				const emailRaw = (raw as any)?.email;
+				const passwordRaw = (raw as any)?.password;
+				if (typeof emailRaw !== "string" || typeof passwordRaw !== "string") {
+					return null;
+				}
+				const email = emailRaw.trim().toLowerCase();
+				const user =
+					(await prisma.user.findFirst({
+						where: { email: { equals: email, mode: "insensitive" } as any },
+					})) ||
+					(await prisma.user.findFirst({ where: { email: emailRaw } }));
 				if (!user?.passwordHash) return null;
-				const ok = await compare(password, user.passwordHash);
+				const ok = await compare(passwordRaw, user.passwordHash);
 				if (!ok) return null;
 				return {
 					id: user.id,
