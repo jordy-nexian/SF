@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function SignInPage() {
 	const router = useRouter();
@@ -9,47 +10,23 @@ export default function SignInPage() {
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
-	const [csrfToken, setCsrfToken] = useState<string | null>(null);
-
-	// Fetch NextAuth CSRF token to include with credentials POST
-	useEffect(() => {
-		let active = true;
-		fetch("/api/auth/csrf")
-			.then((r) => (r.ok ? r.json() : null))
-			.then((data) => {
-				if (!active) return;
-				// v4 shape: { csrfToken: "..." }
-				// v5 may also return the same shape
-				if (data?.csrfToken) setCsrfToken(data.csrfToken as string);
-			})
-			.catch(() => {});
-		return () => {
-			active = false;
-		};
-	}, []);
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setError(null);
 		setLoading(true);
 		try {
-			const body = new URLSearchParams({
+			const res = await signIn("credentials", {
 				email,
 				password,
-				redirect: "false",
+				redirect: false,
 				callbackUrl: "/",
-				...(csrfToken ? { csrfToken } : {}),
-			}).toString();
-			const res = await fetch("/api/auth/callback/credentials", {
-				method: "POST",
-				headers: { "content-type": "application/x-www-form-urlencoded" },
-				body,
 			});
-			if (res.ok) {
-				router.push("/");
-				router.refresh();
-			} else {
+			if (res?.error) {
 				setError("Invalid credentials");
+			} else {
+				router.push(res?.url ?? "/");
+				router.refresh();
 			}
 		} catch {
 			setError("Sign-in failed");
