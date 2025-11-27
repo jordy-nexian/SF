@@ -1,4 +1,5 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
 
 export type TenantSession = {
@@ -8,7 +9,7 @@ export type TenantSession = {
 };
 
 export async function requireTenantSession(): Promise<TenantSession | null> {
-	const session = await auth();
+	const session = await getServerSession(authOptions as any);
 	const user = (session as any)?.user;
 	if (!user?.id || !user?.tenantId || !user?.role) return null;
 	return {
