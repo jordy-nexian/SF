@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
@@ -9,6 +9,24 @@ export default function SignInPage() {
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [csrfToken, setCsrfToken] = useState<string | null>(null);
+
+	// Fetch NextAuth CSRF token to include with credentials POST
+	useEffect(() => {
+		let active = true;
+		fetch("/api/auth/csrf")
+			.then((r) => (r.ok ? r.json() : null))
+			.then((data) => {
+				if (!active) return;
+				// v4 shape: { csrfToken: "..." }
+				// v5 may also return the same shape
+				if (data?.csrfToken) setCsrfToken(data.csrfToken as string);
+			})
+			.catch(() => {});
+		return () => {
+			active = false;
+		};
+	}, []);
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -20,6 +38,7 @@ export default function SignInPage() {
 				password,
 				redirect: "false",
 				callbackUrl: "/",
+				...(csrfToken ? { csrfToken } : {}),
 			}).toString();
 			const res = await fetch("/api/auth/callback/credentials", {
 				method: "POST",
