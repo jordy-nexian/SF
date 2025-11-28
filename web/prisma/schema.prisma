@@ -73,7 +73,13 @@ model Form {
   publicId                String      @unique
   status                  FormStatus  @default(draft)
   primaryN8nWebhookUrl    String?
+  backupWebhookUrl        String?     // Failover webhook
+  webhookRouting          Json?       // Conditional webhook routing rules
+  payloadTransform        Json?       // Payload transformation template
   currentVersionId        String?
+  thankYouUrl             String?     // Redirect after submission
+  thankYouMessage         String?     // Message if no redirect
+  settings                Json?       // Additional form settings (IP allowlist, etc.)
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 
@@ -123,10 +129,28 @@ model SubmissionEvent {
   submittedAt       DateTime         @default(now())
   payloadSizeBytes  Int?
   fieldCount        Int?
+  stepReached       Int?             // For drop-off analysis
 
   tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   form              Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, submittedAt])
   @@index([formId, submittedAt])
+}
+
+// Audit log for admin actions (no PII stored)
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  action      String   // e.g., "form.created", "form.published", "version.created"
+  resourceType String  // e.g., "form", "version", "theme"
+  resourceId  String
+  metadata    Json?    // Additional context (no PII)
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([resourceType, resourceId])
 }

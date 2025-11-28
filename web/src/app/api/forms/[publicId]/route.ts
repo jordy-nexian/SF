@@ -57,6 +57,8 @@ export async function GET(
 			schema: version.schema,
 			theme,
 			settings,
+			thankYouUrl: form.thankYouUrl,
+			thankYouMessage: form.thankYouMessage,
 		});
 	} catch {
 		// Do not leak stack traces

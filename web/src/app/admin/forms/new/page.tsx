@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import FormRenderer, { FormSchema } from "@/components/FormRenderer";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import FormRenderer from "@/components/FormRenderer";
+import type { FormSchema } from "@/types/form-schema";
+import { getTemplateById } from "@/lib/form-templates";
 
 const starterSchema: FormSchema = {
 	id: "new-form",
@@ -18,10 +21,28 @@ const starterSchema: FormSchema = {
 
 export default function NewFormPage() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const templateId = searchParams.get("template");
+
 	const [name, setName] = useState("New form");
 	const [publicId, setPublicId] = useState("");
 	const [schemaText, setSchemaText] = useState(JSON.stringify(starterSchema, null, 2));
 	const [error, setError] = useState<string | null>(null);
+	const [templateName, setTemplateName] = useState<string | null>(null);
+
+	// Load template if specified
+	useEffect(() => {
+		if (templateId) {
+			const template = getTemplateById(templateId);
+			if (template) {
+				setName(template.name);
+				setPublicId(template.id);
+				setSchemaText(JSON.stringify(template.schema, null, 2));
+				setTemplateName(template.name);
+			}
+		}
+	}, [templateId]);
+
 	const parsedSchema = useMemo(() => {
 		try {
 			return JSON.parse(schemaText) as FormSchema;
@@ -56,7 +77,26 @@ export default function NewFormPage() {
 
 	return (
 		<div className="mx-auto max-w-6xl">
-			<h1 className="mb-4 text-xl font-semibold">Create form</h1>
+			<div className="mb-4 flex items-center justify-between">
+				<div>
+					<h1 className="text-xl font-semibold">
+						{templateName ? `Create from: ${templateName}` : "Create form"}
+					</h1>
+					{!templateId && (
+						<p className="mt-1 text-sm text-gray-600">
+							Or{" "}
+							<Link href="/admin/forms/new/templates" className="text-blue-600 hover:underline">
+								start from a template
+							</Link>
+						</p>
+					)}
+				</div>
+				{templateId && (
+					<Link href="/admin/forms/new/templates" className="text-sm text-blue-600">
+						← Choose different template
+					</Link>
+				)}
+			</div>
 			<form onSubmit={onSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
 				<div className="space-y-3">
 					<div>

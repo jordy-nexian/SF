@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type {
 	FormSchema,
 	Field,
@@ -9,11 +10,15 @@ import type {
 import { evaluateVisibility, validateField, getByPath } from "@/types/form-schema";
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 
+// Storage key for partial submission recovery
+const STORAGE_PREFIX = "stateless-form:";
+
 export default function PublicFormPage({
 	params,
 }: {
 	params: { publicId: string };
 }) {
+	const searchParams = useSearchParams();
 	const [loading, setLoading] = useState(true);
 	const [formError, setFormError] = useState<string | null>(null);
 	const [submitError, setSubmitError] = useState<string | null>(null);
@@ -25,6 +30,70 @@ export default function PublicFormPage({
 	const [values, setValues] = useState<Record<string, any>>({});
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [activeStepIdx, setActiveStepIdx] = useState(0);
+	const [thankYouUrl, setThankYouUrl] = useState<string | null>(null);
+	const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
+	const [submissionId, setSubmissionId] = useState<string | null>(null);
+	const [recoveredFromStorage, setRecoveredFromStorage] = useState(false);
+
+	// Extract pre-fill values from URL parameters
+	function getPrefillValues(fieldKeys: string[]): Record<string, any> {
+		const prefill: Record<string, any> = {};
+		for (const key of fieldKeys) {
+			const value = searchParams.get(key);
+			if (value !== null) {
+				// Try to parse as JSON for arrays/objects, otherwise use string
+				try {
+					prefill[key] = JSON.parse(value);
+				} catch {
+					prefill[key] = value;
+				}
+			}
+		}
+		return prefill;
+	}
+
+	// Load saved partial submission from localStorage
+	function loadFromStorage(): Record<string, any> | null {
+		if (typeof window === "undefined") return null;
+		try {
+			const stored = localStorage.getItem(`${STORAGE_PREFIX}${params.publicId}`);
+			if (stored) {
+				const parsed = JSON.parse(stored);
+				// Check if data is less than 24 hours old
+				if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+					return parsed.values;
+				}
+				// Remove stale data
+				localStorage.removeItem(`${STORAGE_PREFIX}${params.publicId}`);
+			}
+		} catch {
+			// Ignore storage errors
+		}
+		return null;
+	}
+
+	// Save partial submission to localStorage
+	function saveToStorage(vals: Record<string, any>) {
+		if (typeof window === "undefined") return;
+		try {
+			localStorage.setItem(
+				`${STORAGE_PREFIX}${params.publicId}`,
+				JSON.stringify({ values: vals, timestamp: Date.now() })
+			);
+		} catch {
+			// Ignore storage errors (quota exceeded, etc.)
+		}
+	}
+
+	// Clear saved submission
+	function clearStorage() {
+		if (typeof window === "undefined") return;
+		try {
+			localStorage.removeItem(`${STORAGE_PREFIX}${params.publicId}`);
+		} catch {
+			// Ignore
+		}
+	}
 
 	useEffect(() => {
 		let active = true;
@@ -40,7 +109,24 @@ export default function PublicFormPage({
 				setFormVersion(data.formVersion);
 				setSchema(data.schema);
 				setTheme(data.theme);
-				setValues({});
+				setThankYouUrl(data.thankYouUrl);
+				setThankYouMessage(data.thankYouMessage);
+
+				// Initialize values: URL params > localStorage > empty
+				const fieldKeys = data.schema.fields.map((f: Field) => f.key);
+				const prefillValues = getPrefillValues(fieldKeys);
+				const storedValues = loadFromStorage();
+
+				if (Object.keys(prefillValues).length > 0) {
+					// URL params take priority
+					setValues(prefillValues);
+				} else if (storedValues && Object.keys(storedValues).length > 0) {
+					setValues(storedValues);
+					setRecoveredFromStorage(true);
+				} else {
+					setValues({});
+				}
+
 				setErrors({});
 				setActiveStepIdx(0);
 				setFormError(null);
@@ -53,7 +139,7 @@ export default function PublicFormPage({
 		return () => {
 			active = false;
 		};
-	}, [params.publicId]);
+	}, [params.publicId, searchParams]);
 
 	const orderedFields = useMemo(() => {
 		if (!schema) return [];
@@ -70,12 +156,21 @@ export default function PublicFormPage({
 	}, [schema]);
 
 	function onChange(key: string, value: any) {
-		setValues((prev) => ({ ...prev, [key]: value }));
+		setValues((prev) => {
+			const next = { ...prev, [key]: value };
+			// Save to localStorage for recovery
+			saveToStorage(next);
+			return next;
+		});
 		setErrors((prev) => {
 			const copy = { ...prev };
 			delete copy[key];
 			return copy;
 		});
+		// Clear recovery notice once user starts editing
+		if (recoveredFromStorage) {
+			setRecoveredFromStorage(false);
+		}
 	}
 
 	function validateStep(stepFields: Field[]): boolean {
@@ -148,18 +243,47 @@ export default function PublicFormPage({
 					formId,
 					formVersion,
 					answers: values,
-					meta: { userAgent: navigator.userAgent, language: navigator.language },
+					meta: {
+						userAgent: navigator.userAgent,
+						language: navigator.language,
+						stepReached: activeStepIdx + 1,
+					},
 				}),
 			});
 			const data = await res.json();
 			if (!res.ok || data.status !== "ok") {
 				throw new Error(
-					data?.message || "We couldn’t submit your form. Please try again."
+					data?.message || "We couldn't submit your form. Please try again."
 				);
 			}
-			setSubmitOk("Thanks, your response has been received.");
+
+			// Clear localStorage on successful submission
+			clearStorage();
+
+			// Store submission ID for receipt
+			setSubmissionId(data.submissionId);
+
+			// Handle redirect or show thank you message
+			if (thankYouUrl) {
+				window.location.href = thankYouUrl;
+				return;
+			}
+
+			setSubmitOk(thankYouMessage || "Thanks, your response has been received.");
 			setValues({});
 			setErrors({});
+
+			// Post message for embed integration
+			if (window.parent !== window) {
+				window.parent.postMessage(
+					JSON.stringify({
+						type: "stateless-form-submitted",
+						formId,
+						submissionId: data.submissionId,
+					}),
+					"*"
+				);
+			}
 		} catch (err: any) {
 			setSubmitError(err?.message || "Submission failed");
 		}
@@ -189,11 +313,54 @@ export default function PublicFormPage({
 	// Generate CSS variables from theme
 	const themeStyle = theme ? themeToCssVars(theme) : {};
 
+	// Show submission receipt if submitted
+	if (submitOk && submissionId) {
+		return (
+			<div
+				className="mx-auto max-w-2xl p-6"
+				style={themeStyle as React.CSSProperties}
+			>
+				<div className="rounded-lg border bg-green-50 p-6 text-center">
+					<div className="mb-4 text-4xl">✓</div>
+					<h2 className="mb-2 text-xl font-semibold text-green-800">
+						{thankYouMessage || "Thank you!"}
+					</h2>
+					<p className="text-green-700">{submitOk}</p>
+					<div className="mt-4 rounded bg-white p-3 text-sm">
+						<div className="text-gray-500">Submission ID</div>
+						<div className="font-mono text-gray-800">{submissionId}</div>
+						<div className="mt-1 text-xs text-gray-400">
+							{new Date().toLocaleString()}
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			className="mx-auto max-w-2xl p-6"
 			style={themeStyle as React.CSSProperties}
 		>
+			{/* Recovery notice */}
+			{recoveredFromStorage && (
+				<div className="mb-4 flex items-center justify-between rounded bg-blue-50 p-3 text-sm text-blue-800">
+					<span>We restored your previous progress.</span>
+					<button
+						type="button"
+						onClick={() => {
+							clearStorage();
+							setValues({});
+							setRecoveredFromStorage(false);
+						}}
+						className="text-blue-600 underline"
+					>
+						Start fresh
+					</button>
+				</div>
+			)}
+
 			<h1 className="text-2xl font-semibold">{schema.title}</h1>
 			{schema.description && (
 				<p className="mt-2 text-gray-600">{schema.description}</p>

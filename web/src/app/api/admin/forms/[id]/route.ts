@@ -26,6 +26,11 @@ export async function GET(
 		publicId: form.publicId,
 		status: form.status,
 		currentVersionId: form.currentVersionId,
+		primaryN8nWebhookUrl: form.primaryN8nWebhookUrl,
+		backupWebhookUrl: form.backupWebhookUrl,
+		thankYouUrl: form.thankYouUrl,
+		thankYouMessage: form.thankYouMessage,
+		settings: form.settings,
 		versions: form.versions.map((v) => ({
 			id: v.id,
 			versionNumber: v.versionNumber,
@@ -38,6 +43,11 @@ const updateSchema = z.object({
 	name: z.string().min(1).optional(),
 	status: z.enum(["draft", "live", "archived"]).optional(),
 	currentVersionId: z.string().optional(),
+	primaryN8nWebhookUrl: z.string().url().nullable().optional(),
+	backupWebhookUrl: z.string().url().nullable().optional(),
+	thankYouUrl: z.string().url().nullable().optional(),
+	thankYouMessage: z.string().nullable().optional(),
+	settings: z.any().optional(),
 });
 
 export async function PUT(
@@ -50,13 +60,13 @@ export async function PUT(
 	const body = await req.json().catch(() => ({}));
 	const parsed = updateSchema.safeParse(body);
 	if (!parsed.success) {
-		return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+		return NextResponse.json({ error: "Invalid payload", details: parsed.error.issues }, { status: 400 });
 	}
 
 	// Ensure the form belongs to tenant
 	const form = await prisma.form.findFirst({
 		where: { id, tenantId: session.tenantId },
-		select: { id: true },
+		select: { id: true, status: true },
 	});
 	if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -71,15 +81,34 @@ export async function PUT(
 		currentVersionData.currentVersionId = version.id;
 	}
 
+	// Build update data, only including fields that were provided
+	const updateData: Record<string, unknown> = { ...currentVersionData };
+	if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+	if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
+	if (parsed.data.primaryN8nWebhookUrl !== undefined) updateData.primaryN8nWebhookUrl = parsed.data.primaryN8nWebhookUrl;
+	if (parsed.data.backupWebhookUrl !== undefined) updateData.backupWebhookUrl = parsed.data.backupWebhookUrl;
+	if (parsed.data.thankYouUrl !== undefined) updateData.thankYouUrl = parsed.data.thankYouUrl;
+	if (parsed.data.thankYouMessage !== undefined) updateData.thankYouMessage = parsed.data.thankYouMessage;
+	if (parsed.data.settings !== undefined) updateData.settings = parsed.data.settings;
+
 	const updated = await prisma.form.update({
 		where: { id },
-		data: {
-			name: parsed.data.name,
-			status: parsed.data.status,
-			...currentVersionData,
-		},
+		data: updateData,
 		select: { id: true },
 	});
+
+	// Log status changes
+	if (parsed.data.status && parsed.data.status !== form.status) {
+		try {
+			await prisma.$executeRaw`
+				INSERT INTO "AuditLog" ("id", "tenantId", "userId", "action", "resourceType", "resourceId", "metadata", "createdAt")
+				VALUES (${`audit_${Date.now()}`}, ${session.tenantId}, ${session.userId}, ${`form.status.${parsed.data.status}`}, 'form', ${id}, ${JSON.stringify({ oldStatus: form.status, newStatus: parsed.data.status })}, NOW())
+			`;
+		} catch {
+			// Audit log failure shouldn't break the operation
+		}
+	}
+
 	return NextResponse.json({ id: updated.id });
 }
 

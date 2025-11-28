@@ -4,6 +4,7 @@ import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { validateWebhookUrl } from '@/lib/webhook-validation';
 import { validateSubmission } from '@/lib/schema-validation';
+import { resolveWebhookUrl, type WebhookRoutingConfig } from '@/lib/webhook-routing';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
 
@@ -123,8 +124,8 @@ export async function POST(
 		);
 	}
 	const tenant = form.tenant;
-	const webhookUrl = form.primaryN8nWebhookUrl ?? tenant.defaultN8nWebhookUrl;
-	if (!webhookUrl) {
+	const defaultWebhookUrl = form.primaryN8nWebhookUrl ?? tenant.defaultN8nWebhookUrl;
+	if (!defaultWebhookUrl) {
 		return NextResponse.json(
 			{
 				status: 'error',
@@ -134,6 +135,14 @@ export async function POST(
 			{ status: 500 }
 		);
 	}
+
+	// Resolve webhook URL using conditional routing
+	const routingConfig = form.webhookRouting as WebhookRoutingConfig | null;
+	const { url: webhookUrl, ruleName: matchedRule } = resolveWebhookUrl(
+		routingConfig,
+		answers as Record<string, unknown>,
+		defaultWebhookUrl
+	);
 
 	// Validate webhook URL for SSRF protection
 	const webhookValidation = validateWebhookUrl(webhookUrl);

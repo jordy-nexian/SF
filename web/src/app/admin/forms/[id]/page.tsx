@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import WebhookTestButton from "@/components/WebhookTestButton";
+import DuplicateFormButton from "@/components/DuplicateFormButton";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,13 @@ export default async function FormDetail({ params }: { params: { id: string } })
             {statusInfo.label}
           </span>
         </div>
-        <Link href="/admin" className="text-sm text-blue-600">← Back</Link>
+        <div className="flex items-center gap-3">
+          <DuplicateFormButton formId={data.id} formName={data.name} />
+          <Link href={`/admin/forms/${params.id}/settings`} className="rounded border px-3 py-1 text-sm hover:bg-gray-50">
+            Settings
+          </Link>
+          <Link href="/admin" className="text-sm text-blue-600">← Back</Link>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -118,6 +125,16 @@ export default async function FormDetail({ params }: { params: { id: string } })
             <div className="text-2xl font-semibold">{stats.last30Days.avgLatencyMs}ms</div>
             <div className="text-xs text-gray-600">Avg Latency</div>
           </div>
+        </div>
+      )}
+      {stats && stats.totalSubmissions > 0 && (
+        <div className="mb-6">
+          <Link
+            href={`/admin/forms/${params.id}/analytics`}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            View detailed analytics →
+          </Link>
         </div>
       )}
 
