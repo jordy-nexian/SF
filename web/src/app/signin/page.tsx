@@ -13,7 +13,6 @@ function SignInForm() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
-	// Get callback URL from query params, default to /admin
 	const callbackUrl = searchParams.get("callbackUrl") || "/admin";
 
 	async function onSubmit(e: React.FormEvent) {
@@ -30,7 +29,6 @@ function SignInForm() {
 			if (res?.error) {
 				setError("Invalid credentials");
 			} else {
-				// Use the URL from response or fallback to callbackUrl
 				router.push(res?.url || callbackUrl);
 				router.refresh();
 			}
@@ -42,24 +40,24 @@ function SignInForm() {
 	}
 
 	return (
-		<div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-6">
+		<div className="min-h-screen bg-slate-900 flex items-center justify-center px-6 relative overflow-hidden">
 			{/* Background effects */}
-			<div className="fixed inset-0 pointer-events-none">
-				<div className="glow-orb w-[500px] h-[500px] bg-indigo-600 -top-32 -left-32" />
-				<div className="glow-orb w-[400px] h-[400px] bg-purple-600 bottom-0 right-0" />
+			<div className="fixed inset-0 overflow-hidden pointer-events-none">
+				<div className="absolute w-[500px] h-[500px] bg-indigo-600/30 rounded-full blur-[120px] -top-32 -left-32" />
+				<div className="absolute w-[400px] h-[400px] bg-purple-600/30 rounded-full blur-[120px] bottom-0 right-0" />
 			</div>
 
 			<div className="relative w-full max-w-md">
 				{/* Logo */}
 				<div className="text-center mb-8">
-					<Link href="/" className="text-2xl font-bold gradient-text">
+					<Link href="/" className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
 						Stateless Forms
 					</Link>
 					<p className="text-slate-400 mt-2">Sign in to your account</p>
 				</div>
 
 				{/* Form card */}
-				<div className="glass-card p-8">
+				<div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
 					<form className="space-y-5" onSubmit={onSubmit}>
 						<div>
 							<label className="block text-sm text-slate-300 mb-2">Email address</label>
@@ -86,7 +84,7 @@ function SignInForm() {
 						<button
 							type="submit"
 							disabled={loading}
-							className="btn-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+							className="w-full py-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{loading ? (
 								<span className="flex items-center justify-center gap-2">
@@ -123,7 +121,7 @@ function SignInForm() {
 export default function SignInPage() {
 	return (
 		<Suspense fallback={
-			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+			<div className="min-h-screen bg-slate-900 flex items-center justify-center">
 				<div className="text-slate-400">Loading...</div>
 			</div>
 		}>

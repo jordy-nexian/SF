@@ -2,42 +2,50 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="glow-orb w-[600px] h-[600px] bg-indigo-600 -top-48 -left-48" />
-        <div className="glow-orb w-[500px] h-[500px] bg-purple-600 top-1/3 -right-32" />
-        <div className="glow-orb w-[400px] h-[400px] bg-orange-500 bottom-0 left-1/4" />
+    <div className="min-h-screen bg-slate-900 text-white overflow-hidden relative">
+      {/* Background gradient orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[120px] -top-48 -left-48" />
+        <div className="absolute w-[500px] h-[500px] bg-purple-600/30 rounded-full blur-[120px] top-1/3 -right-32" />
+        <div className="absolute w-[400px] h-[400px] bg-orange-500/20 rounded-full blur-[120px] bottom-0 left-1/4" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-6">
+      <section className="relative pt-32 pb-20 px-6">
         <div className="max-w-6xl mx-auto">
           {/* Badge */}
-          <div className="flex justify-center mb-8 animate-fade-in-up">
-            <div className="glass-card px-4 py-2 flex items-center gap-2 text-sm">
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 text-sm">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-slate-300">Now with n8n native integration</span>
             </div>
           </div>
 
           {/* Main headline */}
-          <h1 className="text-5xl md:text-7xl font-bold text-center leading-tight mb-6 animate-fade-in-up delay-100">
+          <h1 className="text-5xl md:text-7xl font-bold text-center leading-tight mb-6">
             Forms that flow,{" "}
-            <span className="gradient-text">data that goes</span>
+            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              data that goes
+            </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-slate-400 text-center max-w-3xl mx-auto mb-10 animate-fade-in-up delay-200">
+          <p className="text-xl md:text-2xl text-slate-400 text-center max-w-3xl mx-auto mb-10">
             Build stunning, dynamic forms without storing a single answer. 
             Submissions relay instantly to your n8n workflows—signed, secure, and seamless.
           </p>
 
           {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up delay-300">
-            <Link href="/admin/forms/builder" className="btn-primary text-lg px-8 py-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link 
+              href="/admin/forms/builder" 
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold text-lg px-8 py-4 rounded-full shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all hover:-translate-y-0.5"
+            >
               Start building free
             </Link>
-            <Link href="/features" className="btn-secondary text-lg px-8 py-4 flex items-center gap-2">
+            <Link 
+              href="/features" 
+              className="bg-transparent border border-slate-600 hover:border-slate-500 hover:bg-white/5 text-white font-semibold text-lg px-8 py-4 rounded-full transition-all flex items-center gap-2"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -46,38 +54,41 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="text-center text-slate-500 text-sm mt-6 animate-fade-in-up delay-400">
+          <p className="text-center text-slate-500 text-sm mt-6">
             No credit card required • Answers never stored • GDPR compliant
           </p>
 
-          {/* Hero visual */}
-          <div className="mt-16 relative animate-scale-in delay-500">
-            <div className="gradient-border p-1">
+          {/* Hero visual - Form mockup */}
+          <div className="mt-16 relative max-w-4xl mx-auto">
+            {/* Gradient border wrapper */}
+            <div className="p-[1px] rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
               <div className="bg-slate-900 rounded-2xl p-6 md:p-8">
-                {/* Mock form UI */}
+                {/* Window chrome */}
                 <div className="flex items-center gap-2 mb-6">
                   <div className="w-3 h-3 rounded-full bg-red-500" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span className="ml-4 text-slate-500 text-sm font-mono">form-builder.statelessforms.io</span>
                 </div>
+                
+                {/* Form mockup content */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div className="glass-card p-4">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                       <label className="text-sm text-slate-400 block mb-2">Full Name</label>
                       <div className="h-10 rounded-lg bg-slate-800 border border-slate-700" />
                     </div>
-                    <div className="glass-card p-4">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                       <label className="text-sm text-slate-400 block mb-2">Email Address</label>
                       <div className="h-10 rounded-lg bg-slate-800 border border-slate-700" />
                     </div>
-                    <div className="glass-card p-4">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                       <label className="text-sm text-slate-400 block mb-2">Message</label>
                       <div className="h-24 rounded-lg bg-slate-800 border border-slate-700" />
                     </div>
                   </div>
                   <div className="flex flex-col justify-center items-center text-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4 animate-float">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4">
                       <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
@@ -93,11 +104,12 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 glass-card px-3 py-2 text-sm animate-float delay-200">
+            
+            {/* Floating badges */}
+            <div className="absolute -top-3 -right-3 bg-slate-800/90 backdrop-blur border border-slate-700 rounded-lg px-3 py-2 text-sm shadow-xl">
               <span className="text-green-400">✓</span> HMAC Signed
             </div>
-            <div className="absolute -bottom-4 -left-4 glass-card px-3 py-2 text-sm animate-float delay-300">
+            <div className="absolute -bottom-3 -left-3 bg-slate-800/90 backdrop-blur border border-slate-700 rounded-lg px-3 py-2 text-sm shadow-xl">
               <span className="text-orange-400">⚡</span> Real-time relay
             </div>
           </div>
@@ -109,7 +121,8 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Why teams choose <span className="gradient-text">Stateless</span>
+              Why teams choose{" "}
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Stateless</span>
             </h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
               Privacy-first form infrastructure that integrates seamlessly with your automation stack
@@ -117,83 +130,70 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Feature 1 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Feature cards */}
+            {[
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Schema-Driven Forms</h3>
-              <p className="text-slate-400">
-                Multi-step wizards, conditional logic, repeatable sections, and real-time validation—all defined in JSON.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ),
+                gradient: "from-indigo-500 to-purple-600",
+                title: "Schema-Driven Forms",
+                desc: "Multi-step wizards, conditional logic, repeatable sections, and real-time validation—all defined in JSON."
+              },
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Zero Data Storage</h3>
-              <p className="text-slate-400">
-                We never store form answers. Only metadata for analytics. Your data, your servers, your control.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ),
+                gradient: "from-orange-500 to-red-500",
+                title: "Zero Data Storage",
+                desc: "We never store form answers. Only metadata for analytics. Your data, your servers, your control."
+              },
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">n8n Native</h3>
-              <p className="text-slate-400">
-                HMAC-signed webhooks relay submissions instantly. Verify authenticity and route with confidence.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ),
+                gradient: "from-green-500 to-emerald-500",
+                title: "n8n Native",
+                desc: "HMAC-signed webhooks relay submissions instantly. Verify authenticity and route with confidence."
+              },
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Custom Theming</h3>
-              <p className="text-slate-400">
-                Match your brand with custom colors, fonts, and styling. Embed anywhere with our JS snippet.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ),
+                gradient: "from-cyan-500 to-blue-500",
+                title: "Custom Theming",
+                desc: "Match your brand with custom colors, fonts, and styling. Embed anywhere with our JS snippet."
+              },
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Rich Analytics</h3>
-              <p className="text-slate-400">
-                Track submissions, completion rates, and drop-off points. A/B test form variants to optimize conversions.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="glass-card p-8 hover:border-indigo-500/30 transition-all duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ),
+                gradient: "from-pink-500 to-rose-500",
+                title: "Rich Analytics",
+                desc: "Track submissions, completion rates, and drop-off points. A/B test form variants to optimize conversions."
+              },
+              {
+                icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+                ),
+                gradient: "from-violet-500 to-purple-600",
+                title: "Multi-Tenant",
+                desc: "Manage multiple clients or projects with isolated forms, webhooks, and analytics per tenant."
+              }
+            ].map((feature, i) => (
+              <div 
+                key={i}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-indigo-500/30 hover:bg-white/[0.07] transition-all duration-300 group"
+              >
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {feature.icon}
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                <p className="text-slate-400">{feature.desc}</p>
               </div>
-              <h3 className="text-xl font-semibold mb-3">Multi-Tenant</h3>
-              <p className="text-slate-400">
-                Manage multiple clients or projects with isolated forms, webhooks, and analytics per tenant.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -202,44 +202,28 @@ export default function Home() {
       <section className="relative py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              How it works
-            </h2>
-            <p className="text-slate-400 text-lg">
-              From form to workflow in three simple steps
-            </p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">How it works</h2>
+            <p className="text-slate-400 text-lg">From form to workflow in three simple steps</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-                1
+            {[
+              { num: "1", title: "Design your form", desc: "Use our visual builder or write JSON schemas. Add steps, conditions, and validation rules." },
+              { num: "2", title: "Connect your webhook", desc: "Point to your n8n workflow URL. We'll sign every payload with HMAC for verification." },
+              { num: "3", title: "Embed & go live", desc: "Share a link, embed via iframe, or use our JS snippet. Submissions flow instantly to n8n." }
+            ].map((step, i) => (
+              <div key={i} className="text-center">
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${
+                  i === 0 ? "from-indigo-500 to-purple-600" : 
+                  i === 1 ? "from-orange-500 to-red-500" : 
+                  "from-green-500 to-emerald-500"
+                } flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-lg`}>
+                  {step.num}
+                </div>
+                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
+                <p className="text-slate-400">{step.desc}</p>
               </div>
-              <h3 className="text-xl font-semibold mb-3">Design your form</h3>
-              <p className="text-slate-400">
-                Use our visual builder or write JSON schemas. Add steps, conditions, and validation rules.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Connect your webhook</h3>
-              <p className="text-slate-400">
-                Point to your n8n workflow URL. We'll sign every payload with HMAC for verification.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Embed & go live</h3>
-              <p className="text-slate-400">
-                Share a link, embed via iframe, or use our JS snippet. Submissions flow instantly to n8n.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -247,21 +231,25 @@ export default function Home() {
       {/* CTA Section */}
       <section className="relative py-24 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="gradient-border p-1">
+          <div className="p-[1px] rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
             <div className="bg-slate-900 rounded-2xl p-12 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20" />
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-purple-600/10" />
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                  Ready to go stateless?
-                </h2>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to go stateless?</h2>
                 <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">
                   Join teams who've simplified their form infrastructure while keeping full control of their data.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/admin/forms/builder" className="btn-primary text-lg px-8 py-4">
+                  <Link 
+                    href="/admin/forms/builder" 
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold text-lg px-8 py-4 rounded-full shadow-lg shadow-indigo-500/30 transition-all"
+                  >
                     Start building free
                   </Link>
-                  <Link href="/pricing" className="btn-secondary text-lg px-8 py-4">
+                  <Link 
+                    href="/pricing" 
+                    className="bg-transparent border border-slate-600 hover:border-slate-500 hover:bg-white/5 text-white font-semibold text-lg px-8 py-4 rounded-full transition-all"
+                  >
                     View pricing
                   </Link>
                 </div>
@@ -272,11 +260,13 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 py-12 px-6">
+      <footer className="border-t border-slate-800 py-12 px-6 relative">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h4 className="font-semibold mb-4 gradient-text text-lg">Stateless Forms</h4>
+              <h4 className="font-semibold mb-4 text-lg bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                Stateless Forms
+              </h4>
               <p className="text-slate-500 text-sm">
                 Privacy-first forms with real-time n8n relay. No answers stored, ever.
               </p>
@@ -306,8 +296,8 @@ export default function Home() {
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <span className="text-slate-500 text-sm">© {new Date().getFullYear()} Stateless Forms. All rights reserved.</span>
             <div className="flex gap-6 text-sm text-slate-500">
-              <span>Privacy Policy</span>
-              <span>Terms of Service</span>
+              <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
+              <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
             </div>
           </div>
         </div>

@@ -20,15 +20,18 @@ export default function Header() {
     return null;
   }
 
-  // Check if we're on the dark-themed landing page
-  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing";
+  // Check if we're on the dark-themed pages
+  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing" || pathname === "/signin";
 
   // Loading state - show minimal header
   if (status === "loading") {
     return (
-      <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "bg-transparent" : "border-b bg-white"}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "" : "border-b bg-white"}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-          <Link href="/" className={`text-lg font-semibold ${isDarkPage ? "gradient-text" : ""}`}>
+          <Link 
+            href="/" 
+            className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
+          >
             Stateless Forms
           </Link>
           <div className="h-8 w-16"></div>
@@ -42,7 +45,10 @@ export default function Header() {
     return (
       <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "bg-slate-900/80 backdrop-blur-md border-b border-slate-800" : "border-b bg-white"}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-          <Link href="/" className={`text-lg font-semibold ${isDarkPage ? "gradient-text" : ""}`}>
+          <Link 
+            href="/" 
+            className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
+          >
             Stateless Forms
           </Link>
           <nav className={`flex items-center gap-4 text-sm ${isDarkPage ? "text-slate-300" : "text-gray-700"}`}>
@@ -71,9 +77,12 @@ export default function Header() {
 
   // User is not logged in - show only Login
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "bg-transparent" : "border-b bg-white"}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "" : "border-b bg-white"}`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-        <Link href="/" className={`text-lg font-semibold ${isDarkPage ? "gradient-text" : ""}`}>
+        <Link 
+          href="/" 
+          className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
+        >
           Stateless Forms
         </Link>
         <nav className="flex items-center gap-4 text-sm">
@@ -92,4 +101,3 @@ export default function Header() {
     </header>
   );
 }
-
