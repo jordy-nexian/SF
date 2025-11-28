@@ -23,15 +23,22 @@ export default function Header() {
   // Check if we're on the dark-themed pages
   const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing" || pathname === "/signin";
 
+  const gradientTextStyle = {
+    background: 'linear-gradient(to right, #818cf8, #a78bfa)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+  } as React.CSSProperties;
+
   // Loading state - show minimal header
   if (status === "loading") {
     return (
-      <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "" : "border-b bg-white"}`}>
+      <header 
+        className="fixed top-0 left-0 right-0 z-50"
+        style={isDarkPage ? {} : { borderBottom: '1px solid #e5e7eb', background: 'white' }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-          <Link 
-            href="/" 
-            className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
-          >
+          <Link href="/" className="text-lg font-semibold" style={isDarkPage ? gradientTextStyle : { color: '#111827' }}>
             Stateless Forms
           </Link>
           <div className="h-8 w-16"></div>
@@ -43,29 +50,40 @@ export default function Header() {
   // User is logged in - show Dashboard link and Log out
   if (session) {
     return (
-      <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "bg-slate-900/80 backdrop-blur-md border-b border-slate-800" : "border-b bg-white"}`}>
+      <header 
+        className="fixed top-0 left-0 right-0 z-50"
+        style={isDarkPage ? { 
+          background: 'rgba(15, 23, 42, 0.8)', 
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid #1e293b' 
+        } : { 
+          borderBottom: '1px solid #e5e7eb', 
+          background: 'white' 
+        }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-          <Link 
-            href="/" 
-            className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
-          >
+          <Link href="/" className="text-lg font-semibold" style={isDarkPage ? gradientTextStyle : { color: '#111827' }}>
             Stateless Forms
           </Link>
-          <nav className={`flex items-center gap-4 text-sm ${isDarkPage ? "text-slate-300" : "text-gray-700"}`}>
+          <nav className="flex items-center gap-4 text-sm">
             <Link 
               href="/admin" 
-              className={`${isDarkPage ? "text-slate-400 hover:text-white" : "text-gray-600 hover:text-gray-900"} transition-colors`}
+              className="transition-colors"
+              style={{ color: isDarkPage ? '#94a3b8' : '#4b5563' }}
             >
               Dashboard
             </Link>
-            <span className={isDarkPage ? "text-slate-500" : "text-gray-500"}>{session.user?.email}</span>
+            <span style={{ color: isDarkPage ? '#64748b' : '#6b7280' }}>{session.user?.email}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className={`rounded-full px-4 py-1.5 transition-all ${
-                isDarkPage 
-                  ? "border border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600" 
-                  : "border text-gray-700 hover:bg-gray-50"
-              }`}
+              className="rounded-full px-4 py-1.5 transition-all"
+              style={isDarkPage ? {
+                border: '1px solid #334155',
+                color: '#cbd5e1',
+              } : {
+                border: '1px solid #d1d5db',
+                color: '#374151',
+              }}
             >
               Log out
             </button>
@@ -77,22 +95,25 @@ export default function Header() {
 
   // User is not logged in - show only Login
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 ${isDarkPage ? "" : "border-b bg-white"}`}>
+    <header 
+      className="fixed top-0 left-0 right-0 z-50"
+      style={isDarkPage ? {} : { borderBottom: '1px solid #e5e7eb', background: 'white' }}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
-        <Link 
-          href="/" 
-          className={`text-lg font-semibold ${isDarkPage ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent" : "text-gray-900"}`}
-        >
+        <Link href="/" className="text-lg font-semibold" style={isDarkPage ? gradientTextStyle : { color: '#111827' }}>
           Stateless Forms
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link 
             href="/signin" 
-            className={`rounded-full px-4 py-1.5 transition-all ${
-              isDarkPage 
-                ? "border border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-indigo-500" 
-                : "border text-gray-700 hover:bg-gray-50"
-            }`}
+            className="rounded-full px-4 py-1.5 transition-all"
+            style={isDarkPage ? {
+              border: '1px solid #334155',
+              color: '#cbd5e1',
+            } : {
+              border: '1px solid #d1d5db',
+              color: '#374151',
+            }}
           >
             Log in
           </Link>

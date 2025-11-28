@@ -39,31 +39,71 @@ function SignInForm() {
 		}
 	}
 
+	const gradientTextStyle = {
+		background: 'linear-gradient(to right, #818cf8, #a78bfa)',
+		WebkitBackgroundClip: 'text',
+		WebkitTextFillColor: 'transparent',
+		backgroundClip: 'text',
+	} as React.CSSProperties;
+
 	return (
-		<div className="min-h-screen bg-slate-900 flex items-center justify-center px-6 relative overflow-hidden">
+		<div 
+			className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden"
+			style={{ background: '#0f172a' }}
+		>
 			{/* Background effects */}
 			<div className="fixed inset-0 overflow-hidden pointer-events-none">
-				<div className="absolute w-[500px] h-[500px] bg-indigo-600/30 rounded-full blur-[120px] -top-32 -left-32" />
-				<div className="absolute w-[400px] h-[400px] bg-purple-600/30 rounded-full blur-[120px] bottom-0 right-0" />
+				<div 
+					className="absolute rounded-full"
+					style={{
+						width: '500px',
+						height: '500px',
+						background: 'rgba(99, 102, 241, 0.3)',
+						filter: 'blur(120px)',
+						top: '-150px',
+						left: '-150px',
+					}}
+				/>
+				<div 
+					className="absolute rounded-full"
+					style={{
+						width: '400px',
+						height: '400px',
+						background: 'rgba(139, 92, 246, 0.3)',
+						filter: 'blur(120px)',
+						bottom: '0',
+						right: '0',
+					}}
+				/>
 			</div>
 
 			<div className="relative w-full max-w-md">
 				{/* Logo */}
 				<div className="text-center mb-8">
-					<Link href="/" className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+					<Link href="/" className="text-2xl font-bold" style={gradientTextStyle}>
 						Stateless Forms
 					</Link>
-					<p className="text-slate-400 mt-2">Sign in to your account</p>
+					<p className="mt-2" style={{ color: '#94a3b8' }}>Sign in to your account</p>
 				</div>
 
 				{/* Form card */}
-				<div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
+				<div 
+					className="rounded-2xl p-8"
+					style={{ 
+						background: 'rgba(255, 255, 255, 0.05)',
+						border: '1px solid rgba(255, 255, 255, 0.1)',
+					}}
+				>
 					<form className="space-y-5" onSubmit={onSubmit}>
 						<div>
-							<label className="block text-sm text-slate-300 mb-2">Email address</label>
+							<label className="block text-sm mb-2" style={{ color: '#cbd5e1' }}>Email address</label>
 							<input
 								type="email"
-								className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+								className="w-full rounded-lg px-4 py-3 text-white transition-colors focus:outline-none"
+								style={{ 
+									background: '#1e293b',
+									border: '1px solid #334155',
+								}}
 								placeholder="you@example.com"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
@@ -71,10 +111,14 @@ function SignInForm() {
 							/>
 						</div>
 						<div>
-							<label className="block text-sm text-slate-300 mb-2">Password</label>
+							<label className="block text-sm mb-2" style={{ color: '#cbd5e1' }}>Password</label>
 							<input
 								type="password"
-								className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+								className="w-full rounded-lg px-4 py-3 text-white transition-colors focus:outline-none"
+								style={{ 
+									background: '#1e293b',
+									border: '1px solid #334155',
+								}}
 								placeholder="••••••••"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
@@ -84,7 +128,11 @@ function SignInForm() {
 						<button
 							type="submit"
 							disabled={loading}
-							className="w-full py-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							className="w-full py-3 rounded-full font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							style={{
+								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+							}}
 						>
 							{loading ? (
 								<span className="flex items-center justify-center gap-2">
@@ -99,7 +147,14 @@ function SignInForm() {
 							)}
 						</button>
 						{error && (
-							<div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+							<div 
+								className="p-3 rounded-lg text-sm text-center"
+								style={{ 
+									background: 'rgba(239, 68, 68, 0.1)',
+									border: '1px solid rgba(239, 68, 68, 0.2)',
+									color: '#f87171',
+								}}
+							>
 								{error}
 							</div>
 						)}
@@ -107,9 +162,9 @@ function SignInForm() {
 				</div>
 
 				{/* Footer */}
-				<p className="text-center text-slate-500 text-sm mt-6">
+				<p className="text-center text-sm mt-6" style={{ color: '#64748b' }}>
 					Don&apos;t have an account?{" "}
-					<Link href="/admin/forms/builder" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+					<Link href="/admin/forms/builder" className="transition-colors" style={{ color: '#818cf8' }}>
 						Start building for free
 					</Link>
 				</p>
@@ -121,8 +176,8 @@ function SignInForm() {
 export default function SignInPage() {
 	return (
 		<Suspense fallback={
-			<div className="min-h-screen bg-slate-900 flex items-center justify-center">
-				<div className="text-slate-400">Loading...</div>
+			<div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a' }}>
+				<div style={{ color: '#94a3b8' }}>Loading...</div>
 			</div>
 		}>
 			<SignInForm />
