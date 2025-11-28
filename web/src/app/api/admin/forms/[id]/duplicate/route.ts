@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,9 @@ export async function POST(
 				backupWebhookUrl: original.backupWebhookUrl,
 				thankYouUrl: original.thankYouUrl,
 				thankYouMessage: original.thankYouMessage,
-				settings: original.settings,
+				settings: original.settings === null ? Prisma.JsonNull : original.settings,
+				webhookRouting: original.webhookRouting === null ? Prisma.JsonNull : original.webhookRouting,
+				payloadTransform: original.payloadTransform === null ? Prisma.JsonNull : original.payloadTransform,
 			},
 		});
 
