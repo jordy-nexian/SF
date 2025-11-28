@@ -80,7 +80,7 @@ export async function POST(
 				data: {
 					formId: newForm.id,
 					versionNumber: version.versionNumber,
-					schema: version.schema,
+					schema: version.schema === null ? Prisma.JsonNull : version.schema,
 				},
 			});
 
