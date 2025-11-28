@@ -45,22 +45,35 @@ export async function GET(
 				weight: v.trafficWeight,
 			}));
 
-		let version = form.currentVersion;
+		// Track selected version info (we only need schema and versionNumber)
+		let selectedVersion: { schema: unknown; versionNumber: number } | null = null;
 
 		// If A/B test is active, select version based on weights
 		if (abVersions.length > 0) {
 			const selectedId = selectVersion(abVersions, form.currentVersionId);
 			if (selectedId) {
-				version = form.versions.find((v) => v.id === selectedId) ?? version;
+				const found = form.versions.find((v) => v.id === selectedId);
+				if (found) {
+					selectedVersion = { schema: found.schema, versionNumber: found.versionNumber };
+				}
 			}
 		}
 
-		// Fallback to highest version if no current version
-		if (!version) {
-			version = form.versions.sort((a, b) => b.versionNumber - a.versionNumber)[0];
+		// Use current version if no A/B selection
+		if (!selectedVersion && form.currentVersion) {
+			selectedVersion = {
+				schema: form.currentVersion.schema,
+				versionNumber: form.currentVersion.versionNumber,
+			};
 		}
 
-		if (!version) {
+		// Fallback to highest version if no current version
+		if (!selectedVersion && form.versions.length > 0) {
+			const sorted = [...form.versions].sort((a, b) => b.versionNumber - a.versionNumber);
+			selectedVersion = { schema: sorted[0].schema, versionNumber: sorted[0].versionNumber };
+		}
+
+		if (!selectedVersion) {
 			return NextResponse.json({ error: 'Form has no versions' }, { status: 404 });
 		}
 
@@ -77,8 +90,8 @@ export async function GET(
 
 		return NextResponse.json({
 			formId: form.id,
-			formVersion: version.versionNumber,
-			schema: version.schema,
+			formVersion: selectedVersion.versionNumber,
+			schema: selectedVersion.schema,
 			theme,
 			settings,
 			thankYouUrl: form.thankYouUrl,
