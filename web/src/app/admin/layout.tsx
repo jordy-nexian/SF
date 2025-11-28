@@ -24,7 +24,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							<Link href="/admin/usage">Usage</Link>
 							<Link href="/admin/themes">Themes</Link>
 							<Link href="/admin/docs/webhook-verification">Docs</Link>
-							<Link href="/admin/forms/new" className="text-blue-600">+ New form</Link>
+							<Link href="/admin/forms/builder" className="text-blue-600">+ Builder</Link>
+							<Link href="/admin/forms/new" className="text-gray-500">JSON</Link>
 						</nav>
 					</div>
 					<div className="flex items-center gap-3">

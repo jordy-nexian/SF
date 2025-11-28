@@ -1,11 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { defaultTheme, type ThemeConfig } from '@/types/theme';
+import { selectVersion, type VersionWeight } from '@/lib/ab-testing';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-	_request: NextRequest,
+	request: NextRequest,
 	context: { params: Promise<{ publicId: string }> }
 ) {
 	try {
@@ -14,6 +15,14 @@ export async function GET(
 			where: { publicId },
 			include: {
 				currentVersion: true,
+				versions: {
+					select: {
+						id: true,
+						versionNumber: true,
+						trafficWeight: true,
+						schema: true,
+					},
+				},
 				tenant: {
 					select: {
 						id: true,
@@ -27,13 +36,28 @@ export async function GET(
 			return NextResponse.json({ error: 'Form not found' }, { status: 404 });
 		}
 
-		// Resolve version: prefer currentVersion, otherwise highest versionNumber
+		// Check for A/B test
+		const abVersions: VersionWeight[] = form.versions
+			.filter((v) => v.trafficWeight > 0)
+			.map((v) => ({
+				versionId: v.id,
+				versionNumber: v.versionNumber,
+				weight: v.trafficWeight,
+			}));
+
 		let version = form.currentVersion;
+
+		// If A/B test is active, select version based on weights
+		if (abVersions.length > 0) {
+			const selectedId = selectVersion(abVersions, form.currentVersionId);
+			if (selectedId) {
+				version = form.versions.find((v) => v.id === selectedId) ?? version;
+			}
+		}
+
+		// Fallback to highest version if no current version
 		if (!version) {
-			version = await prisma.formVersion.findFirst({
-				where: { formId: form.id },
-				orderBy: { versionNumber: 'desc' },
-			});
+			version = form.versions.sort((a, b) => b.versionNumber - a.versionNumber)[0];
 		}
 
 		if (!version) {

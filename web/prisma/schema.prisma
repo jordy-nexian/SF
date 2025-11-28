@@ -45,6 +45,8 @@ model Tenant {
   defaultN8nWebhookUrl   String?
   sharedSecret           String
   settings               Json?
+  customDomain           String?  @unique  // Custom domain for forms
+  customDomainVerified   Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -96,6 +98,7 @@ model FormVersion {
   formId         String
   versionNumber  Int
   schema         Json
+  trafficWeight  Int      @default(0)  // A/B test weight (0 = not in test)
   createdAt      DateTime @default(now())
 
   form           Form     @relation(fields: [formId], references: [id], onDelete: Cascade)

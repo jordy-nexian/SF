@@ -5,6 +5,8 @@ import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { validateWebhookUrl } from '@/lib/webhook-validation';
 import { validateSubmission } from '@/lib/schema-validation';
 import { resolveWebhookUrl, type WebhookRoutingConfig } from '@/lib/webhook-routing';
+import { isIpAllowed, type IpAllowlistConfig } from '@/lib/ip-allowlist';
+import { transformPayload, type TransformTemplate } from '@/lib/payload-transform';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
 
@@ -124,6 +126,21 @@ export async function POST(
 		);
 	}
 	const tenant = form.tenant;
+
+	// Check IP allowlist/blocklist
+	const formSettings = form.settings as { ipAllowlist?: IpAllowlistConfig } | null;
+	const ipAllowlistConfig = formSettings?.ipAllowlist;
+	const ipCheck = isIpAllowed(clientIp, ipAllowlistConfig);
+	if (!ipCheck.allowed) {
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'Submission not allowed from this location',
+			},
+			{ status: 403 }
+		);
+	}
 	const defaultWebhookUrl = form.primaryN8nWebhookUrl ?? tenant.defaultN8nWebhookUrl;
 	if (!defaultWebhookUrl) {
 		return NextResponse.json(
@@ -194,7 +211,9 @@ export async function POST(
 		ip: clientIp,
 		userAgent: request.headers.get('user-agent') || undefined,
 	};
-	const forwardPayload = JSON.stringify({
+
+	// Build base payload
+	const basePayload = {
 		tenantId: tenant.id,
 		formId: form.id,
 		formVersion: Number.isInteger(formVersion) ? formVersion : effectiveVersion,
@@ -203,36 +222,53 @@ export async function POST(
 		answers,
 		client,
 		meta,
-	});
+	};
+
+	// Apply payload transformation if configured
+	const payloadTransform = form.payloadTransform as TransformTemplate | null;
+	const finalPayload = transformPayload(basePayload, payloadTransform);
+	const forwardPayload = JSON.stringify(finalPayload);
 
 	// HMAC signature
 	const h = createHmacSignature(forwardPayload, tenant.sharedSecret);
 
-	// Forward to n8n
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), FORWARD_TIMEOUT_MS);
-	let status: number | undefined;
-	let success = false;
-	try {
-		const res = await fetch(webhookUrl, {
-			method: 'POST',
-			body: forwardPayload,
-			headers: {
-				'content-type': 'application/json',
-				...buildSignatureHeaders(h),
-				'X-Submission-Id': submissionId,
-				'X-Tenant-Id': tenant.id,
-				'X-Form-Id': form.id,
-			},
-			signal: controller.signal,
-		});
-		status = res.status;
-		success = res.ok;
-	} catch {
-		status = undefined;
-		success = false;
-	} finally {
-		clearTimeout(timeout);
+	// Helper to send webhook
+	async function sendWebhook(url: string): Promise<{ status?: number; success: boolean }> {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), FORWARD_TIMEOUT_MS);
+		try {
+			const res = await fetch(url, {
+				method: 'POST',
+				body: forwardPayload,
+				headers: {
+					'content-type': 'application/json',
+					...buildSignatureHeaders(h),
+					'X-Submission-Id': submissionId,
+					'X-Tenant-Id': tenant.id,
+					'X-Form-Id': form.id,
+				},
+				signal: controller.signal,
+			});
+			return { status: res.status, success: res.ok };
+		} catch {
+			return { status: undefined, success: false };
+		} finally {
+			clearTimeout(timeout);
+		}
+	}
+
+	// Forward to primary webhook
+	let { status, success } = await sendWebhook(webhookUrl);
+
+	// Try backup webhook on failure
+	const backupUrl = form.backupWebhookUrl;
+	if (!success && backupUrl) {
+		const backupValidation = validateWebhookUrl(backupUrl);
+		if (backupValidation.valid) {
+			const backup = await sendWebhook(backupUrl);
+			status = backup.status;
+			success = backup.success;
+		}
 	}
 
 	// Record metadata only (no answers)
