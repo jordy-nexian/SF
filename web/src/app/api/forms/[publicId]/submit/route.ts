@@ -232,6 +232,10 @@ export async function POST(
 	// HMAC signature
 	const h = createHmacSignature(forwardPayload, tenant.sharedSecret);
 
+	// Capture values for use in nested function
+	const formId = form.id;
+	const tenantId = tenant.id;
+
 	// Helper to send webhook
 	async function sendWebhook(url: string): Promise<{ status?: number; success: boolean }> {
 		const controller = new AbortController();
@@ -244,8 +248,8 @@ export async function POST(
 					'content-type': 'application/json',
 					...buildSignatureHeaders(h),
 					'X-Submission-Id': submissionId,
-					'X-Tenant-Id': tenant.id,
-					'X-Form-Id': form.id,
+					'X-Tenant-Id': tenantId,
+					'X-Form-Id': formId,
 				},
 				signal: controller.signal,
 			});
