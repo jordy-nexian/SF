@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 									color: 'white',
 								}}
 							>
-								+ Builder
+								+ New Form
 							</Link>
 						</nav>
 					</div>

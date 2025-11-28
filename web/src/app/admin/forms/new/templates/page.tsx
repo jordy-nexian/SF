@@ -19,7 +19,7 @@ export default function TemplatesPage() {
 		: formTemplates;
 
 	function selectTemplate(templateId: string) {
-		router.push(`/admin/forms/new?template=${templateId}`);
+		router.push(`/admin/forms/builder?template=${templateId}`);
 	}
 
 	return (
@@ -30,16 +30,19 @@ export default function TemplatesPage() {
 					<p className="mt-1 text-sm" style={{ color: '#94a3b8' }}>
 						Start with a pre-built template or{" "}
 						<Link href="/admin/forms/builder" style={{ color: '#818cf8' }}>
-							use the visual builder
+							start from scratch
 						</Link>
 					</p>
 				</div>
 				<Link 
-					href="/admin/forms/new" 
-					className="rounded-full px-4 py-2 text-sm transition-all"
-					style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+					href="/admin/forms/builder" 
+					className="rounded-full px-4 py-2 text-sm font-medium transition-all"
+					style={{ 
+						background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+						color: 'white',
+					}}
 				>
-					Blank Form (JSON)
+					Blank Form
 				</Link>
 			</div>
 

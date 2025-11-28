@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { FormSchema, Field } from "@/types/form-schema";
 import FormRenderer from "@/components/FormRenderer";
+import { getTemplateById } from "@/lib/form-templates";
 
 const FIELD_TYPES = [
 	{ type: "text", label: "Text Input", icon: "Aa" },
@@ -54,6 +55,7 @@ function FormBuilderContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const formId = searchParams.get("formId");
+	const templateId = searchParams.get("template");
 
 	const [formName, setFormName] = useState("New Form");
 	const [publicId, setPublicId] = useState("");
@@ -69,6 +71,20 @@ function FormBuilderContent() {
 	const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [templateName, setTemplateName] = useState<string | null>(null);
+
+	// Load template if specified
+	useEffect(() => {
+		if (templateId) {
+			const template = getTemplateById(templateId);
+			if (template) {
+				setFormName(template.name);
+				setPublicId(template.id);
+				setSchema(template.schema);
+				setTemplateName(template.name);
+			}
+		}
+	}, [templateId]);
 
 	const selectedField = schema.fields.find((f) => f.key === selectedFieldKey);
 

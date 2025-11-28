@@ -90,17 +90,13 @@ function NewFormContent() {
 			<div className="mb-6 flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-white">
-						{templateName ? `Create from: ${templateName}` : "Create form (JSON)"}
+						{templateName ? `Create from: ${templateName}` : "Advanced: JSON Editor"}
 					</h1>
 					{!templateId && (
 						<p className="mt-1 text-sm" style={{ color: '#94a3b8' }}>
-							Or{" "}
-							<Link href="/admin/forms/new/templates" style={{ color: '#818cf8' }}>
-								start from a template
-							</Link>
-							{" "}or use the{" "}
+							For direct schema control.{" "}
 							<Link href="/admin/forms/builder" style={{ color: '#818cf8' }}>
-								visual builder
+								Use the visual builder →
 							</Link>
 						</p>
 					)}

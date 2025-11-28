@@ -32,7 +32,7 @@ export default async function AdminHome() {
 						Templates
 					</Link>
 					<Link 
-						href="/admin/forms/new" 
+						href="/admin/forms/builder" 
 						className="rounded-full px-4 py-2 text-sm font-medium transition-all"
 						style={{ 
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
