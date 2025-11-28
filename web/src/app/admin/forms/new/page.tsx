@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import FormRenderer from "@/components/FormRenderer";
@@ -19,7 +19,7 @@ const starterSchema: FormSchema = {
 	steps: [],
 };
 
-export default function NewFormPage() {
+function NewFormContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const templateId = searchParams.get("template");
@@ -130,5 +130,10 @@ export default function NewFormPage() {
 	);
 }
 
-
-
+export default function NewFormPage() {
+	return (
+		<Suspense fallback={<div className="p-6">Loading...</div>}>
+			<NewFormContent />
+		</Suspense>
+	);
+}

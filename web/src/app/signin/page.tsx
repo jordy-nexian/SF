@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
-export default function SignInPage() {
+function SignInForm() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
@@ -74,6 +74,14 @@ export default function SignInPage() {
 				{error && <p className="text-sm text-red-600">{error}</p>}
 			</form>
 		</div>
+	);
+}
+
+export default function SignInPage() {
+	return (
+		<Suspense fallback={<div className="mx-auto max-w-sm p-6">Loading...</div>}>
+			<SignInForm />
+		</Suspense>
 	);
 }
 

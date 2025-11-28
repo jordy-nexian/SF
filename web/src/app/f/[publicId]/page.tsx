@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import type {
 	FormSchema,
@@ -13,7 +13,7 @@ import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
 
-export default function PublicFormPage({
+function PublicFormContent({
 	params,
 }: {
 	params: { publicId: string };
@@ -627,5 +627,17 @@ export default function PublicFormPage({
 				{submitError && <p className="text-red-600">{submitError}</p>}
 			</form>
 		</div>
+	);
+}
+
+export default function PublicFormPage({
+	params,
+}: {
+	params: { publicId: string };
+}) {
+	return (
+		<Suspense fallback={<div className="p-6">Loading form...</div>}>
+			<PublicFormContent params={params} />
+		</Suspense>
 	);
 }

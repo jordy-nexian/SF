@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { FormSchema, Field, Step } from "@/types/form-schema";
@@ -38,7 +38,7 @@ function generateKey(label: string, existingKeys: string[]): string {
 	return key;
 }
 
-export default function FormBuilderPage() {
+function FormBuilderContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const formId = searchParams.get("formId");
@@ -533,6 +533,14 @@ export default function FormBuilderPage() {
 				</div>
 			</div>
 		</div>
+	);
+}
+
+export default function FormBuilderPage() {
+	return (
+		<Suspense fallback={<div className="p-6">Loading form builder...</div>}>
+			<FormBuilderContent />
+		</Suspense>
 	);
 }
 
