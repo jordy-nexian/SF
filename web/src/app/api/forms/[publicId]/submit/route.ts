@@ -1,6 +1,10 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
+import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
+import { validateWebhookUrl } from '@/lib/webhook-validation';
+import { validateSubmission } from '@/lib/schema-validation';
+import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
@@ -9,12 +13,6 @@ const DEFAULT_MAX_BYTES = 262144; // 256 KiB
 const DEFAULT_MAX_FIELDS = 500;
 const FORWARD_TIMEOUT_MS = 10000;
 
-function getClientIp(req: Request): string | null {
-	const xff = req.headers.get('x-forwarded-for');
-	if (xff) return xff.split(',')[0]?.trim() ?? null;
-	return req.headers.get('x-real-ip');
-}
-
 export async function POST(
 	request: NextRequest,
 	context: { params: Promise<{ publicId: string }> }
@@ -22,6 +20,29 @@ export async function POST(
 	const start = Date.now();
 	let submissionId = crypto.randomUUID();
 	const { publicId } = await context.params;
+
+	// Rate limiting by IP
+	const clientIp = getClientIp(request.headers);
+	const rateLimitKey = `submit:${clientIp}`;
+	const rl = rateLimit(rateLimitKey, RATE_LIMITS.submit);
+	if (!rl.success) {
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'Too many requests. Please try again later.',
+			},
+			{
+				status: 429,
+				headers: {
+					'Retry-After': Math.ceil((rl.resetAt - Date.now()) / 1000).toString(),
+					'X-RateLimit-Limit': rl.limit.toString(),
+					'X-RateLimit-Remaining': '0',
+					'X-RateLimit-Reset': Math.ceil(rl.resetAt / 1000).toString(),
+				},
+			}
+		);
+	}
 
 	// Enforce payload size by reading raw text first
 	const raw = await request.text();
@@ -114,22 +135,54 @@ export async function POST(
 		);
 	}
 
-	// Resolve effective version
+	// Validate webhook URL for SSRF protection
+	const webhookValidation = validateWebhookUrl(webhookUrl);
+	if (!webhookValidation.valid) {
+		console.error(`Invalid webhook URL for form ${form.id}: ${webhookValidation.error}`);
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'Form configuration error',
+			},
+			{ status: 500 }
+		);
+	}
+
+	// Resolve effective version and get schema for validation
 	let effectiveVersion = form.currentVersion?.versionNumber;
-	if (!effectiveVersion) {
+	let schema: FormSchema | null = form.currentVersion?.schema as FormSchema | null;
+	if (!effectiveVersion || !schema) {
 		const latest = await prisma.formVersion.findFirst({
 			where: { formId: form.id },
 			orderBy: { versionNumber: 'desc' },
-			select: { versionNumber: true },
+			select: { versionNumber: true, schema: true },
 		});
 		effectiveVersion = latest?.versionNumber ?? 1;
+		schema = latest?.schema as FormSchema | null;
+	}
+
+	// Server-side schema validation
+	if (schema && answers && typeof answers === 'object') {
+		const validation = validateSubmission(schema, answers as Record<string, unknown>);
+		if (!validation.valid) {
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: 'Validation failed',
+					errors: validation.errors,
+				},
+				{ status: 400 }
+			);
+		}
 	}
 
 	// Construct payload for n8n (do not log or persist answers)
 	submissionId = submissionId || crypto.randomUUID();
 	const submittedAt = new Date().toISOString();
 	const client = {
-		ip: getClientIp(request),
+		ip: clientIp,
 		userAgent: request.headers.get('user-agent') || undefined,
 	};
 	const forwardPayload = JSON.stringify({

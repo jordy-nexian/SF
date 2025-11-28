@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
+import "@/types/next-auth";
 
 export type TenantSession = {
 	userId: string;
@@ -9,14 +10,23 @@ export type TenantSession = {
 };
 
 export async function requireTenantSession(): Promise<TenantSession | null> {
-	const session = await getServerSession(authOptions as any);
-	const user = (session as any)?.user;
+	const session = await getServerSession(authOptions);
+	const user = session?.user;
 	if (!user?.id || !user?.tenantId || !user?.role) return null;
 	return {
 		userId: user.id,
 		tenantId: user.tenantId,
 		role: user.role,
 	};
+}
+
+export async function getSession() {
+	return await getServerSession(authOptions);
+}
+
+export async function getCurrentUser() {
+	const session = await getSession();
+	return session?.user ?? null;
 }
 
 export function forbidden() {

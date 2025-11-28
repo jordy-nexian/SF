@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { defaultTheme, type ThemeConfig } from '@/types/theme';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ export async function GET(
 				tenant: {
 					select: {
 						id: true,
+						settings: true,
 					},
 				},
 			},
@@ -38,8 +40,12 @@ export async function GET(
 			return NextResponse.json({ error: 'Form has no versions' }, { status: 404 });
 		}
 
-		// For MVP, theme and settings are minimal placeholders
-		const theme = null;
+		// Get theme from tenant settings or use default
+		const tenantSettings = form.tenant.settings as { theme?: Partial<ThemeConfig> } | null;
+		const theme = tenantSettings?.theme
+			? { ...defaultTheme, ...tenantSettings.theme }
+			: defaultTheme;
+
 		const settings = {
 			showProgressBar: true,
 			showStepNumbers: true,

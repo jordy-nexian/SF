@@ -1,62 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-type FieldType =
-	| "text"
-	| "textarea"
-	| "email"
-	| "number"
-	| "boolean"
-	| "select"
-	| "radio"
-	| "checkboxGroup"
-	| "date"
-	| "repeatable";
-
-type ValidationRule = {
-	minLength?: number;
-	maxLength?: number;
-	pattern?: string;
-	min?: number;
-	max?: number;
-	required?: boolean;
-};
-
-type VisibilityCondition = {
-	field: string;
-	operator: "equals" | "not_equals" | "greater_than" | "less_than" | "in";
-	value: any;
-};
-
-type Field = {
-	key: string;
-	type: FieldType;
-	label: string;
-	helpText?: string;
-	required?: boolean;
-	validation?: ValidationRule;
-	options?: { value: string; label: string }[];
-	visibilityCondition?: VisibilityCondition;
-	itemFields?: Field[]; // for repeatable
-};
-
-type Step = {
-	id: string;
-	title: string;
-	description?: string;
-	fields: string[]; // references to Field.key
-	visibilityCondition?: VisibilityCondition;
-};
-
-type FormSchema = {
-	id: string;
-	version: number;
-	title: string;
-	description?: string;
-	steps?: Step[];
-	fields: Field[];
-};
+import type {
+	FormSchema,
+	Field,
+	VisibilityCondition,
+} from "@/types/form-schema";
+import { evaluateVisibility, validateField, getByPath } from "@/types/form-schema";
+import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 
 export default function PublicFormPage({
 	params,
@@ -68,6 +19,7 @@ export default function PublicFormPage({
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [submitOk, setSubmitOk] = useState<string | null>(null);
 	const [schema, setSchema] = useState<FormSchema | null>(null);
+	const [theme, setTheme] = useState<ThemeConfig | null>(null);
 	const [formId, setFormId] = useState<string>("");
 	const [formVersion, setFormVersion] = useState<number>(0);
 	const [values, setValues] = useState<Record<string, any>>({});
@@ -87,6 +39,7 @@ export default function PublicFormPage({
 				setFormId(data.formId);
 				setFormVersion(data.formVersion);
 				setSchema(data.schema);
+				setTheme(data.theme);
 				setValues({});
 				setErrors({});
 				setActiveStepIdx(0);
@@ -101,36 +54,6 @@ export default function PublicFormPage({
 			active = false;
 		};
 	}, [params.publicId]);
-
-	function getByPath(obj: any, path: string) {
-		if (!path) return undefined;
-		// minimal dot/bracket access: a.b[0].c
-		const parts = path
-			.replace(/\[(\d+)\]/g, ".$1")
-			.split(".")
-			.filter(Boolean);
-		return parts.reduce((acc, p) => (acc == null ? acc : acc[p]), obj);
-	}
-
-	function evaluateVisibility(cond: VisibilityCondition | undefined, v: Record<string, any>): boolean {
-		if (!cond) return true;
-		const left = getByPath(v, cond.field);
-		const right = cond.value;
-		switch (cond.operator) {
-			case "equals":
-				return left === right;
-			case "not_equals":
-				return left !== right;
-			case "greater_than":
-				return Number(left) > Number(right);
-			case "less_than":
-				return Number(left) < Number(right);
-			case "in":
-				return Array.isArray(right) ? right.includes(left) : false;
-			default:
-				return true;
-		}
-	}
 
 	const orderedFields = useMemo(() => {
 		if (!schema) return [];
@@ -153,30 +76,6 @@ export default function PublicFormPage({
 			delete copy[key];
 			return copy;
 		});
-	}
-
-	function validateField(field: Field, value: any): string | null {
-		const rules = field.validation || {};
-		if ((field.required || rules.required) && (value == null || value === "" || (Array.isArray(value) && value.length === 0))) {
-			return "This field is required.";
-		}
-		if (typeof value === "string") {
-			if (rules.minLength != null && value.length < rules.minLength) return `Minimum length is ${rules.minLength}.`;
-			if (rules.maxLength != null && value.length > rules.maxLength) return `Maximum length is ${rules.maxLength}.`;
-			if (rules.pattern) {
-				try {
-					const re = new RegExp(rules.pattern);
-					if (!re.test(value)) return "Invalid format.";
-				} catch {
-					// ignore bad patterns
-				}
-			}
-		}
-		if (typeof value === "number" && !Number.isNaN(value)) {
-			if (rules.min != null && value < rules.min) return `Minimum value is ${rules.min}.`;
-			if (rules.max != null && value > rules.max) return `Maximum value is ${rules.max}.`;
-		}
-		return null;
 	}
 
 	function validateStep(stepFields: Field[]): boolean {
@@ -287,8 +186,14 @@ export default function PublicFormPage({
 			? Math.round(((activeStepIdx + 1) / visibleSteps.length) * 100)
 			: 0;
 
+	// Generate CSS variables from theme
+	const themeStyle = theme ? themeToCssVars(theme) : {};
+
 	return (
-		<div className="mx-auto max-w-2xl p-6">
+		<div
+			className="mx-auto max-w-2xl p-6"
+			style={themeStyle as React.CSSProperties}
+		>
 			<h1 className="text-2xl font-semibold">{schema.title}</h1>
 			{schema.description && (
 				<p className="mt-2 text-gray-600">{schema.description}</p>

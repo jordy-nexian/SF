@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 export default function SignInPage() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+
+	// Get callback URL from query params, default to /admin
+	const callbackUrl = searchParams.get("callbackUrl") || "/admin";
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -20,12 +24,13 @@ export default function SignInPage() {
 				email,
 				password,
 				redirect: false,
-				callbackUrl: "/",
+				callbackUrl,
 			});
 			if (res?.error) {
 				setError("Invalid credentials");
 			} else {
-				router.push(res?.url ?? "/");
+				// Use the URL from response or fallback to callbackUrl
+				router.push(res?.url || callbackUrl);
 				router.refresh();
 			}
 		} catch {

@@ -1,17 +1,18 @@
 import type { NextAuthOptions } from "next-auth";
+import type { User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
-import { z } from "zod";
 
-const credentialsSchema = z.object({
-	email: z.string().email(),
-	password: z.string().min(6),
-});
+// Import type extensions
+import "@/types/next-auth";
 
 export const authOptions: NextAuthOptions = {
 	secret: process.env.NEXTAUTH_SECRET,
 	session: { strategy: "jwt" },
+	pages: {
+		signIn: "/signin",
+	},
 	providers: [
 		Credentials({
 			name: "Credentials",
@@ -19,48 +20,49 @@ export const authOptions: NextAuthOptions = {
 				email: { label: "Email", type: "email" },
 				password: { label: "Password", type: "password" },
 			},
-			async authorize(raw) {
-				const emailRaw = (raw as any)?.email;
-				const passwordRaw = (raw as any)?.password;
-				if (typeof emailRaw !== "string" || typeof passwordRaw !== "string") {
+			async authorize(credentials): Promise<User | null> {
+				if (!credentials?.email || !credentials?.password) {
 					return null;
 				}
+
+				const emailRaw = credentials.email;
 				const email = emailRaw.trim().toLowerCase();
+
 				const user = await prisma.user.findFirst({
 					where: {
-						OR: [
-							{ email: emailRaw },
-							{ email },
-						],
+						OR: [{ email: emailRaw }, { email }],
 					},
 				});
+
 				if (!user?.passwordHash) return null;
-				const ok = await compare(passwordRaw, user.passwordHash);
-				if (!ok) return null;
+
+				const isValid = await compare(credentials.password, user.passwordHash);
+				if (!isValid) return null;
+
 				return {
 					id: user.id,
 					email: user.email,
 					tenantId: user.tenantId,
-					role: user.role,
-				} as any;
+					role: user.role as "owner" | "admin" | "viewer",
+				};
 			},
 		}),
 	],
 	callbacks: {
 		async jwt({ token, user }) {
 			if (user) {
-				token.sub = (user as any).id;
-				(token as any).tenantId = (user as any).tenantId;
-				(token as any).role = (user as any).role;
+				token.id = user.id;
+				token.tenantId = user.tenantId;
+				token.role = user.role;
 			}
 			return token;
 		},
 		async session({ session, token }) {
-			(session as any).user = {
-				id: token.sub,
-				email: session.user?.email,
-				tenantId: (token as any).tenantId,
-				role: (token as any).role,
+			session.user = {
+				id: token.id,
+				email: token.email ?? "",
+				tenantId: token.tenantId,
+				role: token.role,
 			};
 			return session;
 		},
