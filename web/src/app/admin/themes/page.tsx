@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { defaultTheme, type ThemeConfig, themeToCssVars } from "@/types/theme";
 
+const cardStyle = {
+	background: 'rgba(255, 255, 255, 0.05)',
+	border: '1px solid rgba(255, 255, 255, 0.1)',
+};
+
+const inputStyle = {
+	background: '#1e293b',
+	border: '1px solid #334155',
+	color: 'white',
+};
+
 const colorFields: { key: keyof ThemeConfig; label: string }[] = [
 	{ key: "primaryColor", label: "Primary Color" },
 	{ key: "backgroundColor", label: "Background" },
@@ -25,10 +36,7 @@ const textFields: { key: keyof ThemeConfig; label: string; placeholder: string }
 ];
 
 const presetThemes: { name: string; theme: Partial<ThemeConfig> }[] = [
-	{
-		name: "Default",
-		theme: defaultTheme,
-	},
+	{ name: "Default", theme: defaultTheme },
 	{
 		name: "Dark Mode",
 		theme: {
@@ -104,7 +112,6 @@ export default function ThemeEditorPage() {
 	async function saveTheme() {
 		setSaving(true);
 		try {
-			// Save to tenant settings
 			const res = await fetch("/api/admin/settings", {
 				method: "PUT",
 				headers: { "content-type": "application/json" },
@@ -124,13 +131,17 @@ export default function ThemeEditorPage() {
 		<div className="mx-auto max-w-6xl">
 			<div className="mb-6 flex items-center justify-between">
 				<div>
-					<h1 className="text-xl font-semibold">Theme Editor</h1>
-					<p className="text-sm text-gray-600">Customize how your forms look</p>
+					<h1 className="text-2xl font-bold text-white">Theme Editor</h1>
+					<p className="text-sm" style={{ color: '#94a3b8' }}>Customize how your forms look</p>
 				</div>
 				<button
 					onClick={saveTheme}
 					disabled={saving}
-					className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+					className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all"
+					style={{
+						background: saved ? '#10b981' : 'linear-gradient(to right, #6366f1, #8b5cf6)',
+						boxShadow: saved ? 'none' : '0 4px 15px rgba(99, 102, 241, 0.3)',
+					}}
 				>
 					{saving ? "Saving..." : saved ? "Saved ✓" : "Save Theme"}
 				</button>
@@ -140,14 +151,15 @@ export default function ThemeEditorPage() {
 				{/* Editor */}
 				<div className="space-y-6">
 					{/* Presets */}
-					<div className="rounded-lg border bg-white p-4">
-						<h2 className="mb-3 font-medium">Presets</h2>
+					<div className="rounded-xl p-5" style={cardStyle}>
+						<h2 className="mb-4 font-semibold text-white">Presets</h2>
 						<div className="flex flex-wrap gap-2">
 							{presetThemes.map((preset) => (
 								<button
 									key={preset.name}
 									onClick={() => applyPreset(preset.theme)}
-									className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
+									className="rounded-full px-4 py-1.5 text-sm transition-all"
+									style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 								>
 									{preset.name}
 								</button>
@@ -156,24 +168,26 @@ export default function ThemeEditorPage() {
 					</div>
 
 					{/* Colors */}
-					<div className="rounded-lg border bg-white p-4">
-						<h2 className="mb-3 font-medium">Colors</h2>
-						<div className="grid gap-3 sm:grid-cols-2">
+					<div className="rounded-xl p-5" style={cardStyle}>
+						<h2 className="mb-4 font-semibold text-white">Colors</h2>
+						<div className="grid gap-4 sm:grid-cols-2">
 							{colorFields.map((field) => (
-								<div key={field.key} className="flex items-center gap-2">
+								<div key={field.key} className="flex items-center gap-3">
 									<input
 										type="color"
 										value={theme[field.key]}
 										onChange={(e) => updateTheme(field.key, e.target.value)}
-										className="h-8 w-12 cursor-pointer rounded border"
+										className="h-10 w-14 cursor-pointer rounded-lg border-0"
+										style={{ background: '#1e293b' }}
 									/>
 									<div className="flex-1">
-										<div className="text-sm">{field.label}</div>
+										<div className="text-sm" style={{ color: '#94a3b8' }}>{field.label}</div>
 										<input
 											type="text"
 											value={theme[field.key]}
 											onChange={(e) => updateTheme(field.key, e.target.value)}
-											className="w-full rounded border px-2 py-1 font-mono text-xs"
+											className="w-full rounded-lg px-2 py-1 font-mono text-xs focus:outline-none"
+											style={inputStyle}
 										/>
 									</div>
 								</div>
@@ -182,18 +196,19 @@ export default function ThemeEditorPage() {
 					</div>
 
 					{/* Typography & Spacing */}
-					<div className="rounded-lg border bg-white p-4">
-						<h2 className="mb-3 font-medium">Typography & Spacing</h2>
-						<div className="grid gap-3 sm:grid-cols-2">
+					<div className="rounded-xl p-5" style={cardStyle}>
+						<h2 className="mb-4 font-semibold text-white">Typography & Spacing</h2>
+						<div className="grid gap-4 sm:grid-cols-2">
 							{textFields.map((field) => (
 								<div key={field.key}>
-									<label className="mb-1 block text-sm">{field.label}</label>
+									<label className="mb-1.5 block text-sm" style={{ color: '#94a3b8' }}>{field.label}</label>
 									<input
 										type="text"
 										value={theme[field.key]}
 										onChange={(e) => updateTheme(field.key, e.target.value)}
 										placeholder={field.placeholder}
-										className="w-full rounded border px-3 py-1.5 text-sm"
+										className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+										style={inputStyle}
 									/>
 								</div>
 							))}
@@ -201,33 +216,32 @@ export default function ThemeEditorPage() {
 					</div>
 
 					{/* CSS Output */}
-					<div className="rounded-lg border bg-white p-4">
-						<h2 className="mb-3 font-medium">CSS Variables</h2>
-						<pre className="max-h-40 overflow-auto rounded bg-gray-50 p-3 text-xs">
-							{Object.entries(cssVars)
-								.map(([k, v]) => `${k}: ${v};`)
-								.join("\n")}
+					<div className="rounded-xl p-5" style={cardStyle}>
+						<h2 className="mb-4 font-semibold text-white">CSS Variables</h2>
+						<pre 
+							className="max-h-40 overflow-auto rounded-lg p-4 text-xs font-mono"
+							style={{ background: 'rgba(255, 255, 255, 0.03)', color: '#10b981' }}
+						>
+							{Object.entries(cssVars).map(([k, v]) => `${k}: ${v};`).join("\n")}
 						</pre>
 					</div>
 				</div>
 
 				{/* Preview */}
-				<div className="rounded-lg border bg-white p-4">
-					<h2 className="mb-4 font-medium">Preview</h2>
+				<div className="rounded-xl p-5" style={cardStyle}>
+					<h2 className="mb-4 font-semibold text-white">Preview</h2>
 					<div
-						className="rounded-lg border p-6"
+						className="rounded-xl p-6"
 						style={{
 							...cssVars,
 							backgroundColor: theme.backgroundColor,
 							color: theme.textColor,
 							fontFamily: theme.fontFamily,
 							fontSize: theme.fontSize,
+							border: `1px solid ${theme.borderColor}`,
 						} as React.CSSProperties}
 					>
-						<h3
-							style={{ fontSize: theme.headingFontSize }}
-							className="mb-2 font-semibold"
-						>
+						<h3 style={{ fontSize: theme.headingFontSize }} className="mb-2 font-semibold">
 							Sample Form
 						</h3>
 						<p className="mb-4 text-sm opacity-80">
@@ -293,12 +307,8 @@ export default function ThemeEditorPage() {
 							>
 								Submit
 							</button>
-							<span style={{ color: theme.errorColor }} className="text-sm">
-								Error message
-							</span>
-							<span style={{ color: theme.successColor }} className="text-sm">
-								Success!
-							</span>
+							<span style={{ color: theme.errorColor }} className="text-sm">Error message</span>
+							<span style={{ color: theme.successColor }} className="text-sm">Success!</span>
 						</div>
 					</div>
 				</div>
@@ -306,4 +316,3 @@ export default function ThemeEditorPage() {
 		</div>
 	);
 }
-

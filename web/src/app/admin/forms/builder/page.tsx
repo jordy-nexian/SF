@@ -3,7 +3,7 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import type { FormSchema, Field, Step } from "@/types/form-schema";
+import type { FormSchema, Field } from "@/types/form-schema";
 import FormRenderer from "@/components/FormRenderer";
 
 const FIELD_TYPES = [
@@ -38,6 +38,18 @@ function generateKey(label: string, existingKeys: string[]): string {
 	return key;
 }
 
+// Shared styles
+const cardStyle = {
+	background: 'rgba(255, 255, 255, 0.05)',
+	border: '1px solid rgba(255, 255, 255, 0.1)',
+};
+
+const inputStyle = {
+	background: '#1e293b',
+	border: '1px solid #334155',
+	color: 'white',
+};
+
 function FormBuilderContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -60,14 +72,10 @@ function FormBuilderContent() {
 
 	const selectedField = schema.fields.find((f) => f.key === selectedFieldKey);
 
-	// Add a new field
 	const addField = useCallback(
 		(fieldType: string, index?: number) => {
 			const label = FIELD_TYPES.find((t) => t.type === fieldType)?.label || "Field";
-			const key = generateKey(
-				label,
-				schema.fields.map((f) => f.key)
-			);
+			const key = generateKey(label, schema.fields.map((f) => f.key));
 
 			const newField: Field = {
 				key,
@@ -76,7 +84,6 @@ function FormBuilderContent() {
 				required: false,
 			};
 
-			// Add options for select/radio/checkbox fields
 			if (["select", "radio", "checkboxGroup"].includes(fieldType)) {
 				newField.options = [
 					{ value: "option1", label: "Option 1" },
@@ -99,7 +106,6 @@ function FormBuilderContent() {
 		[schema.fields]
 	);
 
-	// Update a field
 	const updateField = useCallback((key: string, updates: Partial<Field>) => {
 		setSchema((prev) => ({
 			...prev,
@@ -107,7 +113,6 @@ function FormBuilderContent() {
 		}));
 	}, []);
 
-	// Delete a field
 	const deleteField = useCallback((key: string) => {
 		setSchema((prev) => ({
 			...prev,
@@ -116,7 +121,6 @@ function FormBuilderContent() {
 		setSelectedFieldKey(null);
 	}, []);
 
-	// Move field up/down
 	const moveField = useCallback((key: string, direction: "up" | "down") => {
 		setSchema((prev) => {
 			const fields = [...prev.fields];
@@ -131,7 +135,6 @@ function FormBuilderContent() {
 		});
 	}, []);
 
-	// Drag handlers
 	const handleDragStart = (item: DragItem) => {
 		setDraggedItem(item);
 	};
@@ -148,7 +151,6 @@ function FormBuilderContent() {
 		setDraggedItem(null);
 	};
 
-	// Save form
 	const saveForm = async () => {
 		if (!publicId) {
 			setError("Please enter a public ID");
@@ -165,11 +167,7 @@ function FormBuilderContent() {
 			const res = await fetch(endpoint, {
 				method,
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({
-					name: formName,
-					publicId,
-					schema,
-				}),
+				body: JSON.stringify({ name: formName, publicId, schema }),
 			});
 
 			if (!res.ok) {
@@ -189,8 +187,8 @@ function FormBuilderContent() {
 	return (
 		<div className="flex h-[calc(100vh-80px)] gap-4">
 			{/* Field Palette */}
-			<div className="w-48 shrink-0 rounded-lg border bg-white p-4">
-				<h3 className="mb-3 text-sm font-medium text-gray-700">Add Fields</h3>
+			<div className="w-52 shrink-0 rounded-xl p-4" style={cardStyle}>
+				<h3 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Add Fields</h3>
 				<div className="space-y-2">
 					{FIELD_TYPES.map((field) => (
 						<div
@@ -198,9 +196,14 @@ function FormBuilderContent() {
 							draggable
 							onDragStart={() => handleDragStart({ type: "new-field", fieldType: field.type })}
 							onClick={() => addField(field.type)}
-							className="flex cursor-move items-center gap-2 rounded border bg-gray-50 p-2 text-sm hover:bg-gray-100"
+							className="flex cursor-move items-center gap-3 rounded-lg p-2.5 text-sm transition-all"
+							style={{ 
+								background: 'rgba(255, 255, 255, 0.03)',
+								border: '1px solid transparent',
+								color: '#cbd5e1',
+							}}
 						>
-							<span className="w-6 text-center text-gray-400">{field.icon}</span>
+							<span className="w-6 text-center" style={{ color: '#64748b' }}>{field.icon}</span>
 							<span>{field.label}</span>
 						</div>
 					))}
@@ -208,22 +211,24 @@ function FormBuilderContent() {
 			</div>
 
 			{/* Canvas */}
-			<div className="flex-1 overflow-auto rounded-lg border bg-white p-4">
-				<div className="mb-4 grid gap-3 sm:grid-cols-2">
+			<div className="flex-1 overflow-auto rounded-xl p-5" style={cardStyle}>
+				<div className="mb-5 grid gap-4 sm:grid-cols-2">
 					<div>
-						<label className="mb-1 block text-sm font-medium">Form Name</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Name</label>
 						<input
 							type="text"
-							className="w-full rounded border px-3 py-2"
+							className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+							style={inputStyle}
 							value={formName}
 							onChange={(e) => setFormName(e.target.value)}
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium">Public ID (URL slug)</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Public ID (URL slug)</label>
 						<input
 							type="text"
-							className="w-full rounded border px-3 py-2"
+							className="w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none"
+							style={inputStyle}
 							value={publicId}
 							onChange={(e) => setPublicId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
 							placeholder="my-form"
@@ -232,19 +237,21 @@ function FormBuilderContent() {
 				</div>
 
 				<div className="mb-4">
-					<label className="mb-1 block text-sm font-medium">Form Title</label>
+					<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Title</label>
 					<input
 						type="text"
-						className="w-full rounded border px-3 py-2"
+						className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+						style={inputStyle}
 						value={schema.title}
 						onChange={(e) => setSchema((prev) => ({ ...prev, title: e.target.value }))}
 					/>
 				</div>
 
-				<div className="mb-4">
-					<label className="mb-1 block text-sm font-medium">Description</label>
+				<div className="mb-5">
+					<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Description</label>
 					<textarea
-						className="w-full rounded border px-3 py-2"
+						className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+						style={inputStyle}
 						rows={2}
 						value={schema.description || ""}
 						onChange={(e) => setSchema((prev) => ({ ...prev, description: e.target.value }))}
@@ -253,12 +260,13 @@ function FormBuilderContent() {
 
 				{/* Field List */}
 				<div
-					className="min-h-[200px] rounded border-2 border-dashed border-gray-200 p-4"
+					className="min-h-[200px] rounded-xl p-4"
+					style={{ border: '2px dashed #334155' }}
 					onDragOver={handleDragOver}
 					onDrop={(e) => handleDrop(e)}
 				>
 					{schema.fields.length === 0 ? (
-						<div className="flex h-32 items-center justify-center text-gray-400">
+						<div className="flex h-32 items-center justify-center" style={{ color: '#64748b' }}>
 							Drag fields here or click to add
 						</div>
 					) : (
@@ -267,19 +275,19 @@ function FormBuilderContent() {
 								<div
 									key={field.key}
 									onClick={() => setSelectedFieldKey(field.key)}
-									className={`flex items-center justify-between rounded border p-3 cursor-pointer transition ${
-										selectedFieldKey === field.key
-											? "border-blue-500 bg-blue-50"
-											: "hover:bg-gray-50"
-									}`}
+									className="flex items-center justify-between rounded-lg p-3 cursor-pointer transition-all"
+									style={{
+										background: selectedFieldKey === field.key ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+										border: selectedFieldKey === field.key ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+									}}
 								>
 									<div className="flex items-center gap-3">
-										<span className="text-gray-400">
+										<span style={{ color: '#64748b' }}>
 											{FIELD_TYPES.find((t) => t.type === field.type)?.icon || "?"}
 										</span>
 										<div>
-											<div className="font-medium">{field.label}</div>
-											<div className="text-xs text-gray-500">
+											<div className="font-medium text-white">{field.label}</div>
+											<div className="text-xs" style={{ color: '#64748b' }}>
 												{field.type} • {field.key}
 												{field.required && " • required"}
 											</div>
@@ -287,31 +295,25 @@ function FormBuilderContent() {
 									</div>
 									<div className="flex items-center gap-1">
 										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												moveField(field.key, "up");
-											}}
+											onClick={(e) => { e.stopPropagation(); moveField(field.key, "up"); }}
 											disabled={index === 0}
-											className="rounded p-1 hover:bg-gray-200 disabled:opacity-30"
+											className="rounded p-1.5 transition-colors disabled:opacity-30"
+											style={{ color: '#94a3b8' }}
 										>
 											↑
 										</button>
 										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												moveField(field.key, "down");
-											}}
+											onClick={(e) => { e.stopPropagation(); moveField(field.key, "down"); }}
 											disabled={index === schema.fields.length - 1}
-											className="rounded p-1 hover:bg-gray-200 disabled:opacity-30"
+											className="rounded p-1.5 transition-colors disabled:opacity-30"
+											style={{ color: '#94a3b8' }}
 										>
 											↓
 										</button>
 										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												deleteField(field.key);
-											}}
-											className="rounded p-1 text-red-500 hover:bg-red-50"
+											onClick={(e) => { e.stopPropagation(); deleteField(field.key); }}
+											className="rounded p-1.5 transition-colors"
+											style={{ color: '#f87171' }}
 										>
 											×
 										</button>
@@ -323,41 +325,47 @@ function FormBuilderContent() {
 				</div>
 
 				{/* Actions */}
-				<div className="mt-4 flex items-center gap-3">
+				<div className="mt-5 flex items-center gap-4">
 					<button
 						onClick={saveForm}
 						disabled={saving}
-						className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+						className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all"
+						style={{
+							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+						}}
 					>
 						{saving ? "Saving..." : "Save Form"}
 					</button>
-					<Link href="/admin" className="text-sm text-gray-600 hover:text-gray-900">
+					<Link href="/admin" className="text-sm transition-colors" style={{ color: '#94a3b8' }}>
 						Cancel
 					</Link>
-					{error && <span className="text-sm text-red-600">{error}</span>}
+					{error && <span className="text-sm" style={{ color: '#f87171' }}>{error}</span>}
 				</div>
 			</div>
 
 			{/* Properties Panel */}
-			<div className="w-72 shrink-0 rounded-lg border bg-white p-4">
-				<h3 className="mb-3 text-sm font-medium text-gray-700">Field Properties</h3>
+			<div className="w-72 shrink-0 rounded-xl p-4" style={cardStyle}>
+				<h3 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Field Properties</h3>
 				{selectedField ? (
-					<div className="space-y-3">
+					<div className="space-y-4">
 						<div>
-							<label className="mb-1 block text-xs text-gray-600">Label</label>
+							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Label</label>
 							<input
 								type="text"
-								className="w-full rounded border px-2 py-1.5 text-sm"
+								className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+								style={inputStyle}
 								value={selectedField.label}
 								onChange={(e) => updateField(selectedField.key, { label: e.target.value })}
 							/>
 						</div>
 
 						<div>
-							<label className="mb-1 block text-xs text-gray-600">Field Key</label>
+							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Field Key</label>
 							<input
 								type="text"
-								className="w-full rounded border px-2 py-1.5 font-mono text-sm"
+								className="w-full rounded-lg px-3 py-2 font-mono text-sm focus:outline-none"
+								style={inputStyle}
 								value={selectedField.key}
 								onChange={(e) => {
 									const newKey = e.target.value.replace(/[^a-z0-9_]/gi, "");
@@ -375,10 +383,11 @@ function FormBuilderContent() {
 						</div>
 
 						<div>
-							<label className="mb-1 block text-xs text-gray-600">Help Text</label>
+							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Help Text</label>
 							<input
 								type="text"
-								className="w-full rounded border px-2 py-1.5 text-sm"
+								className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+								style={inputStyle}
 								value={selectedField.helpText || ""}
 								onChange={(e) => updateField(selectedField.key, { helpText: e.target.value || undefined })}
 								placeholder="Optional help text"
@@ -391,20 +400,22 @@ function FormBuilderContent() {
 								id="required"
 								checked={selectedField.required || false}
 								onChange={(e) => updateField(selectedField.key, { required: e.target.checked })}
+								className="rounded"
 							/>
-							<label htmlFor="required" className="text-sm">Required</label>
+							<label htmlFor="required" className="text-sm" style={{ color: '#cbd5e1' }}>Required</label>
 						</div>
 
 						{/* Options for select/radio/checkbox */}
 						{["select", "radio", "checkboxGroup"].includes(selectedField.type) && (
 							<div>
-								<label className="mb-1 block text-xs text-gray-600">Options</label>
-								<div className="space-y-1">
+								<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Options</label>
+								<div className="space-y-2">
 									{(selectedField.options || []).map((opt, i) => (
-										<div key={i} className="flex gap-1">
+										<div key={i} className="flex gap-2">
 											<input
 												type="text"
-												className="flex-1 rounded border px-2 py-1 text-sm"
+												className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+												style={inputStyle}
 												value={opt.label}
 												onChange={(e) => {
 													const newOptions = [...(selectedField.options || [])];
@@ -421,7 +432,7 @@ function FormBuilderContent() {
 													const newOptions = (selectedField.options || []).filter((_, idx) => idx !== i);
 													updateField(selectedField.key, { options: newOptions });
 												}}
-												className="text-red-500 hover:text-red-700"
+												style={{ color: '#f87171' }}
 											>
 												×
 											</button>
@@ -435,7 +446,8 @@ function FormBuilderContent() {
 											];
 											updateField(selectedField.key, { options: newOptions });
 										}}
-										className="text-sm text-blue-600 hover:underline"
+										className="text-sm transition-colors"
+										style={{ color: '#818cf8' }}
 									>
 										+ Add option
 									</button>
@@ -444,15 +456,16 @@ function FormBuilderContent() {
 						)}
 
 						{/* Validation */}
-						<div className="border-t pt-3">
-							<label className="mb-2 block text-xs font-medium text-gray-600">Validation</label>
+						<div className="pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+							<label className="mb-2 block text-xs font-medium" style={{ color: '#64748b' }}>Validation</label>
 							{["text", "textarea", "email"].includes(selectedField.type) && (
 								<div className="grid grid-cols-2 gap-2">
 									<div>
-										<label className="text-xs text-gray-500">Min Length</label>
+										<label className="text-xs" style={{ color: '#64748b' }}>Min Length</label>
 										<input
 											type="number"
-											className="w-full rounded border px-2 py-1 text-sm"
+											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+											style={inputStyle}
 											value={selectedField.validation?.minLength || ""}
 											onChange={(e) =>
 												updateField(selectedField.key, {
@@ -465,10 +478,11 @@ function FormBuilderContent() {
 										/>
 									</div>
 									<div>
-										<label className="text-xs text-gray-500">Max Length</label>
+										<label className="text-xs" style={{ color: '#64748b' }}>Max Length</label>
 										<input
 											type="number"
-											className="w-full rounded border px-2 py-1 text-sm"
+											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+											style={inputStyle}
 											value={selectedField.validation?.maxLength || ""}
 											onChange={(e) =>
 												updateField(selectedField.key, {
@@ -485,10 +499,11 @@ function FormBuilderContent() {
 							{selectedField.type === "number" && (
 								<div className="grid grid-cols-2 gap-2">
 									<div>
-										<label className="text-xs text-gray-500">Min Value</label>
+										<label className="text-xs" style={{ color: '#64748b' }}>Min Value</label>
 										<input
 											type="number"
-											className="w-full rounded border px-2 py-1 text-sm"
+											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+											style={inputStyle}
 											value={selectedField.validation?.min ?? ""}
 											onChange={(e) =>
 												updateField(selectedField.key, {
@@ -501,10 +516,11 @@ function FormBuilderContent() {
 										/>
 									</div>
 									<div>
-										<label className="text-xs text-gray-500">Max Value</label>
+										<label className="text-xs" style={{ color: '#64748b' }}>Max Value</label>
 										<input
 											type="number"
-											className="w-full rounded border px-2 py-1 text-sm"
+											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+											style={inputStyle}
 											value={selectedField.validation?.max ?? ""}
 											onChange={(e) =>
 												updateField(selectedField.key, {
@@ -521,13 +537,16 @@ function FormBuilderContent() {
 						</div>
 					</div>
 				) : (
-					<p className="text-sm text-gray-500">Select a field to edit its properties</p>
+					<p className="text-sm" style={{ color: '#64748b' }}>Select a field to edit its properties</p>
 				)}
 
-				{/* Live Preview Toggle */}
-				<div className="mt-6 border-t pt-4">
-					<h4 className="mb-2 text-sm font-medium text-gray-700">Preview</h4>
-					<div className="max-h-64 overflow-auto rounded border bg-gray-50 p-3">
+				{/* Live Preview */}
+				<div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+					<h4 className="mb-3 text-sm font-medium" style={{ color: '#94a3b8' }}>Preview</h4>
+					<div 
+						className="max-h-64 overflow-auto rounded-lg p-3"
+						style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+					>
 						<FormRenderer schema={schema} mode="preview" />
 					</div>
 				</div>
@@ -538,9 +557,12 @@ function FormBuilderContent() {
 
 export default function FormBuilderPage() {
 	return (
-		<Suspense fallback={<div className="p-6">Loading form builder...</div>}>
+		<Suspense fallback={
+			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
+				Loading form builder...
+			</div>
+		}>
 			<FormBuilderContent />
 		</Suspense>
 	);
 }
-

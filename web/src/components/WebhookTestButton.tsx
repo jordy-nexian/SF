@@ -35,31 +35,39 @@ export default function WebhookTestButton({ formId }: { formId: string }) {
 	}
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-3">
 			<button
 				type="button"
 				onClick={runTest}
 				disabled={loading}
-				className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+				className="rounded-full px-4 py-2 text-sm font-medium transition-all disabled:opacity-50"
+				style={{
+					background: 'linear-gradient(to right, #3b82f6, #6366f1)',
+					color: 'white',
+				}}
 			>
 				{loading ? "Testing…" : "Test Webhook"}
 			</button>
 			{result && (
 				<div
-					className={`rounded p-3 text-sm ${
-						result.success
-							? "bg-green-50 text-green-800"
-							: "bg-red-50 text-red-800"
-					}`}
+					className="rounded-lg p-4 text-sm"
+					style={{
+						background: result.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)',
+						border: `1px solid ${result.success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(248, 113, 113, 0.2)'}`,
+						color: result.success ? '#10b981' : '#f87171',
+					}}
 				>
 					{result.success ? (
 						<>
 							<div className="font-medium">✓ Webhook responded successfully</div>
-							<div className="mt-1 text-xs">
+							<div className="mt-1 text-xs opacity-80">
 								Status: {result.status} {result.statusText} • {result.durationMs}ms
 							</div>
 							{result.response && (
-								<pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap rounded bg-white/50 p-2 text-xs">
+								<pre 
+									className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap rounded-lg p-2 text-xs"
+									style={{ background: 'rgba(255, 255, 255, 0.05)' }}
+								>
 									{result.response}
 								</pre>
 							)}
@@ -67,9 +75,8 @@ export default function WebhookTestButton({ formId }: { formId: string }) {
 					) : (
 						<>
 							<div className="font-medium">✗ Webhook test failed</div>
-							<div className="mt-1 text-xs">
-								{result.error ||
-									`Status: ${result.status} ${result.statusText}`}
+							<div className="mt-1 text-xs opacity-80">
+								{result.error || `Status: ${result.status} ${result.statusText}`}
 							</div>
 						</>
 					)}
@@ -78,4 +85,3 @@ export default function WebhookTestButton({ formId }: { formId: string }) {
 		</div>
 	);
 }
-

@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const inputStyle = {
+	background: '#1e293b',
+	border: '1px solid #334155',
+	color: 'white',
+};
+
 export default function DuplicateFormButton({
 	formId,
 	formName,
@@ -48,7 +54,8 @@ export default function DuplicateFormButton({
 		return (
 			<button
 				onClick={() => setOpen(true)}
-				className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
+				className="rounded-full px-4 py-1.5 text-sm transition-all"
+				style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 			>
 				Duplicate
 			</button>
@@ -56,47 +63,57 @@ export default function DuplicateFormButton({
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-			<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-				<h2 className="mb-4 text-lg font-semibold">Duplicate Form</h2>
+		<div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
+			<div 
+				className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
+				style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+			>
+				<h2 className="mb-5 text-lg font-semibold text-white">Duplicate Form</h2>
 				<form onSubmit={onDuplicate} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium">New Form Name</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>New Form Name</label>
 						<input
 							type="text"
-							className="w-full rounded border px-3 py-2"
+							className="w-full rounded-lg px-3 py-2.5 focus:outline-none"
+							style={inputStyle}
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							required
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium">New Public ID (slug)</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>New Public ID (slug)</label>
 						<input
 							type="text"
-							className="w-full rounded border px-3 py-2"
+							className="w-full rounded-lg px-3 py-2.5 font-mono focus:outline-none"
+							style={inputStyle}
 							value={publicId}
 							onChange={(e) => setPublicId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
 							placeholder="my-form-copy"
 							required
 						/>
-						<p className="mt-1 text-xs text-gray-500">
+						<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
 							URL will be /f/{publicId || "..."}
 						</p>
 					</div>
-					{error && <p className="text-sm text-red-600">{error}</p>}
-					<div className="flex justify-end gap-3">
+					{error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
+					<div className="flex justify-end gap-3 pt-2">
 						<button
 							type="button"
 							onClick={() => setOpen(false)}
-							className="rounded border px-4 py-2 text-sm"
+							className="rounded-full px-4 py-2 text-sm transition-all"
+							style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 							disabled={loading}
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+							className="rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-all"
+							style={{
+								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+							}}
 							disabled={loading}
 						>
 							{loading ? "Duplicating..." : "Duplicate"}
@@ -107,4 +124,3 @@ export default function DuplicateFormButton({
 		</div>
 	);
 }
-

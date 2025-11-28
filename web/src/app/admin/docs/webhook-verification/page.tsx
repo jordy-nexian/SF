@@ -1,35 +1,44 @@
+const cardStyle = {
+	background: 'rgba(255, 255, 255, 0.05)',
+	border: '1px solid rgba(255, 255, 255, 0.1)',
+};
+
 export default function WebhookVerificationDocs() {
 	return (
 		<div className="mx-auto max-w-4xl">
-			<h1 className="mb-6 text-2xl font-semibold">Webhook Signature Verification</h1>
+			<h1 className="mb-2 text-2xl font-bold text-white">Webhook Signature Verification</h1>
+			<p className="mb-8 text-lg" style={{ color: '#94a3b8' }}>
+				All webhook payloads are signed with HMAC-SHA256 using your tenant&apos;s shared secret.
+				This guide shows how to verify signatures in your n8n workflows or custom integrations.
+			</p>
 
-			<div className="prose prose-gray max-w-none">
-				<p className="text-lg text-gray-600">
-					All webhook payloads are signed with HMAC-SHA256 using your tenant's shared secret.
-					This guide shows how to verify signatures in your n8n workflows or custom integrations.
-				</p>
-
-				<h2 className="mt-8 text-xl font-semibold">Signature Headers</h2>
-				<p>Each request includes these headers:</p>
-				<div className="rounded bg-gray-50 p-4 font-mono text-sm">
-					<div><span className="text-blue-600">X-Form-Signature</span>: &lt;hex-encoded HMAC signature&gt;</div>
-					<div><span className="text-blue-600">X-Form-Signature-Alg</span>: sha256</div>
-					<div><span className="text-blue-600">X-Form-Signature-Ts</span>: &lt;unix timestamp in seconds&gt;</div>
+			{/* Signature Headers */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Signature Headers</h2>
+				<p className="mb-3" style={{ color: '#94a3b8' }}>Each request includes these headers:</p>
+				<div className="rounded-lg p-4 font-mono text-sm" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
+					<div><span style={{ color: '#818cf8' }}>X-Form-Signature</span>: <span style={{ color: '#94a3b8' }}>&lt;hex-encoded HMAC signature&gt;</span></div>
+					<div><span style={{ color: '#818cf8' }}>X-Form-Signature-Alg</span>: <span style={{ color: '#94a3b8' }}>sha256</span></div>
+					<div><span style={{ color: '#818cf8' }}>X-Form-Signature-Ts</span>: <span style={{ color: '#94a3b8' }}>&lt;unix timestamp in seconds&gt;</span></div>
 				</div>
+			</div>
 
-				<h2 className="mt-8 text-xl font-semibold">How Signatures are Generated</h2>
-				<p>The signature is computed as:</p>
-				<pre className="rounded bg-gray-900 p-4 text-sm text-green-400">
+			{/* How Signatures are Generated */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">How Signatures are Generated</h2>
+				<p className="mb-3" style={{ color: '#94a3b8' }}>The signature is computed as:</p>
+				<pre className="rounded-lg p-4 text-sm overflow-x-auto" style={{ background: '#0f172a', color: '#10b981' }}>
 {`signature = HMAC-SHA256(
   key: your_shared_secret,
   data: "{timestamp}.{raw_json_body}"
 )`}
 				</pre>
+			</div>
 
-				<h2 className="mt-8 text-xl font-semibold">Verification Examples</h2>
-
-				<h3 className="mt-6 text-lg font-medium">Node.js / n8n Code Node</h3>
-				<pre className="rounded bg-gray-900 p-4 text-sm text-green-400 overflow-x-auto">
+			{/* Node.js Example */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Node.js / n8n Code Node</h2>
+				<pre className="rounded-lg p-4 text-sm overflow-x-auto" style={{ background: '#0f172a', color: '#10b981' }}>
 {`const crypto = require('crypto');
 
 function verifySignature(rawBody, signature, timestamp, secret) {
@@ -68,9 +77,12 @@ if (!result.valid) {
 
 return $input.all();`}
 				</pre>
+			</div>
 
-				<h3 className="mt-6 text-lg font-medium">Python</h3>
-				<pre className="rounded bg-gray-900 p-4 text-sm text-green-400 overflow-x-auto">
+			{/* Python Example */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Python</h2>
+				<pre className="rounded-lg p-4 text-sm overflow-x-auto" style={{ background: '#0f172a', color: '#10b981' }}>
 {`import hmac
 import hashlib
 import time
@@ -90,30 +102,14 @@ def verify_signature(raw_body: str, signature: str, timestamp: str, secret: str)
     ).hexdigest()
 
     # Constant-time comparison
-    return hmac.compare_digest(signature, expected)
-
-# Usage:
-# raw_body = request.get_data(as_text=True)
-# signature = request.headers.get('X-Form-Signature')
-# timestamp = request.headers.get('X-Form-Signature-Ts')
-# if not verify_signature(raw_body, signature, timestamp, SECRET):
-#     return {'error': 'Invalid signature'}, 401`}
+    return hmac.compare_digest(signature, expected)`}
 				</pre>
+			</div>
 
-				<h3 className="mt-6 text-lg font-medium">n8n Webhook Node (No Code)</h3>
-				<p>If you can't use a Code node, you can use n8n's built-in webhook authentication:</p>
-				<ol className="list-decimal pl-6 space-y-2">
-					<li>In your Webhook node, set <strong>Authentication</strong> to "Header Auth"</li>
-					<li>Add a header name like <code>X-Auth-Token</code></li>
-					<li>Set the expected value to a static token</li>
-					<li>Configure your form to include this header (via form settings)</li>
-				</ol>
-				<p className="text-sm text-gray-500 mt-2">
-					Note: This is less secure than HMAC verification but simpler to set up.
-				</p>
-
-				<h2 className="mt-8 text-xl font-semibold">Payload Structure</h2>
-				<pre className="rounded bg-gray-900 p-4 text-sm text-green-400 overflow-x-auto">
+			{/* Payload Structure */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Payload Structure</h2>
+				<pre className="rounded-lg p-4 text-sm overflow-x-auto" style={{ background: '#0f172a', color: '#10b981' }}>
 {`{
   "tenantId": "ten_abc123",
   "formId": "form_xyz789",
@@ -122,8 +118,7 @@ def verify_signature(raw_body: str, signature: str, timestamp: str, secret: str)
   "submittedAt": "2024-01-15T10:30:00.000Z",
   "answers": {
     "email": "user@example.com",
-    "message": "Hello world",
-    // ... other form fields
+    "message": "Hello world"
   },
   "client": {
     "ip": "192.168.1.1",
@@ -136,23 +131,35 @@ def verify_signature(raw_body: str, signature: str, timestamp: str, secret: str)
   }
 }`}
 				</pre>
+			</div>
 
-				<h2 className="mt-8 text-xl font-semibold">Security Best Practices</h2>
-				<ul className="list-disc pl-6 space-y-2">
-					<li><strong>Always verify signatures</strong> before processing submissions</li>
-					<li><strong>Check timestamps</strong> to prevent replay attacks (5 minute window recommended)</li>
-					<li><strong>Use HTTPS</strong> for your webhook endpoints</li>
-					<li><strong>Store secrets securely</strong> using environment variables or secret managers</li>
-					<li><strong>Rotate secrets periodically</strong> and update your webhook handlers</li>
+			{/* Security Best Practices */}
+			<div className="rounded-xl p-5 mb-6" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Security Best Practices</h2>
+				<ul className="space-y-3" style={{ color: '#cbd5e1' }}>
+					{[
+						{ title: "Always verify signatures", desc: "before processing submissions" },
+						{ title: "Check timestamps", desc: "to prevent replay attacks (5 minute window recommended)" },
+						{ title: "Use HTTPS", desc: "for your webhook endpoints" },
+						{ title: "Store secrets securely", desc: "using environment variables or secret managers" },
+						{ title: "Rotate secrets periodically", desc: "and update your webhook handlers" },
+					].map((item, i) => (
+						<li key={i} className="flex items-start gap-3">
+							<span style={{ color: '#10b981' }}>✓</span>
+							<span><strong>{item.title}</strong> {item.desc}</span>
+						</li>
+					))}
 				</ul>
+			</div>
 
-				<h2 className="mt-8 text-xl font-semibold">Testing Webhooks</h2>
-				<p>
-					Use the "Test Webhook" button on the form detail page to send a test payload.
-					Test payloads include <code>"_test": true</code> in the answers object.
+			{/* Testing */}
+			<div className="rounded-xl p-5" style={cardStyle}>
+				<h2 className="text-xl font-semibold text-white mb-4">Testing Webhooks</h2>
+				<p style={{ color: '#94a3b8' }}>
+					Use the &quot;Test Webhook&quot; button on the form detail page to send a test payload.
+					Test payloads include <code className="px-1.5 py-0.5 rounded" style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#818cf8' }}>&quot;_test&quot;: true</code> in the answers object.
 				</p>
 			</div>
 		</div>
 	);
 }
-

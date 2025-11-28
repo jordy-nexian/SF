@@ -7,6 +7,17 @@ import FormRenderer from "@/components/FormRenderer";
 import type { FormSchema } from "@/types/form-schema";
 import { getTemplateById } from "@/lib/form-templates";
 
+const cardStyle = {
+	background: 'rgba(255, 255, 255, 0.05)',
+	border: '1px solid rgba(255, 255, 255, 0.1)',
+};
+
+const inputStyle = {
+	background: '#1e293b',
+	border: '1px solid #334155',
+	color: 'white',
+};
+
 const starterSchema: FormSchema = {
 	id: "new-form",
 	version: 1,
@@ -30,7 +41,6 @@ function NewFormContent() {
 	const [error, setError] = useState<string | null>(null);
 	const [templateName, setTemplateName] = useState<string | null>(null);
 
-	// Load template if specified
 	useEffect(() => {
 		if (templateId) {
 			const template = getTemplateById(templateId);
@@ -77,52 +87,86 @@ function NewFormContent() {
 
 	return (
 		<div className="mx-auto max-w-6xl">
-			<div className="mb-4 flex items-center justify-between">
+			<div className="mb-6 flex items-center justify-between">
 				<div>
-					<h1 className="text-xl font-semibold">
-						{templateName ? `Create from: ${templateName}` : "Create form"}
+					<h1 className="text-2xl font-bold text-white">
+						{templateName ? `Create from: ${templateName}` : "Create form (JSON)"}
 					</h1>
 					{!templateId && (
-						<p className="mt-1 text-sm text-gray-600">
+						<p className="mt-1 text-sm" style={{ color: '#94a3b8' }}>
 							Or{" "}
-							<Link href="/admin/forms/new/templates" className="text-blue-600 hover:underline">
+							<Link href="/admin/forms/new/templates" style={{ color: '#818cf8' }}>
 								start from a template
+							</Link>
+							{" "}or use the{" "}
+							<Link href="/admin/forms/builder" style={{ color: '#818cf8' }}>
+								visual builder
 							</Link>
 						</p>
 					)}
 				</div>
 				{templateId && (
-					<Link href="/admin/forms/new/templates" className="text-sm text-blue-600">
+					<Link href="/admin/forms/new/templates" className="text-sm" style={{ color: '#818cf8' }}>
 						← Choose different template
 					</Link>
 				)}
 			</div>
+
 			<form onSubmit={onSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
-				<div className="space-y-3">
+				<div className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm">Name</label>
-						<input className="w-full rounded border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} required />
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Name</label>
+						<input 
+							className="w-full rounded-lg px-3 py-2.5 focus:outline-none" 
+							style={inputStyle}
+							value={name} 
+							onChange={(e) => setName(e.target.value)} 
+							required 
+						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm">Public ID (slug)</label>
-						<input className="w-full rounded border px-3 py-2" value={publicId} onChange={(e) => setPublicId(e.target.value)} placeholder="contact" required />
-						<p className="text-xs text-gray-500">Public URL will be /f/{publicId || "…"}</p>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Public ID (slug)</label>
+						<input 
+							className="w-full rounded-lg px-3 py-2.5 font-mono focus:outline-none" 
+							style={inputStyle}
+							value={publicId} 
+							onChange={(e) => setPublicId(e.target.value)} 
+							placeholder="contact" 
+							required 
+						/>
+						<p className="mt-1 text-xs" style={{ color: '#64748b' }}>Public URL will be /f/{publicId || "…"}</p>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm">Schema (JSON)</label>
-						<textarea className="h-[380px] w-full rounded border p-2 font-mono text-xs" value={schemaText} onChange={(e) => setSchemaText(e.target.value)} />
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Schema (JSON)</label>
+						<textarea 
+							className="h-[380px] w-full rounded-lg p-3 font-mono text-xs focus:outline-none" 
+							style={inputStyle}
+							value={schemaText} 
+							onChange={(e) => setSchemaText(e.target.value)} 
+						/>
 					</div>
-					<div className="flex items-center gap-3">
-						<button type="submit" className="rounded bg-black px-4 py-2 text-white">Create form</button>
-						{error && <p className="text-sm text-red-600">{error}</p>}
+					<div className="flex items-center gap-4">
+						<button 
+							type="submit" 
+							className="rounded-full px-5 py-2.5 text-sm font-medium text-white transition-all"
+							style={{
+								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+							}}
+						>
+							Create form
+						</button>
+						<Link href="/admin" className="text-sm" style={{ color: '#94a3b8' }}>Cancel</Link>
+						{error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 					</div>
 				</div>
-				<div className="rounded border bg-white p-4">
-					<h2 className="mb-3 text-sm font-medium text-gray-700">Live preview</h2>
+
+				<div className="rounded-xl p-5" style={cardStyle}>
+					<h2 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Live preview</h2>
 					{parsedSchema ? (
 						<FormRenderer schema={parsedSchema} />
 					) : (
-						<p className="text-sm text-red-600">Invalid JSON</p>
+						<p className="text-sm" style={{ color: '#f87171' }}>Invalid JSON</p>
 					)}
 				</div>
 			</form>
@@ -132,7 +176,11 @@ function NewFormContent() {
 
 export default function NewFormPage() {
 	return (
-		<Suspense fallback={<div className="p-6">Loading...</div>}>
+		<Suspense fallback={
+			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
+				Loading...
+			</div>
+		}>
 			<NewFormContent />
 		</Suspense>
 	);
