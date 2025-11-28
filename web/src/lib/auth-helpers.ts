@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
-import "@/types/next-auth";
 
 export type TenantSession = {
 	userId: string;

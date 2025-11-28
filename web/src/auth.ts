@@ -4,9 +4,6 @@ import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
 
-// Import type extensions
-import "@/types/next-auth";
-
 export const authOptions: NextAuthOptions = {
 	secret: process.env.NEXTAUTH_SECRET,
 	session: { strategy: "jwt" },
