@@ -21,7 +21,7 @@ export default function Header() {
   }
 
   // Check if we're on the dark-themed pages
-  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing" || pathname === "/signin";
+  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing" || pathname === "/signin" || pathname === "/signup";
 
   const gradientTextStyle = {
     background: 'linear-gradient(to right, #818cf8, #a78bfa)',
@@ -93,7 +93,7 @@ export default function Header() {
     );
   }
 
-  // User is not logged in - show only Login
+  // User is not logged in - show Login and Sign Up
   return (
     <header 
       className="fixed top-0 left-0 right-0 z-50"
@@ -103,19 +103,23 @@ export default function Header() {
         <Link href="/" className="text-lg font-semibold" style={isDarkPage ? gradientTextStyle : { color: '#111827' }}>
           Stateless Forms
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex items-center gap-3 text-sm">
           <Link 
             href="/signin" 
-            className="rounded-full px-4 py-1.5 transition-all"
-            style={isDarkPage ? {
-              border: '1px solid #334155',
-              color: '#cbd5e1',
-            } : {
-              border: '1px solid #d1d5db',
-              color: '#374151',
-            }}
+            className="px-4 py-1.5 transition-colors"
+            style={{ color: isDarkPage ? '#94a3b8' : '#4b5563' }}
           >
             Log in
+          </Link>
+          <Link 
+            href="/signup" 
+            className="rounded-full px-4 py-1.5 font-medium text-white transition-all"
+            style={{
+              background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+              boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
+            }}
+          >
+            Sign up free
           </Link>
         </nav>
       </div>

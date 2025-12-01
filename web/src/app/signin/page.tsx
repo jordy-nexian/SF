@@ -14,6 +14,7 @@ function SignInForm() {
 	const [loading, setLoading] = useState(false);
 
 	const callbackUrl = searchParams.get("callbackUrl") || "/admin";
+	const justRegistered = searchParams.get("registered") === "true";
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -85,6 +86,21 @@ function SignInForm() {
 					</Link>
 					<p className="mt-2" style={{ color: '#94a3b8' }}>Sign in to your account</p>
 				</div>
+
+				{/* Success message after registration */}
+				{justRegistered && (
+					<div 
+						className="mb-6 rounded-xl p-4 text-center"
+						style={{ 
+							background: 'rgba(16, 185, 129, 0.1)',
+							border: '1px solid rgba(16, 185, 129, 0.2)',
+							color: '#10b981',
+						}}
+					>
+						<p className="font-medium">Account created successfully!</p>
+						<p className="text-sm mt-1" style={{ color: '#6ee7b7' }}>Please sign in with your credentials.</p>
+					</div>
+				)}
 
 				{/* Form card */}
 				<div 
@@ -164,8 +180,8 @@ function SignInForm() {
 				{/* Footer */}
 				<p className="text-center text-sm mt-6" style={{ color: '#64748b' }}>
 					Don&apos;t have an account?{" "}
-					<Link href="/admin/forms/builder" className="transition-colors" style={{ color: '#818cf8' }}>
-						Start building for free
+					<Link href="/signup" className="font-medium transition-colors" style={{ color: '#818cf8' }}>
+						Create one for free
 					</Link>
 				</p>
 			</div>
