@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { revalidatePath } from "next/cache";
@@ -12,6 +13,13 @@ const cardStyle = {
 	background: 'rgba(255, 255, 255, 0.05)',
 	border: '1px solid rgba(255, 255, 255, 0.1)',
 };
+
+async function getBaseUrl() {
+	const hdrs = await headers();
+	const host = hdrs.get("host") || "";
+	const proto = hdrs.get("x-forwarded-proto") || "https";
+	return `${proto}://${host}`;
+}
 
 export default async function FormDetail({ params }: { params: { id: string } }) {
 	const session = await getServerSession(authOptions);
@@ -69,7 +77,8 @@ export default async function FormDetail({ params }: { params: { id: string } })
 		},
 	};
 
-	const hosted = `/f/${form.publicId}`;
+	const baseUrl = await getBaseUrl();
+	const hosted = `${baseUrl}/f/${form.publicId}`;
 	const iframeSnippet = `<iframe src="${hosted}" width="100%" height="700" frameborder="0"></iframe>`;
 
 	const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
