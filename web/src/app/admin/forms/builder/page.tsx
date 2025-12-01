@@ -72,6 +72,7 @@ function FormBuilderContent() {
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [templateName, setTemplateName] = useState<string | null>(null);
+	const [showPreview, setShowPreview] = useState(false);
 
 	// Load template if specified
 	useEffect(() => {
@@ -355,6 +356,13 @@ function FormBuilderContent() {
 					>
 						{saving ? "Saving..." : "Save Form"}
 					</button>
+					<button
+						onClick={() => setShowPreview(true)}
+						className="rounded-full px-5 py-2.5 text-sm font-medium transition-all"
+						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+					>
+						👁 Preview
+					</button>
 					<Link href="/admin" className="text-sm transition-colors" style={{ color: '#94a3b8' }}>
 						Cancel
 					</Link>
@@ -557,18 +565,47 @@ function FormBuilderContent() {
 				) : (
 					<p className="text-sm" style={{ color: '#64748b' }}>Select a field to edit its properties</p>
 				)}
+			</div>
 
-				{/* Live Preview */}
-				<div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-					<h4 className="mb-3 text-sm font-medium" style={{ color: '#94a3b8' }}>Preview</h4>
+			{/* Preview Modal */}
+			{showPreview && (
+				<div 
+					className="fixed inset-0 z-50 flex items-center justify-center p-4"
+					style={{ background: 'rgba(0, 0, 0, 0.8)' }}
+					onClick={() => setShowPreview(false)}
+				>
 					<div 
-						className="max-h-64 overflow-auto rounded-lg p-3"
-						style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+						className="relative w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl shadow-2xl"
+						style={{ background: '#ffffff' }}
+						onClick={(e) => e.stopPropagation()}
 					>
-						<FormRenderer schema={schema} mode="preview" />
+						{/* Modal Header */}
+						<div 
+							className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
+							style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}
+						>
+							<div>
+								<h2 className="text-lg font-semibold text-gray-900">Form Preview</h2>
+								<p className="text-sm text-gray-500">This is how your form will appear to users</p>
+							</div>
+							<button
+								onClick={() => setShowPreview(false)}
+								className="rounded-full p-2 transition-colors hover:bg-gray-100"
+								style={{ color: '#6b7280' }}
+							>
+								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+						
+						{/* Form Preview Content */}
+						<div className="p-6">
+							<FormRenderer schema={schema} mode="preview" />
+						</div>
 					</div>
 				</div>
-			</div>
+			)}
 		</div>
 	);
 }
