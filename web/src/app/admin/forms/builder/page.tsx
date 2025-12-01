@@ -79,7 +79,9 @@ function FormBuilderContent() {
 			const template = getTemplateById(templateId);
 			if (template) {
 				setFormName(template.name);
-				setPublicId(template.id);
+				// Generate unique publicId with timestamp to avoid conflicts
+				const uniqueSuffix = Date.now().toString(36).slice(-4);
+				setPublicId(`${template.id}-${uniqueSuffix}`);
 				setSchema(template.schema);
 				setTemplateName(template.name);
 			}

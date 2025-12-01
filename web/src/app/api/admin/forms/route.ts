@@ -38,6 +38,17 @@ export async function POST(req: NextRequest) {
 	}
 	const { name, publicId, schema } = parsed.data;
 
+	// Check for duplicate publicId
+	const existing = await prisma.form.findFirst({
+		where: { tenantId: session.tenantId, publicId },
+	});
+	if (existing) {
+		return NextResponse.json(
+			{ error: `A form with public ID "${publicId}" already exists. Please choose a different ID.` },
+			{ status: 400 }
+		);
+	}
+
 	// Create form + optional initial version
 	const created = await prisma.$transaction(async (tx) => {
 		const form = await tx.form.create({

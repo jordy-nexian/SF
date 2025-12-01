@@ -230,8 +230,11 @@ export default function ThemeEditorPage() {
 				{/* Preview */}
 				<div className="rounded-xl p-5" style={cardStyle}>
 					<h2 className="mb-4 font-semibold text-white">Preview</h2>
+					<p className="mb-3 text-xs" style={{ color: '#64748b' }}>
+						This shows how public forms will appear to users
+					</p>
 					<div
-						className="rounded-xl p-6"
+						className="rounded-xl p-6 shadow-lg"
 						style={{
 							...cssVars,
 							backgroundColor: theme.backgroundColor,
