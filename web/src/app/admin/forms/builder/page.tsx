@@ -71,6 +71,7 @@ function FormBuilderContent() {
 	const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<string | null>(null);
 	const [templateName, setTemplateName] = useState<string | null>(null);
 	const [showPreview, setShowPreview] = useState(false);
 
@@ -183,6 +184,7 @@ function FormBuilderContent() {
 
 		setSaving(true);
 		setError(null);
+		setSuccess(null);
 
 		try {
 			const endpoint = formId ? `/api/admin/forms/${formId}` : "/api/admin/forms";
@@ -203,7 +205,11 @@ function FormBuilderContent() {
 				throw new Error(data.error || `Failed to save form (${res.status})`);
 			}
 
-			router.push(`/admin/forms/${data.formId || data.id}`);
+			setSuccess("Form saved! Redirecting...");
+			// Short delay to show success message
+			setTimeout(() => {
+				router.push(`/admin/forms/${data.formId || data.id}`);
+			}, 500);
 		} catch (err) {
 			console.error("Save error:", err);
 			setError(err instanceof Error ? err.message : "Failed to save");
@@ -376,6 +382,7 @@ function FormBuilderContent() {
 						Cancel
 					</Link>
 					{error && <span className="text-sm" style={{ color: '#f87171' }}>{error}</span>}
+					{success && <span className="text-sm" style={{ color: '#10b981' }}>{success}</span>}
 				</div>
 			</div>
 
