@@ -112,5 +112,44 @@ export async function PUT(
 	return NextResponse.json({ id: updated.id });
 }
 
+export async function DELETE(
+	_req: NextRequest,
+	context: { params: Promise<{ id: string }> }
+) {
+	try {
+		const session = await requireTenantSession();
+		if (!session) return forbidden();
+		const { id } = await context.params;
 
+		// Ensure the form belongs to tenant
+		const form = await prisma.form.findFirst({
+			where: { id, tenantId: session.tenantId },
+			select: { id: true, name: true },
+		});
+		if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+		// Delete the form (cascade will handle versions and submission events)
+		await prisma.form.delete({
+			where: { id },
+		});
+
+		// Log the deletion
+		try {
+			await prisma.$executeRaw`
+				INSERT INTO "AuditLog" ("id", "tenantId", "userId", "action", "resourceType", "resourceId", "metadata", "createdAt")
+				VALUES (${`audit_${Date.now()}`}, ${session.tenantId}, ${session.userId}, 'form.deleted', 'form', ${id}, ${JSON.stringify({ name: form.name })}, NOW())
+			`;
+		} catch {
+			// Audit log failure shouldn't break the operation
+		}
+
+		return NextResponse.json({ success: true });
+	} catch (err) {
+		console.error("Error deleting form:", err);
+		return NextResponse.json(
+			{ error: err instanceof Error ? err.message : "Failed to delete form" },
+			{ status: 500 }
+		);
+	}
+}
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import prisma from "@/lib/prisma";
+import DeleteFormButton from "@/components/DeleteFormButton";
 
 export const dynamic = "force-dynamic";
 
@@ -93,13 +94,16 @@ export default async function AdminHome() {
 									{new Date(f.updatedAt).toLocaleDateString()}
 								</td>
 								<td className="px-5 py-4">
-									<Link 
-										href={`/admin/forms/${f.id}`}
-										className="text-sm transition-colors"
-										style={{ color: '#94a3b8' }}
-									>
-										Edit →
-									</Link>
+									<div className="flex items-center gap-3">
+										<Link 
+											href={`/admin/forms/${f.id}`}
+											className="text-sm transition-colors"
+											style={{ color: '#94a3b8' }}
+										>
+											Edit →
+										</Link>
+										<DeleteFormButton formId={f.id} formName={f.name} />
+									</div>
 								</td>
 							</tr>
 						))}
