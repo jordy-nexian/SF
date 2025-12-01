@@ -176,6 +176,11 @@ function FormBuilderContent() {
 			return;
 		}
 
+		if (!formName.trim()) {
+			setError("Please enter a form name");
+			return;
+		}
+
 		setSaving(true);
 		setError(null);
 
@@ -183,20 +188,24 @@ function FormBuilderContent() {
 			const endpoint = formId ? `/api/admin/forms/${formId}` : "/api/admin/forms";
 			const method = formId ? "PUT" : "POST";
 
+			console.log("Saving form:", { endpoint, method, formName, publicId, fieldsCount: schema.fields.length });
+
 			const res = await fetch(endpoint, {
 				method,
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({ name: formName, publicId, schema }),
 			});
 
+			const data = await res.json().catch(() => ({}));
+			console.log("Save response:", res.status, data);
+
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				throw new Error(data.error || "Failed to save form");
+				throw new Error(data.error || `Failed to save form (${res.status})`);
 			}
 
-			const data = await res.json();
 			router.push(`/admin/forms/${data.formId || data.id}`);
 		} catch (err) {
+			console.error("Save error:", err);
 			setError(err instanceof Error ? err.message : "Failed to save");
 		} finally {
 			setSaving(false);

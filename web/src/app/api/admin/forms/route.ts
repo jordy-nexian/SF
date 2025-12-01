@@ -29,53 +29,63 @@ const createFormSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-	const session = await requireTenantSession();
-	if (!session) return forbidden();
-	const body = await req.json().catch(() => ({}));
-	const parsed = createFormSchema.safeParse(body);
-	if (!parsed.success) {
-		return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-	}
-	const { name, publicId, schema } = parsed.data;
+	try {
+		const session = await requireTenantSession();
+		if (!session) return forbidden();
+		
+		const body = await req.json().catch(() => ({}));
+		const parsed = createFormSchema.safeParse(body);
+		if (!parsed.success) {
+			console.error("Form validation failed:", parsed.error.format());
+			return NextResponse.json({ error: "Invalid payload", details: parsed.error.format() }, { status: 400 });
+		}
+		const { name, publicId, schema } = parsed.data;
 
-	// Check for duplicate publicId
-	const existing = await prisma.form.findFirst({
-		where: { tenantId: session.tenantId, publicId },
-	});
-	if (existing) {
-		return NextResponse.json(
-			{ error: `A form with public ID "${publicId}" already exists. Please choose a different ID.` },
-			{ status: 400 }
-		);
-	}
-
-	// Create form + optional initial version
-	const created = await prisma.$transaction(async (tx) => {
-		const form = await tx.form.create({
-			data: {
-				tenantId: session.tenantId,
-				name,
-				publicId,
-				status: "draft",
-			},
+		// Check for duplicate publicId
+		const existing = await prisma.form.findFirst({
+			where: { tenantId: session.tenantId, publicId },
 		});
-		if (schema) {
-			const ver = await tx.formVersion.create({
+		if (existing) {
+			return NextResponse.json(
+				{ error: `A form with public ID "${publicId}" already exists. Please choose a different ID.` },
+				{ status: 400 }
+			);
+		}
+
+		// Create form + initial version
+		const created = await prisma.$transaction(async (tx) => {
+			const form = await tx.form.create({
 				data: {
-					formId: form.id,
-					versionNumber: 1,
-					schema,
+					tenantId: session.tenantId,
+					name,
+					publicId,
+					status: "draft",
 				},
 			});
-			await tx.form.update({
-				where: { id: form.id },
-				data: { currentVersionId: ver.id },
-			});
-		}
-		return form;
-	});
+			if (schema) {
+				const ver = await tx.formVersion.create({
+					data: {
+						formId: form.id,
+						versionNumber: 1,
+						schema,
+					},
+				});
+				await tx.form.update({
+					where: { id: form.id },
+					data: { currentVersionId: ver.id },
+				});
+			}
+			return form;
+		});
 
-	return NextResponse.json({ formId: created.id });
+		return NextResponse.json({ formId: created.id });
+	} catch (err) {
+		console.error("Error creating form:", err);
+		return NextResponse.json(
+			{ error: err instanceof Error ? err.message : "Failed to create form" },
+			{ status: 500 }
+		);
+	}
 }
 
 
