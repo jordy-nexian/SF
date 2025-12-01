@@ -94,13 +94,16 @@ export default async function AdminHome() {
 									{new Date(f.updatedAt).toLocaleDateString()}
 								</td>
 								<td className="px-5 py-4">
-									<div className="flex items-center gap-3">
+									<div className="flex items-center gap-2">
 										<Link 
 											href={`/admin/forms/${f.id}`}
-											className="text-sm transition-colors"
+											className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
 											style={{ color: '#94a3b8' }}
+											title="Edit form"
 										>
-											Edit →
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+											</svg>
 										</Link>
 										<DeleteFormButton formId={f.id} formName={f.name} />
 									</div>
