@@ -1,23 +1,33 @@
 import Link from "next/link";
-import { headers } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
+import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-	const hdrs = await headers();
-	const host = hdrs.get("host");
-	const baseEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "";
-	const base =
-		baseEnv && /^https?:\/\//i.test(baseEnv)
-			? baseEnv
-			: host
-			? `https://${host}`
-			: "";
+	const session = await getServerSession(authOptions);
+	const tenantId = session?.user?.tenantId;
 
-	const res = await fetch(`${base}/api/admin/forms`, { cache: "no-store" });
-	const data = res.ok ? await res.json() : { forms: [] as any[] };
-	const forms: { id: string; name: string; publicId: string; status: string; updatedAt: string }[] =
-		data.forms ?? [];
+	if (!tenantId) {
+		return (
+			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
+				Not authenticated
+			</div>
+		);
+	}
+
+	const forms = await prisma.form.findMany({
+		where: { tenantId },
+		orderBy: { updatedAt: "desc" },
+		select: {
+			id: true,
+			name: true,
+			publicId: true,
+			status: true,
+			updatedAt: true,
+		},
+	});
 
 	return (
 		<div className="mx-auto max-w-6xl">

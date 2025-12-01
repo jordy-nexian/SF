@@ -6,20 +6,30 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest) {
-	const session = await requireTenantSession();
-	if (!session) return forbidden();
-	const forms = await prisma.form.findMany({
-		where: { tenantId: session.tenantId },
-		orderBy: { updatedAt: "desc" },
-		select: {
-			id: true,
-			name: true,
-			publicId: true,
-			status: true,
-			updatedAt: true,
-		},
-	});
-	return NextResponse.json({ forms });
+	try {
+		const session = await requireTenantSession();
+		if (!session) return forbidden();
+		
+		console.log("Fetching forms for tenant:", session.tenantId);
+		
+		const forms = await prisma.form.findMany({
+			where: { tenantId: session.tenantId },
+			orderBy: { updatedAt: "desc" },
+			select: {
+				id: true,
+				name: true,
+				publicId: true,
+				status: true,
+				updatedAt: true,
+			},
+		});
+		
+		console.log("Found forms:", forms.length);
+		return NextResponse.json({ forms });
+	} catch (err) {
+		console.error("Error fetching forms:", err);
+		return NextResponse.json({ forms: [], error: String(err) }, { status: 200 });
+	}
 }
 
 const createFormSchema = z.object({
