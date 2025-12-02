@@ -106,9 +106,12 @@ export async function GET(
 			thankYouUrl: form.thankYouUrl,
 			thankYouMessage: form.thankYouMessage,
 		});
-	} catch {
-		// Do not leak stack traces
-		return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
+	} catch (err) {
+		console.error('Error fetching form:', err);
+		return NextResponse.json({ 
+			error: 'Unexpected error',
+			message: err instanceof Error ? err.message : 'Unknown error'
+		}, { status: 500 });
  	}
 }
 
