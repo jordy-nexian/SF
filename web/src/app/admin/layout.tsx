@@ -35,6 +35,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							<NavLink href="/admin/usage">Usage</NavLink>
 							<NavLink href="/admin/themes">Themes</NavLink>
 							<NavLink href="/admin/audit">Audit</NavLink>
+							<NavLink href="/admin/billing">Billing</NavLink>
 							<NavLink href="/admin/settings">Settings</NavLink>
 							<NavLink href="/admin/docs/webhook-verification">Docs</NavLink>
 							<Link 

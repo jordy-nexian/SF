@@ -21,6 +21,19 @@ enum Plan {
   enterprise
 }
 
+enum BillingCycle {
+  monthly
+  annual
+}
+
+enum SubscriptionStatus {
+  none
+  active
+  past_due
+  canceled
+  trialing
+}
+
 enum Role {
   owner
   admin
@@ -47,6 +60,17 @@ model Tenant {
   settings               Json?
   customDomain           String?  @unique  // Custom domain for forms
   customDomainVerified   Boolean  @default(false)
+  
+  // Subscription fields
+  stripeCustomerId       String?  @unique
+  stripeSubscriptionId   String?
+  paypalSubscriptionId   String?
+  billingCycle           BillingCycle @default(monthly)
+  subscriptionStatus     SubscriptionStatus @default(none)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean  @default(false)
+  
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
