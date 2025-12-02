@@ -22,7 +22,8 @@ async function getBaseUrl() {
 	return `${proto}://${host}`;
 }
 
-export default async function FormDetail({ params }: { params: { id: string } }) {
+export default async function FormDetail({ params }: { params: Promise<{ id: string }> }) {
+	const { id } = await params;
 	const session = await getServerSession(authOptions);
 	const tenantId = session?.user?.tenantId;
 
@@ -35,7 +36,7 @@ export default async function FormDetail({ params }: { params: { id: string } })
 	}
 
 	const form = await prisma.form.findFirst({
-		where: { id: params.id, tenantId },
+		where: { id, tenantId },
 		include: {
 			versions: { orderBy: { versionNumber: "desc" } },
 		},
