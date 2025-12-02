@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import type {
 	FormSchema,
 	Field,
@@ -13,11 +13,9 @@ import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
 
-function PublicFormContent({
-	params,
-}: {
-	params: { publicId: string };
-}) {
+function PublicFormContent() {
+	const params = useParams();
+	const publicId = params.publicId as string;
 	const searchParams = useSearchParams();
 	const [loading, setLoading] = useState(true);
 	const [formError, setFormError] = useState<string | null>(null);
@@ -56,7 +54,7 @@ function PublicFormContent({
 	function loadFromStorage(): Record<string, any> | null {
 		if (typeof window === "undefined") return null;
 		try {
-			const stored = localStorage.getItem(`${STORAGE_PREFIX}${params.publicId}`);
+			const stored = localStorage.getItem(`${STORAGE_PREFIX}${publicId}`);
 			if (stored) {
 				const parsed = JSON.parse(stored);
 				// Check if data is less than 24 hours old
@@ -64,7 +62,7 @@ function PublicFormContent({
 					return parsed.values;
 				}
 				// Remove stale data
-				localStorage.removeItem(`${STORAGE_PREFIX}${params.publicId}`);
+				localStorage.removeItem(`${STORAGE_PREFIX}${publicId}`);
 			}
 		} catch {
 			// Ignore storage errors
@@ -77,7 +75,7 @@ function PublicFormContent({
 		if (typeof window === "undefined") return;
 		try {
 			localStorage.setItem(
-				`${STORAGE_PREFIX}${params.publicId}`,
+				`${STORAGE_PREFIX}${publicId}`,
 				JSON.stringify({ values: vals, timestamp: Date.now() })
 			);
 		} catch {
@@ -89,7 +87,7 @@ function PublicFormContent({
 	function clearStorage() {
 		if (typeof window === "undefined") return;
 		try {
-			localStorage.removeItem(`${STORAGE_PREFIX}${params.publicId}`);
+			localStorage.removeItem(`${STORAGE_PREFIX}${publicId}`);
 		} catch {
 			// Ignore
 		}
@@ -98,7 +96,7 @@ function PublicFormContent({
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
-		fetch(`/api/forms/${params.publicId}`)
+		fetch(`/api/forms/${publicId}`)
 			.then(async (r) => {
 				const data = await r.json();
 				if (!r.ok) {
@@ -142,7 +140,7 @@ function PublicFormContent({
 		return () => {
 			active = false;
 		};
-	}, [params.publicId, searchParams]);
+	}, [publicId, searchParams]);
 
 	const orderedFields = useMemo(() => {
 		if (!schema) return [];
@@ -239,7 +237,7 @@ function PublicFormContent({
 			return;
 		}
 		try {
-			const res = await fetch(`/api/forms/${params.publicId}/submit`, {
+			const res = await fetch(`/api/forms/${publicId}/submit`, {
 				method: "POST",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
@@ -641,14 +639,10 @@ function PublicFormContent({
 	);
 }
 
-export default function PublicFormPage({
-	params,
-}: {
-	params: { publicId: string };
-}) {
+export default function PublicFormPage() {
 	return (
 		<Suspense fallback={<div className="p-6">Loading form...</div>}>
-			<PublicFormContent params={params} />
+			<PublicFormContent />
 		</Suspense>
 	);
 }
