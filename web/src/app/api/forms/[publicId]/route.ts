@@ -32,8 +32,17 @@ export async function GET(
 			},
 		});
 
-		if (!form || form.status === 'archived') {
+		if (!form) {
 			return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+		}
+
+		// Only live forms are publicly accessible (draft forms show helpful message)
+		if (form.status === 'draft') {
+			return NextResponse.json({ error: 'This form is not yet published. Set it to "Live" in the admin panel.' }, { status: 403 });
+		}
+
+		if (form.status === 'archived') {
+			return NextResponse.json({ error: 'This form has been archived' }, { status: 404 });
 		}
 
 		// Check for A/B test

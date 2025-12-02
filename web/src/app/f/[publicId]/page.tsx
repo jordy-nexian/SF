@@ -293,7 +293,15 @@ function PublicFormContent({
 		return <div className="p-6">Loading…</div>;
 	}
 	if (formError) {
-		return <div className="p-6 text-red-600">{formError}</div>;
+		return (
+			<div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#f8fafc' }}>
+				<div className="text-center max-w-md">
+					<div className="text-6xl mb-4">📋</div>
+					<h1 className="text-xl font-semibold text-gray-800 mb-2">Form Unavailable</h1>
+					<p className="text-gray-600">{formError}</p>
+				</div>
+			</div>
+		);
 	}
 	if (!schema) {
 		return <div className="p-6">Form unavailable</div>;
