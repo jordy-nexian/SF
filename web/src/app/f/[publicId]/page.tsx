@@ -290,6 +290,17 @@ function PublicFormContent() {
 		}
 	}
 
+	// All hooks must be called before any early returns to avoid React error #310
+	const visibleSteps = useMemo(() => {
+		if (!schema?.steps) return [];
+		return schema.steps.filter((s) => evaluateVisibility(s.visibilityCondition, values));
+	}, [schema, values]);
+
+	const themeStyle = useMemo(() => {
+		return theme ? themeToCssVars(theme) : {};
+	}, [theme]);
+
+	// Early returns after all hooks
 	if (loading) {
 		return <div className="p-6">Loading…</div>;
 	}
@@ -309,18 +320,11 @@ function PublicFormContent() {
 	}
 
 	const usingSteps = !!(schema.steps && schema.steps.length > 0);
-	const visibleSteps = useMemo(() => {
-		if (!schema?.steps) return [];
-		return schema.steps.filter((s) => evaluateVisibility(s.visibilityCondition, values));
-	}, [schema, values]);
 	const currentFields = visibleFieldsForCurrentStep();
 	const progressPct =
 		usingSteps && visibleSteps.length > 0
 			? Math.round(((activeStepIdx + 1) / visibleSteps.length) * 100)
 			: 0;
-
-	// Generate CSS variables from theme
-	const themeStyle = theme ? themeToCssVars(theme) : {};
 
 	// Show submission receipt if submitted
 	if (submitOk && submissionId) {
