@@ -46,21 +46,67 @@ export const authOptions: NextAuthOptions = {
 		}),
 	],
 	callbacks: {
-		async jwt({ token, user }) {
+		async jwt({ token, user, trigger, session: sessionData }) {
 			if (user) {
 				token.id = user.id;
 				token.tenantId = user.tenantId;
 				token.role = user.role;
 			}
+			
+			// Handle impersonation update from client
+			if (trigger === "update" && sessionData) {
+				if (sessionData.impersonate) {
+					const { userId, tenantId, role, email, impersonatingFrom, originalAdmin } = sessionData.impersonate as any;
+					// Store original admin info for restoration
+					if (originalAdmin) {
+						(token as any).originalAdminId = originalAdmin.userId;
+						(token as any).originalAdminEmail = originalAdmin.email;
+						(token as any).originalAdminTenantId = originalAdmin.tenantId;
+						(token as any).originalAdminRole = originalAdmin.role;
+					}
+					// Set impersonated user
+					token.id = userId;
+					token.tenantId = tenantId;
+					token.role = role;
+					token.email = email;
+					(token as any).impersonatingFrom = impersonatingFrom;
+					(token as any).isImpersonating = true;
+				} else if (sessionData.impersonate === null) {
+					// Restore original admin session
+					if (token.originalAdminId) {
+						token.id = token.originalAdminId as string;
+						token.email = token.originalAdminEmail as string;
+						token.tenantId = token.originalAdminTenantId as string;
+						token.role = token.originalAdminRole as "owner" | "admin" | "viewer";
+						// Clear impersonation fields
+						delete (token as any).impersonatingFrom;
+						delete (token as any).isImpersonating;
+						delete (token as any).originalAdminId;
+						delete (token as any).originalAdminEmail;
+						delete (token as any).originalAdminTenantId;
+						delete (token as any).originalAdminRole;
+					}
+				}
+			}
+			
 			return token;
 		},
 		async session({ session, token }) {
 			session.user = {
-				id: token.id,
-				email: token.email ?? "",
-				tenantId: token.tenantId,
-				role: token.role,
+				id: token.id as string,
+				email: (token.email as string) ?? "",
+				tenantId: token.tenantId as string,
+				role: token.role as "owner" | "admin" | "viewer",
 			};
+			
+			// Add impersonation info to session
+			if (token.isImpersonating && token.impersonatingFrom) {
+				(session as any).impersonating = {
+					from: token.impersonatingFrom,
+					isImpersonating: true,
+				};
+			}
+			
 			return session;
 		},
 	},

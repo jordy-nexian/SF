@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import ImpersonateButton from "@/components/ImpersonateButton";
 
 interface TenantDetail {
 	id: string;
@@ -94,11 +95,6 @@ export default function TenantDetailPage() {
 		}
 	}
 
-	async function handleImpersonate() {
-		// This would set a session cookie to impersonate the tenant
-		// For now, just navigate to their admin with a special flag
-		alert("Impersonation feature: In production, this would log you in as a user from this tenant to see their view.");
-	}
 
 	if (loading) {
 		return (
@@ -129,17 +125,16 @@ export default function TenantDetailPage() {
 						Created {new Date(tenant.createdAt).toLocaleDateString()}
 					</p>
 				</div>
-				<button
-					onClick={handleImpersonate}
-					className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-					style={{ 
-						background: 'rgba(139, 92, 246, 0.2)',
-						border: '1px solid rgba(139, 92, 246, 0.3)',
-						color: '#a78bfa'
-					}}
-				>
-					👁️ View as Tenant
-				</button>
+				{tenant.users.length > 0 && (() => {
+					const ownerUser = tenant.users.find(u => u.role === 'owner') || tenant.users[0];
+					return (
+						<ImpersonateButton
+							userId={ownerUser.id}
+							userEmail={ownerUser.email}
+							tenantName={tenant.name}
+						/>
+					);
+				})()}
 			</div>
 
 			<div className="grid gap-6 lg:grid-cols-3 mb-8">
