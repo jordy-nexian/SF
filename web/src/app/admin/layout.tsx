@@ -33,11 +33,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 						<nav className="flex items-center gap-1 text-sm">
 							<NavLink href="/admin">Forms</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
+							<NavLink href="/admin/team">Team</NavLink>
 							<NavLink href="/admin/themes">Themes</NavLink>
-							<NavLink href="/admin/audit">Audit</NavLink>
 							<NavLink href="/admin/billing">Billing</NavLink>
 							<NavLink href="/admin/settings">Settings</NavLink>
-							<NavLink href="/admin/docs/webhook-verification">Docs</NavLink>
 							<Link 
 								href="/admin/forms/builder" 
 								className="ml-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all"

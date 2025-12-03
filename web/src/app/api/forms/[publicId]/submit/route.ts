@@ -7,6 +7,8 @@ import { validateSubmission } from '@/lib/schema-validation';
 import { resolveWebhookUrl, type WebhookRoutingConfig } from '@/lib/webhook-routing';
 import { isIpAllowed, type IpAllowlistConfig } from '@/lib/ip-allowlist';
 import { transformPayload, type TransformTemplate } from '@/lib/payload-transform';
+import { canReceiveSubmission } from '@/lib/usage';
+import type { PlanId } from '@/lib/plans';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
 
@@ -141,6 +143,22 @@ export async function POST(
 			{ status: 403 }
 		);
 	}
+
+	// Check submission limit
+	const plan = (tenant.plan || 'free') as PlanId;
+	const submissionCheck = await canReceiveSubmission(tenant.id, plan);
+	if (!submissionCheck.allowed) {
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'This form has reached its monthly submission limit. Please contact the form owner.',
+				code: 'SUBMISSION_LIMIT_EXCEEDED',
+			},
+			{ status: 429 }
+		);
+	}
+
 	const defaultWebhookUrl = form.primaryN8nWebhookUrl ?? tenant.defaultN8nWebhookUrl;
 	if (!defaultWebhookUrl) {
 		return NextResponse.json(

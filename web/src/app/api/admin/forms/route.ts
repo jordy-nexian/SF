@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
 import { z } from "zod";
+import { canCreateForm } from "@/lib/usage";
+import type { PlanId } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +11,6 @@ export async function GET(_req: NextRequest) {
 	try {
 		const session = await requireTenantSession();
 		if (!session) return forbidden();
-		
-		console.log("Fetching forms for tenant:", session.tenantId);
 		
 		const forms = await prisma.form.findMany({
 			where: { tenantId: session.tenantId },
@@ -24,7 +24,6 @@ export async function GET(_req: NextRequest) {
 			},
 		});
 		
-		console.log("Found forms:", forms.length);
 		return NextResponse.json({ forms });
 	} catch (err) {
 		console.error("Error fetching forms:", err);
@@ -42,6 +41,26 @@ export async function POST(req: NextRequest) {
 	try {
 		const session = await requireTenantSession();
 		if (!session) return forbidden();
+
+		// Get tenant plan
+		const tenant = await prisma.tenant.findUnique({
+			where: { id: session.tenantId },
+			select: { plan: true },
+		});
+		const plan = (tenant?.plan || 'free') as PlanId;
+
+		// Check form limit
+		const limitCheck = await canCreateForm(session.tenantId, plan);
+		if (!limitCheck.allowed) {
+			return NextResponse.json(
+				{ 
+					error: `You've reached your limit of ${limitCheck.limit} forms. Please upgrade your plan to create more.`,
+					code: "LIMIT_EXCEEDED",
+					upgradeRequired: true,
+				},
+				{ status: 403 }
+			);
+		}
 		
 		const body = await req.json().catch(() => ({}));
 		const parsed = createFormSchema.safeParse(body);

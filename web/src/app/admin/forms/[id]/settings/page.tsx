@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { UpgradeBadge } from "@/components/UpgradePrompt";
 
 const cardStyle = {
 	background: 'rgba(255, 255, 255, 0.05)',
@@ -15,15 +16,16 @@ const inputStyle = {
 	color: 'white',
 };
 
-type FormSettings = {
-	id: string;
-	name: string;
-	publicId: string;
-	status: string;
-	primaryN8nWebhookUrl: string | null;
-	thankYouUrl: string | null;
-	thankYouMessage: string | null;
+const disabledInputStyle = {
+	...inputStyle,
+	opacity: 0.5,
+	cursor: 'not-allowed',
 };
+
+interface Features {
+	webhookFailover: boolean;
+	abTesting: boolean;
+}
 
 export default function FormSettingsPage() {
 	const router = useRouter();
@@ -37,18 +39,29 @@ export default function FormSettingsPage() {
 
 	const [name, setName] = useState("");
 	const [webhookUrl, setWebhookUrl] = useState("");
+	const [backupWebhookUrl, setBackupWebhookUrl] = useState("");
 	const [thankYouUrl, setThankYouUrl] = useState("");
 	const [thankYouMessage, setThankYouMessage] = useState("");
+	const [features, setFeatures] = useState<Features>({ webhookFailover: false, abTesting: false });
 
 	useEffect(() => {
-		fetch(`/api/admin/forms/${formId}`)
-			.then((r) => (r.ok ? r.json() : null))
-			.then((data) => {
-				if (data) {
-					setName(data.name || "");
-					setWebhookUrl(data.primaryN8nWebhookUrl || "");
-					setThankYouUrl(data.thankYouUrl || "");
-					setThankYouMessage(data.thankYouMessage || "");
+		Promise.all([
+			fetch(`/api/admin/forms/${formId}`).then((r) => (r.ok ? r.json() : null)),
+			fetch("/api/admin/billing/usage").then((r) => r.json()),
+		])
+			.then(([formData, usageData]) => {
+				if (formData) {
+					setName(formData.name || "");
+					setWebhookUrl(formData.primaryN8nWebhookUrl || "");
+					setBackupWebhookUrl(formData.backupWebhookUrl || "");
+					setThankYouUrl(formData.thankYouUrl || "");
+					setThankYouMessage(formData.thankYouMessage || "");
+				}
+				if (usageData?.features) {
+					setFeatures({
+						webhookFailover: usageData.features.webhookFailover,
+						abTesting: usageData.features.abTesting,
+					});
 				}
 			})
 			.finally(() => setLoading(false));
@@ -67,6 +80,7 @@ export default function FormSettingsPage() {
 				body: JSON.stringify({
 					name,
 					primaryN8nWebhookUrl: webhookUrl || null,
+					backupWebhookUrl: features.webhookFailover ? (backupWebhookUrl || null) : null,
 					thankYouUrl: thankYouUrl || null,
 					thankYouMessage: thankYouMessage || null,
 				}),
@@ -142,6 +156,29 @@ export default function FormSettingsPage() {
 								Leave empty to use tenant default webhook. HTTPS required in production.
 							</p>
 						</div>
+
+						{/* Backup Webhook - Pro Feature */}
+						<div>
+							<label className="mb-1.5 flex items-center gap-2 text-sm font-medium" style={{ color: '#94a3b8' }}>
+								Backup Webhook URL
+								{!features.webhookFailover && <UpgradeBadge plan="Pro" />}
+							</label>
+							<input
+								type="url"
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={features.webhookFailover ? inputStyle : disabledInputStyle}
+								value={backupWebhookUrl}
+								onChange={(e) => setBackupWebhookUrl(e.target.value)}
+								placeholder="https://backup-n8n.com/webhook/..."
+								disabled={!features.webhookFailover}
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								{features.webhookFailover 
+									? "If the primary webhook fails, we'll automatically retry with this backup URL."
+									: "Upgrade to Pro to enable automatic failover to a backup webhook."
+								}
+							</p>
+						</div>
 					</div>
 				</div>
 
@@ -182,6 +219,40 @@ export default function FormSettingsPage() {
 							</p>
 						</div>
 					</div>
+				</div>
+
+				{/* A/B Testing - Pro Feature */}
+				<div className="rounded-xl p-6" style={cardStyle}>
+					<div className="flex items-center justify-between mb-4">
+						<h2 className="font-semibold text-white">A/B Testing</h2>
+						{!features.abTesting && <UpgradeBadge plan="Pro" />}
+					</div>
+					{features.abTesting ? (
+						<div className="space-y-4">
+							<p className="text-sm" style={{ color: '#94a3b8' }}>
+								Configure traffic weights for different form versions in the{' '}
+								<Link href={`/admin/forms/${formId}`} style={{ color: '#818cf8' }}>
+									Versions tab
+								</Link>.
+							</p>
+						</div>
+					) : (
+						<div 
+							className="p-4 rounded-lg text-center"
+							style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+						>
+							<p className="text-sm mb-3" style={{ color: '#cbd5e1' }}>
+								Test different form versions and optimize conversion rates with A/B testing.
+							</p>
+							<Link
+								href="/admin/billing"
+								className="inline-block px-4 py-2 rounded-full text-sm font-medium text-white"
+								style={{ background: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
+							>
+								Upgrade to Pro
+							</Link>
+						</div>
+					)}
 				</div>
 
 				{/* Actions */}
