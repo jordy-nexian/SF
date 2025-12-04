@@ -83,6 +83,33 @@ export default async function PlatformDashboard() {
 		? Math.round(((submissionsThisMonth - submissionsLastMonth) / submissionsLastMonth) * 100)
 		: 100;
 
+	const godModeLinks = [
+		{
+			title: "Tenants",
+			href: "/platform/tenants",
+			description: "Manage plans, usage, and lifecycle for every organization.",
+			meta: `${totalTenants} tenants`,
+		},
+		{
+			title: "Users",
+			href: "/platform/users",
+			description: "Audit access across orgs and jump into user details fast.",
+			meta: `${totalUsers} users`,
+		},
+		{
+			title: "Revenue",
+			href: "/platform/revenue",
+			description: "See ARR, MRR, churn, and billing health at a glance.",
+			meta: `$${mrr.toLocaleString()} MRR`,
+		},
+		{
+			title: "Activity",
+			href: "/platform/activity",
+			description: "Watch submissions flow across the platform in real time.",
+			meta: `${submissionsThisMonth.toLocaleString()} this month`,
+		},
+	];
+
 	return (
 		<div>
 			<div className="mb-8">
@@ -90,6 +117,38 @@ export default async function PlatformDashboard() {
 				<p className="mt-1 text-sm" style={{ color: '#a78bfa' }}>
 					Overview of your SaaS platform
 				</p>
+			</div>
+
+			{/* God Mode shortcuts */}
+			<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 mb-8">
+				{godModeLinks.map((link) => (
+					<Link
+						key={link.href}
+						href={link.href}
+						className="group block rounded-xl p-4 transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+						style={{ 
+							...cardStyle, 
+							border: '1px solid rgba(139, 92, 246, 0.25)',
+							background: 'rgba(139, 92, 246, 0.07)',
+						}}
+					>
+						<div className="flex items-start justify-between gap-3">
+							<div>
+								<div className="text-[10px] uppercase tracking-[0.08em]" style={{ color: '#a78bfa' }}>
+									God mode
+								</div>
+								<div className="text-lg font-semibold text-white">{link.title}</div>
+								<p className="text-xs mt-1 leading-relaxed" style={{ color: '#c4b5fd' }}>
+									{link.description}
+								</p>
+							</div>
+							<div className="text-right">
+								<div className="text-sm font-semibold text-white">{link.meta}</div>
+								<div className="text-xs mt-1" style={{ color: '#a78bfa' }}>Open &gt;</div>
+							</div>
+						</div>
+					</Link>
+				))}
 			</div>
 
 			{/* Key Metrics */}
