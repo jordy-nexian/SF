@@ -76,7 +76,14 @@ export default async function AdminHome() {
 					<tbody>
 						{forms.map((f) => (
 							<tr key={f.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-								<td className="px-5 py-4 font-medium text-white">{f.name}</td>
+								<td className="px-5 py-4 font-medium">
+									<Link 
+										href={`/admin/forms/${f.id}`}
+										className="text-white transition-colors hover:text-purple-400"
+									>
+										{f.name}
+									</Link>
+								</td>
 								<td className="px-5 py-4">
 									<Link 
 										href={`/f/${f.publicId}`} 
