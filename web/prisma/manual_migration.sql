@@ -49,3 +49,5 @@ CREATE TABLE IF NOT EXISTS "AuditLog" (
 CREATE INDEX IF NOT EXISTS "AuditLog_tenantId_createdAt_idx" ON "AuditLog"("tenantId", "createdAt");
 CREATE INDEX IF NOT EXISTS "AuditLog_resourceType_resourceId_idx" ON "AuditLog"("resourceType", "resourceId");
 
+
+

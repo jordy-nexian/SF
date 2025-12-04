@@ -21,3 +21,5 @@ export async function POST() {
 	return NextResponse.json({ sharedSecret: updated.sharedSecret });
 }
 
+
+

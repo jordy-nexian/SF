@@ -117,3 +117,5 @@ export function getUsagePercentage(check: UsageCheck): number {
 	return Math.min(100, Math.round((check.current / check.limit) * 100));
 }
 
+
+

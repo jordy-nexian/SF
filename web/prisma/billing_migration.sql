@@ -30,3 +30,5 @@ CREATE INDEX IF NOT EXISTS "Tenant_stripeCustomerId_idx" ON "Tenant"("stripeCust
 CREATE INDEX IF NOT EXISTS "Tenant_stripeSubscriptionId_idx" ON "Tenant"("stripeSubscriptionId");
 CREATE INDEX IF NOT EXISTS "Tenant_paypalSubscriptionId_idx" ON "Tenant"("paypalSubscriptionId");
 
+
+

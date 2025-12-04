@@ -422,3 +422,5 @@ animation: spin 1s linear infinite;
 - Header: `src/components/Header.tsx`
 - Global styles: `src/app/globals.css`
 
+
+
