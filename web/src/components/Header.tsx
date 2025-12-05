@@ -76,7 +76,7 @@ export default function Header() {
             <span style={{ color: isDarkPage ? '#64748b' : '#6b7280' }}>{session.user?.email}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="rounded-full px-4 py-1.5 transition-all"
+              className="rounded-full px-4 py-1.5 transition-all active:scale-[0.98] active:opacity-80"
               style={isDarkPage ? {
                 border: '1px solid #334155',
                 color: '#cbd5e1',
@@ -113,7 +113,7 @@ export default function Header() {
           </Link>
           <Link 
             href="/signup" 
-            className="rounded-full px-4 py-1.5 font-medium text-white transition-all"
+            className="rounded-full px-4 py-1.5 font-medium text-white transition-all active:scale-[0.98] active:shadow-[0_1px_5px_rgba(99,102,241,0.2)]"
             style={{
               background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
               boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',

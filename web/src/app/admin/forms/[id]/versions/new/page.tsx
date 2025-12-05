@@ -145,7 +145,7 @@ export default function NewVersionPage() {
 						<button
 							type="submit"
 							disabled={saving || !schema.trim()}
-							className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-all disabled:opacity-50"
+							className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-all disabled:opacity-50 active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 							style={{ 
 								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
@@ -155,7 +155,7 @@ export default function NewVersionPage() {
 						</button>
 						<Link
 							href={`/admin/forms/${formId}`}
-							className="rounded-full px-6 py-2.5 text-sm font-medium transition-all"
+							className="rounded-full px-6 py-2.5 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 							style={{ border: '1px solid #334155', color: '#94a3b8' }}
 						>
 							Cancel

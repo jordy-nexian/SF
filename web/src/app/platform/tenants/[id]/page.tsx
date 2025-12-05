@@ -238,21 +238,21 @@ export default function TenantDetailPage() {
 					<h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
 					<div className="space-y-2">
 						<button 
-							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-colors hover:bg-white/5"
+							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-white/10"
 							style={{ color: '#e9d5ff' }}
 							onClick={() => alert('Would send password reset email')}
 						>
 							📧 Send Password Reset
 						</button>
 						<button 
-							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-colors hover:bg-white/5"
+							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-white/10"
 							style={{ color: '#e9d5ff' }}
 							onClick={() => alert('Would export tenant data')}
 						>
 							📦 Export Data
 						</button>
 						<button 
-							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-colors hover:bg-white/5"
+							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-red-500/10"
 							style={{ color: '#f87171' }}
 							onClick={() => {
 								if (confirm('Are you sure you want to delete this tenant? This cannot be undone.')) {

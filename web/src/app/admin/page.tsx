@@ -37,14 +37,14 @@ export default async function AdminHome() {
 				<div className="flex gap-3">
 					<Link 
 						href="/admin/forms/new/templates" 
-						className="rounded-full px-4 py-2 text-sm font-medium transition-all"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 					>
 						Templates
 					</Link>
 					<Link 
 						href="/admin/forms/builder" 
-						className="rounded-full px-4 py-2 text-sm font-medium transition-all"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 						style={{ 
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 							color: 'white',
@@ -104,7 +104,7 @@ export default async function AdminHome() {
 									<div className="flex items-center gap-2">
 										<Link 
 											href={`/admin/forms/${f.id}`}
-											className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
+											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
 											style={{ color: '#94a3b8' }}
 											title="Edit form"
 										>
