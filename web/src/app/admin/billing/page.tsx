@@ -291,7 +291,7 @@ export default function BillingPage() {
 								<button
 									onClick={() => handleUpgrade(plan.id, "stripe")}
 									disabled={upgrading === plan.id}
-									className="w-full py-3 rounded-full text-sm font-medium text-white transition-all disabled:opacity-50"
+									className="w-full py-3 rounded-full text-sm font-medium text-white transition-all disabled:opacity-50 active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 									style={{ 
 										background: plan.popular 
 											? 'linear-gradient(to right, #6366f1, #8b5cf6)' 
@@ -304,7 +304,7 @@ export default function BillingPage() {
 								<button
 									onClick={() => handleUpgrade(plan.id, "paypal")}
 									disabled={upgrading === plan.id}
-									className="w-full py-2.5 rounded-full text-sm font-medium transition-all disabled:opacity-50"
+									className="w-full py-2.5 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 									style={{ border: '1px solid #334155', color: '#94a3b8' }}
 								>
 									Pay with PayPal
@@ -353,6 +353,7 @@ function UsageBar({ label, current, limit }: { label: string; current: number; l
 		</div>
 	);
 }
+
 
 
 

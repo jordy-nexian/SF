@@ -71,7 +71,7 @@ export default function ImpersonateButton({ userId, userEmail, tenantName }: Imp
 			<button
 				onClick={handleImpersonate}
 				disabled={impersonating}
-				className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+				className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 active:scale-95 active:opacity-80"
 				style={{ 
 					background: 'rgba(139, 92, 246, 0.2)',
 					border: '1px solid rgba(139, 92, 246, 0.3)',

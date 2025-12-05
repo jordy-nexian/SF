@@ -256,11 +256,11 @@ export default function FormRenderer({
 				))}
 				{usingSteps ? (
 					<div className="mt-4 flex items-center justify-between">
-						<button type="button" className="rounded border px-4 py-1.5" onClick={prevStep} disabled={activeStepIdx === 0}>Back</button>
-						<button type="button" className="rounded bg-black px-4 py-1.5 text-white" onClick={nextStep}>Next</button>
+						<button type="button" className="rounded border px-4 py-1.5 transition-all active:scale-95 active:opacity-80 disabled:opacity-50" onClick={prevStep} disabled={activeStepIdx === 0}>Back</button>
+						<button type="button" className="rounded bg-black px-4 py-1.5 text-white transition-all active:scale-95 active:opacity-90" onClick={nextStep}>Next</button>
 					</div>
 				) : (
-					<button type="submit" className="rounded bg-black px-4 py-2 text-white">Preview submit</button>
+					<button type="submit" className="rounded bg-black px-4 py-2 text-white transition-all active:scale-95 active:opacity-90">Preview submit</button>
 				)}
 			</form>
 			{submitMsg && (
@@ -269,6 +269,7 @@ export default function FormRenderer({
 		</div>
 	);
 }
+
 
 
 

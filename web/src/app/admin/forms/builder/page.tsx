@@ -331,7 +331,7 @@ function FormBuilderContent() {
 										<button
 											onClick={(e) => { e.stopPropagation(); moveField(field.key, "up"); }}
 											disabled={index === 0}
-											className="rounded p-1.5 transition-colors disabled:opacity-30"
+											className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
 											style={{ color: '#94a3b8' }}
 										>
 											↑
@@ -339,14 +339,14 @@ function FormBuilderContent() {
 										<button
 											onClick={(e) => { e.stopPropagation(); moveField(field.key, "down"); }}
 											disabled={index === schema.fields.length - 1}
-											className="rounded p-1.5 transition-colors disabled:opacity-30"
+											className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
 											style={{ color: '#94a3b8' }}
 										>
 											↓
 										</button>
 										<button
 											onClick={(e) => { e.stopPropagation(); deleteField(field.key); }}
-											className="rounded p-1.5 transition-colors"
+											className="rounded p-1.5 transition-all active:scale-90 active:bg-red-500/10"
 											style={{ color: '#f87171' }}
 										>
 											×
@@ -363,7 +363,7 @@ function FormBuilderContent() {
 					<button
 						onClick={saveForm}
 						disabled={saving}
-						className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all"
+						className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 						style={{
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
@@ -373,7 +373,7 @@ function FormBuilderContent() {
 					</button>
 					<button
 						onClick={() => setShowPreview(true)}
-						className="rounded-full px-5 py-2.5 text-sm font-medium transition-all"
+						className="rounded-full px-5 py-2.5 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 					>
 						👁 Preview

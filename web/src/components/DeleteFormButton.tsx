@@ -42,7 +42,7 @@ export default function DeleteFormButton({
 		return (
 			<button
 				onClick={() => setShowConfirm(true)}
-				className="p-1.5 rounded-lg transition-colors hover:bg-white/10 opacity-50 hover:opacity-100"
+				className="p-1.5 rounded-lg transition-all hover:bg-white/10 opacity-50 hover:opacity-100 active:scale-90 active:bg-red-500/10"
 				style={{ color: '#f87171' }}
 				title="Delete form"
 			>
@@ -78,7 +78,7 @@ export default function DeleteFormButton({
 					<button
 						onClick={() => setShowConfirm(false)}
 						disabled={deleting}
-						className="rounded-full px-4 py-2 text-sm transition-all"
+						className="rounded-full px-4 py-2 text-sm transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 					>
 						Cancel
@@ -86,7 +86,7 @@ export default function DeleteFormButton({
 					<button
 						onClick={handleDelete}
 						disabled={deleting}
-						className="rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-all"
+						className="rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-all active:scale-[0.98] active:bg-[#b91c1c]"
 						style={{ background: '#dc2626' }}
 					>
 						{deleting ? "Deleting..." : "Delete"}

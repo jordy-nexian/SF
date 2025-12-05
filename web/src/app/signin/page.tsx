@@ -144,7 +144,7 @@ function SignInForm() {
 						<button
 							type="submit"
 							disabled={loading}
-							className="w-full py-3 rounded-full font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							className="w-full py-3 rounded-full font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.3)]"
 							style={{
 								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',

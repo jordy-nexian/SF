@@ -40,7 +40,7 @@ export default function WebhookTestButton({ formId }: { formId: string }) {
 				type="button"
 				onClick={runTest}
 				disabled={loading}
-				className="rounded-full px-4 py-2 text-sm font-medium transition-all disabled:opacity-50"
+				className="rounded-full px-4 py-2 text-sm font-medium transition-all disabled:opacity-50 active:scale-[0.98] active:shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
 				style={{
 					background: 'linear-gradient(to right, #3b82f6, #6366f1)',
 					color: 'white',
