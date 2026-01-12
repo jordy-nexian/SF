@@ -28,8 +28,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
+          {/* Skip link for keyboard navigation - visible on focus */}
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
           <Header />
-          <main>{children}</main>
+          <main id="main-content" tabIndex={-1}>{children}</main>
         </Providers>
       </body>
     </html>

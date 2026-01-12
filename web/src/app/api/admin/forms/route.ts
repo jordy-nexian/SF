@@ -1,16 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
+import { requireTenantSession } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { canCreateForm } from "@/lib/usage";
 import type { PlanId } from "@/lib/plans";
+import * as api from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest) {
 	try {
 		const session = await requireTenantSession();
-		if (!session) return forbidden();
+		if (!session) return api.unauthorized();
 		
 		const forms = await prisma.form.findMany({
 			where: { tenantId: session.tenantId },
@@ -24,10 +25,10 @@ export async function GET(_req: NextRequest) {
 			},
 		});
 		
-		return NextResponse.json({ forms });
+		return api.success({ forms });
 	} catch (err) {
 		console.error("Error fetching forms:", err);
-		return NextResponse.json({ forms: [], error: String(err) }, { status: 200 });
+		return api.internalError("Failed to fetch forms");
 	}
 }
 
@@ -40,7 +41,7 @@ const createFormSchema = z.object({
 export async function POST(req: NextRequest) {
 	try {
 		const session = await requireTenantSession();
-		if (!session) return forbidden();
+		if (!session) return api.unauthorized();
 
 		// Get tenant plan
 		const tenant = await prisma.tenant.findUnique({
@@ -52,21 +53,15 @@ export async function POST(req: NextRequest) {
 		// Check form limit
 		const limitCheck = await canCreateForm(session.tenantId, plan);
 		if (!limitCheck.allowed) {
-			return NextResponse.json(
-				{ 
-					error: `You've reached your limit of ${limitCheck.limit} forms. Please upgrade your plan to create more.`,
-					code: "LIMIT_EXCEEDED",
-					upgradeRequired: true,
-				},
-				{ status: 403 }
+			return api.usageLimitExceeded(
+				`You've reached your limit of ${limitCheck.limit} forms. Please upgrade your plan to create more.`
 			);
 		}
 		
 		const body = await req.json().catch(() => ({}));
 		const parsed = createFormSchema.safeParse(body);
 		if (!parsed.success) {
-			console.error("Form validation failed:", parsed.error.format());
-			return NextResponse.json({ error: "Invalid payload", details: parsed.error.format() }, { status: 400 });
+			return api.validationError("Invalid form data", parsed.error.format());
 		}
 		const { name, publicId, schema } = parsed.data;
 
@@ -75,9 +70,8 @@ export async function POST(req: NextRequest) {
 			where: { tenantId: session.tenantId, publicId },
 		});
 		if (existing) {
-			return NextResponse.json(
-				{ error: `A form with public ID "${publicId}" already exists. Please choose a different ID.` },
-				{ status: 400 }
+			return api.conflict(
+				`A form with public ID "${publicId}" already exists. Please choose a different ID.`
 			);
 		}
 
@@ -107,13 +101,10 @@ export async function POST(req: NextRequest) {
 			return form;
 		});
 
-		return NextResponse.json({ formId: created.id });
+		return api.success({ formId: created.id }, 201);
 	} catch (err) {
 		console.error("Error creating form:", err);
-		return NextResponse.json(
-			{ error: err instanceof Error ? err.message : "Failed to create form" },
-			{ status: 500 }
-		);
+		return api.internalError("Failed to create form");
 	}
 }
 

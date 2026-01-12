@@ -45,8 +45,9 @@ export default function DeleteFormButton({
 				className="p-1.5 rounded-lg transition-all hover:bg-white/10 opacity-50 hover:opacity-100 active:scale-90 active:bg-red-500/10"
 				style={{ color: '#f87171' }}
 				title="Delete form"
+				aria-label={`Delete ${formName}`}
 			>
-				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
 			</button>
@@ -58,13 +59,16 @@ export default function DeleteFormButton({
 			className="fixed inset-0 z-50 flex items-center justify-center p-4"
 			style={{ background: 'rgba(0, 0, 0, 0.7)' }}
 			onClick={() => !deleting && setShowConfirm(false)}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="delete-dialog-title"
 		>
 			<div 
 				className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
 				style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)' }}
 				onClick={(e) => e.stopPropagation()}
 			>
-				<h2 className="mb-2 text-lg font-semibold text-white">Delete Form</h2>
+				<h2 id="delete-dialog-title" className="mb-2 text-lg font-semibold text-white">Delete Form</h2>
 				<p className="mb-4 text-sm" style={{ color: '#94a3b8' }}>
 					Are you sure you want to delete <strong className="text-white">{formName}</strong>? 
 					This action cannot be undone.

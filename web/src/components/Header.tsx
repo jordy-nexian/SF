@@ -20,8 +20,15 @@ export default function Header() {
     return null;
   }
 
+  // Auth pages have their own centered branding - don't show duplicate header
+  const isAuthPage = pathname === "/signin" || pathname === "/signup" || 
+    pathname === "/forgot-password" || pathname === "/reset-password";
+  if (isAuthPage) {
+    return null;
+  }
+
   // Check if we're on the dark-themed pages
-  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing" || pathname === "/signin" || pathname === "/signup";
+  const isDarkPage = pathname === "/" || pathname === "/features" || pathname === "/pricing";
 
   const gradientTextStyle = {
     background: 'linear-gradient(to right, #818cf8, #a78bfa)',

@@ -127,7 +127,16 @@ function SignInForm() {
 							/>
 						</div>
 						<div>
-							<label className="block text-sm mb-2" style={{ color: '#cbd5e1' }}>Password</label>
+							<div className="flex items-center justify-between mb-2">
+								<label className="block text-sm" style={{ color: '#cbd5e1' }}>Password</label>
+								<Link 
+									href="/forgot-password" 
+									className="text-sm transition-colors hover:underline"
+									style={{ color: '#818cf8' }}
+								>
+									Forgot password?
+								</Link>
+							</div>
 							<input
 								type="password"
 								className="w-full rounded-lg px-4 py-3 text-white transition-colors focus:outline-none"

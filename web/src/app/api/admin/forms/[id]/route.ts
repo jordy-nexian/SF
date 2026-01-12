@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
+import { requireTenantSession } from "@/lib/auth-helpers";
 import { z } from "zod";
+import * as api from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function GET(
 	context: { params: Promise<{ id: string }> }
 ) {
 	const session = await requireTenantSession();
-	if (!session) return forbidden();
+	if (!session) return api.unauthorized();
 	const { id } = await context.params;
 	const form = await prisma.form.findFirst({
 		where: { id, tenantId: session.tenantId },
@@ -19,8 +20,8 @@ export async function GET(
 			versions: { orderBy: { versionNumber: "desc" } },
 		},
 	});
-	if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
-	return NextResponse.json({
+	if (!form) return api.notFound("Form not found");
+	return api.success({
 		id: form.id,
 		name: form.name,
 		publicId: form.publicId,
@@ -55,12 +56,12 @@ export async function PUT(
 	context: { params: Promise<{ id: string }> }
 ) {
 	const session = await requireTenantSession();
-	if (!session) return forbidden();
+	if (!session) return api.unauthorized();
 	const { id } = await context.params;
 	const body = await req.json().catch(() => ({}));
 	const parsed = updateSchema.safeParse(body);
 	if (!parsed.success) {
-		return NextResponse.json({ error: "Invalid payload", details: parsed.error.issues }, { status: 400 });
+		return api.validationError("Invalid form data", parsed.error.issues);
 	}
 
 	// Ensure the form belongs to tenant
@@ -68,7 +69,7 @@ export async function PUT(
 		where: { id, tenantId: session.tenantId },
 		select: { id: true, status: true },
 	});
-	if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
+	if (!form) return api.notFound("Form not found");
 
 	// If setting currentVersionId, ensure it belongs to this form
 	let currentVersionData: { currentVersionId?: string } = {};
@@ -77,7 +78,7 @@ export async function PUT(
 			where: { id: parsed.data.currentVersionId, formId: id },
 			select: { id: true },
 		});
-		if (!version) return NextResponse.json({ error: "Version not found" }, { status: 404 });
+		if (!version) return api.notFound("Version not found");
 		currentVersionData.currentVersionId = version.id;
 	}
 
@@ -109,7 +110,7 @@ export async function PUT(
 		}
 	}
 
-	return NextResponse.json({ id: updated.id });
+	return api.success({ id: updated.id });
 }
 
 export async function DELETE(
@@ -118,7 +119,7 @@ export async function DELETE(
 ) {
 	try {
 		const session = await requireTenantSession();
-		if (!session) return forbidden();
+		if (!session) return api.unauthorized();
 		const { id } = await context.params;
 
 		// Ensure the form belongs to tenant
@@ -126,7 +127,7 @@ export async function DELETE(
 			where: { id, tenantId: session.tenantId },
 			select: { id: true, name: true },
 		});
-		if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
+		if (!form) return api.notFound("Form not found");
 
 		// Delete the form (cascade will handle versions and submission events)
 		await prisma.form.delete({
@@ -143,13 +144,10 @@ export async function DELETE(
 			// Audit log failure shouldn't break the operation
 		}
 
-		return NextResponse.json({ success: true });
+		return api.success({ deleted: true });
 	} catch (err) {
 		console.error("Error deleting form:", err);
-		return NextResponse.json(
-			{ error: err instanceof Error ? err.message : "Failed to delete form" },
-			{ status: 500 }
-		);
+		return api.internalError("Failed to delete form");
 	}
 }
 

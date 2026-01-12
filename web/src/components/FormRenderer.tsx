@@ -194,27 +194,65 @@ export default function FormRenderer({
 			<form className="space-y-3" onSubmit={onSubmit}>
 				{currentFields.map((field) => (
 					<div key={field.key} className="space-y-1">
-						<label className="block text-sm font-medium">
+						<label htmlFor={field.key} className="block text-sm font-medium">
 							{field.label}
-							{field.required ? " *" : ""}
+							{field.required && <span className="text-red-500" aria-label="required"> *</span>}
 						</label>
 						{field.type === "text" && (
-							<input className="w-full rounded border px-3 py-2" value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.value)} />
+							<input 
+								id={field.key}
+								className="w-full rounded border px-3 py-2" 
+								value={values[field.key] ?? ""} 
+								onChange={(e) => onChange(field.key, e.target.value)}
+								aria-invalid={!!errors[field.key]}
+								aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
+							/>
 						)}
 						{field.type === "email" && (
-							<input type="email" className="w-full rounded border px-3 py-2" value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.value)} />
+							<input 
+								id={field.key}
+								type="email" 
+								className="w-full rounded border px-3 py-2" 
+								value={values[field.key] ?? ""} 
+								onChange={(e) => onChange(field.key, e.target.value)}
+								aria-invalid={!!errors[field.key]}
+								aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
+							/>
 						)}
 						{field.type === "number" && (
-							<input type="number" className="w-full rounded border px-3 py-2" value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.valueAsNumber)} />
+							<input 
+								id={field.key}
+								type="number" 
+								className="w-full rounded border px-3 py-2" 
+								value={values[field.key] ?? ""} 
+								onChange={(e) => onChange(field.key, e.target.valueAsNumber)}
+								aria-invalid={!!errors[field.key]}
+								aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
+							/>
 						)}
 						{field.type === "boolean" && (
 							<input type="checkbox" className="h-4 w-4" checked={!!values[field.key]} onChange={(e) => onChange(field.key, e.target.checked)} />
 						)}
 						{field.type === "textarea" && (
-							<textarea className="w-full rounded border px-3 py-2" rows={4} value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.value)} />
+							<textarea 
+								id={field.key}
+								className="w-full rounded border px-3 py-2" 
+								rows={4} 
+								value={values[field.key] ?? ""} 
+								onChange={(e) => onChange(field.key, e.target.value)}
+								aria-invalid={!!errors[field.key]}
+								aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
+							/>
 						)}
 						{field.type === "select" && (
-							<select className="w-full rounded border px-3 py-2" value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.value)}>
+							<select 
+								id={field.key}
+								className="w-full rounded border px-3 py-2" 
+								value={values[field.key] ?? ""} 
+								onChange={(e) => onChange(field.key, e.target.value)}
+								aria-invalid={!!errors[field.key]}
+								aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
+							>
 								<option value="" disabled>Select…</option>
 								{field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 							</select>
@@ -250,8 +288,21 @@ export default function FormRenderer({
 						{field.type === "date" && (
 							<input type="date" className="w-full rounded border px-3 py-2" value={values[field.key] ?? ""} onChange={(e) => onChange(field.key, e.target.value)} />
 						)}
-						{errors[field.key] && <p className="text-xs text-red-600">{errors[field.key]}</p>}
-						{field.helpText && <p className="text-xs text-gray-500">{field.helpText}</p>}
+						{errors[field.key] && (
+							<p 
+								className="text-xs text-red-600" 
+								role="alert"
+								aria-live="polite"
+								id={`${field.key}-error`}
+							>
+								{errors[field.key]}
+							</p>
+						)}
+						{field.helpText && (
+							<p className="text-xs text-gray-500" id={`${field.key}-help`}>
+								{field.helpText}
+							</p>
+						)}
 					</div>
 				))}
 				{usingSteps ? (

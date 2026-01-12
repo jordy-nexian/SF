@@ -1,35 +1,37 @@
 import Link from "next/link";
+import { PLANS, formatPrice } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
 export default function PricingPage() {
+  // Build tiers from the single source of truth (plans.ts)
   const tiers = [
     {
-      name: "Free",
-      desc: "For testing and small projects",
-      price: "$0",
-      period: "/month",
-      features: ["500 submissions / month", "3 forms", "Basic analytics", "Hosted embeds"],
+      name: PLANS.free.name,
+      desc: PLANS.free.description,
+      price: formatPrice(PLANS.free.pricing.monthly),
+      period: PLANS.free.pricing.monthly > 0 ? "/month" : "",
+      features: PLANS.free.features,
       cta: "Get started",
-      href: "/signin",
+      href: "/signup",
       featured: false,
     },
     {
-      name: "Pro",
-      desc: "For growing teams",
-      price: "$29",
+      name: PLANS.pro.name,
+      desc: PLANS.pro.description,
+      price: `$${PLANS.pro.pricing.monthly}`,
       period: "/month",
-      features: ["10,000 submissions / month", "Unlimited forms", "Custom themes & branding", "A/B testing", "Priority support"],
+      features: PLANS.pro.features,
       cta: "Start free trial",
-      href: "/signin",
-      featured: true,
+      href: "/signup",
+      featured: PLANS.pro.popular || false,
     },
     {
-      name: "Enterprise",
-      desc: "For critical workflows",
-      price: "Custom",
-      period: "",
-      features: ["Unlimited submissions", "SSO & advanced security", "Custom SLAs", "Dedicated support", "Custom domains"],
+      name: PLANS.enterprise.name,
+      desc: PLANS.enterprise.description,
+      price: `$${PLANS.enterprise.pricing.monthly}`,
+      period: "/month",
+      features: PLANS.enterprise.features,
       cta: "Contact sales",
       href: "mailto:sales@statelessforms.io",
       featured: false,

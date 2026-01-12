@@ -8,6 +8,8 @@ import { resolveWebhookUrl, type WebhookRoutingConfig } from '@/lib/webhook-rout
 import { isIpAllowed, type IpAllowlistConfig } from '@/lib/ip-allowlist';
 import { transformPayload, type TransformTemplate } from '@/lib/payload-transform';
 import { canReceiveSubmission } from '@/lib/usage';
+import { verifyTurnstileToken, isTurnstileEnabled } from '@/lib/captcha';
+import { createRequestLogger, generateRequestId, logSubmissionEvent, logWebhookEvent, logRateLimitEvent } from '@/lib/logger';
 import type { PlanId } from '@/lib/plans';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
@@ -24,13 +26,25 @@ export async function POST(
 ) {
 	const start = Date.now();
 	let submissionId = crypto.randomUUID();
+	const requestId = generateRequestId();
 	const { publicId } = await context.params;
+	
+	// Create request-scoped logger
+	const logger = createRequestLogger(requestId, `/api/forms/${publicId}/submit`);
+	
+	logger.debug({ submissionId, publicId }, 'Submission received');
 
-	// Rate limiting by IP
+	// Rate limiting by IP (distributed via Upstash Redis)
 	const clientIp = getClientIp(request.headers);
 	const rateLimitKey = `submit:${clientIp}`;
-	const rl = rateLimit(rateLimitKey, RATE_LIMITS.submit);
+	const rl = await rateLimit(rateLimitKey, RATE_LIMITS.submit);
 	if (!rl.success) {
+		logRateLimitEvent(logger, {
+			key: rateLimitKey,
+			limit: rl.limit,
+			remaining: rl.remaining,
+			blocked: true,
+		});
 		return NextResponse.json(
 			{
 				status: 'error',
@@ -75,7 +89,7 @@ export async function POST(
 		);
 	}
 
-	const { formId, formVersion, answers, meta } = body ?? {};
+	const { formId, formVersion, answers, meta, turnstileToken } = body ?? {};
 	if (!formId || typeof formId !== 'string' || answers == null) {
 		return NextResponse.json(
 			{
@@ -85,6 +99,26 @@ export async function POST(
 			},
 			{ status: 400 }
 		);
+	}
+
+	// Verify Turnstile CAPTCHA if enabled
+	if (isTurnstileEnabled()) {
+		const turnstileResult = await verifyTurnstileToken(
+			turnstileToken as string,
+			clientIp
+		);
+		
+		if (!turnstileResult.success) {
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: 'Verification failed. Please try again.',
+					code: 'CAPTCHA_FAILED',
+				},
+				{ status: 403 }
+			);
+		}
 	}
 
 	// Optional: field count soft limit
@@ -280,16 +314,53 @@ export async function POST(
 	}
 
 	// Forward to primary webhook
+	logWebhookEvent(logger, {
+		type: 'sending',
+		webhookUrl,
+		formId: form.id,
+	});
+	
+	const webhookStart = Date.now();
 	let { status, success } = await sendWebhook(webhookUrl);
+	const webhookDuration = Date.now() - webhookStart;
+	
+	if (success) {
+		logWebhookEvent(logger, {
+			type: 'success',
+			webhookUrl,
+			formId: form.id,
+			status,
+			duration: webhookDuration,
+		});
+	} else {
+		logWebhookEvent(logger, {
+			type: 'failed',
+			webhookUrl,
+			formId: form.id,
+			status,
+			duration: webhookDuration,
+			error: status ? `HTTP ${status}` : 'Connection failed',
+		});
+	}
 
 	// Try backup webhook on failure
 	const backupUrl = form.backupWebhookUrl;
 	if (!success && backupUrl) {
 		const backupValidation = validateWebhookUrl(backupUrl);
 		if (backupValidation.valid) {
+			logger.info({ backupUrl: '[masked]' }, 'Trying backup webhook');
 			const backup = await sendWebhook(backupUrl);
 			status = backup.status;
 			success = backup.success;
+			
+			if (success) {
+				logWebhookEvent(logger, {
+					type: 'success',
+					webhookUrl: backupUrl,
+					formId: form.id,
+					status,
+				});
+			}
 		}
 	}
 
@@ -313,8 +384,25 @@ export async function POST(
 						: 0,
 			},
 		});
-	} catch {
-		// Intentionally swallow to avoid leaking details; do not log answers
+		
+		logSubmissionEvent(logger, {
+			type: success ? 'relayed' : 'failed',
+			formId: form.id,
+			tenantId: tenant.id,
+			webhookStatus: status,
+			duration: durationMs,
+			error: success ? undefined : 'Webhook delivery failed',
+		});
+	} catch (err) {
+		// Log metadata only, no PII/answers
+		logger.error(
+			{ 
+				formId: form.id, 
+				tenantId: tenant.id,
+				error: err instanceof Error ? err.message : 'Unknown error',
+			},
+			'Failed to record submission event'
+		);
 	}
 
 	if (success) {

@@ -5,6 +5,94 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 
+ * Accessibility: Focus States
+ * Visible focus indicators for keyboard navigation (WCAG 2.4.7)
+ */
+
+/* Default focus ring for interactive elements */
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+
+/* Focus within for container elements like form groups */
+.focus-within-ring:focus-within {
+  ring: 2px;
+  ring-color: #818cf8;
+  ring-offset: 2px;
+}
+
+/* Skip link - hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #6366f1;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Live region for form errors */
+.form-error-live {
+  /* Announced to screen readers */
+}
+
+/* Button hover transitions */
+button,
+[role="button"],
+.btn-primary,
+.btn-secondary {
+  transition: all 0.15s ease-in-out;
+}
+
+button:not(:disabled):hover,
+[role="button"]:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Custom utility classes */
 @layer utilities {
   .glass-card {

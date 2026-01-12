@@ -1,7 +1,8 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { defaultTheme, type ThemeConfig } from '@/types/theme';
 import { selectVersion, type VersionWeight } from '@/lib/ab-testing';
+import * as api from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,16 +34,16 @@ export async function GET(
 		});
 
 		if (!form) {
-			return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+			return api.formNotFound();
 		}
 
 		// Only live forms are publicly accessible (draft forms show helpful message)
 		if (form.status === 'draft') {
-			return NextResponse.json({ error: 'This form is not yet published. Set it to "Live" in the admin panel.' }, { status: 403 });
+			return api.formNotPublished();
 		}
 
 		if (form.status === 'archived') {
-			return NextResponse.json({ error: 'This form has been archived' }, { status: 404 });
+			return api.formArchived();
 		}
 
 		// Check for A/B test
@@ -83,7 +84,7 @@ export async function GET(
 		}
 
 		if (!selectedVersion) {
-			return NextResponse.json({ error: 'Form has no versions' }, { status: 404 });
+			return api.notFound('Form has no published versions');
 		}
 
 		// Get theme from tenant settings or use default
@@ -97,6 +98,9 @@ export async function GET(
 			showStepNumbers: true,
 		};
 
+		// Include Turnstile site key if configured
+		const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
+
 		return NextResponse.json({
 			formId: form.id,
 			formVersion: selectedVersion.versionNumber,
@@ -105,14 +109,12 @@ export async function GET(
 			settings,
 			thankYouUrl: form.thankYouUrl,
 			thankYouMessage: form.thankYouMessage,
+			turnstileSiteKey,
 		});
 	} catch (err) {
 		console.error('Error fetching form:', err);
-		return NextResponse.json({ 
-			error: 'Unexpected error',
-			message: err instanceof Error ? err.message : 'Unknown error'
-		}, { status: 500 });
- 	}
+		return api.internalError('Failed to load form');
+	}
 }
 
 

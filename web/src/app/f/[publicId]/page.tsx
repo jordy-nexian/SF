@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import type {
 	FormSchema,
@@ -9,6 +9,7 @@ import type {
 } from "@/types/form-schema";
 import { evaluateVisibility, validateField, getByPath } from "@/types/form-schema";
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
@@ -32,6 +33,9 @@ function PublicFormContent() {
 	const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
 	const [submissionId, setSubmissionId] = useState<string | null>(null);
 	const [recoveredFromStorage, setRecoveredFromStorage] = useState(false);
+	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+	const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
 	// Extract pre-fill values from URL parameters
 	function getPrefillValues(fieldKeys: string[]): Record<string, any> {
@@ -112,6 +116,7 @@ function PublicFormContent() {
 				setTheme(data.theme);
 				setThankYouUrl(data.thankYouUrl);
 				setThankYouMessage(data.thankYouMessage);
+				setTurnstileSiteKey(data.turnstileSiteKey || null);
 
 				// Initialize values: URL params > localStorage > empty
 				const fieldKeys = data.schema.fields.map((f: Field) => f.key);
@@ -223,10 +228,27 @@ function PublicFormContent() {
 		setActiveStepIdx((i) => Math.max(0, i - 1));
 	}
 
+	// Turnstile handlers
+	const handleTurnstileVerify = useCallback((token: string) => {
+		setTurnstileToken(token);
+		setTurnstileError(null);
+	}, []);
+
+	const handleTurnstileError = useCallback(() => {
+		setTurnstileToken(null);
+		setTurnstileError("Verification failed. Please try again.");
+	}, []);
+
+	const handleTurnstileExpired = useCallback(() => {
+		setTurnstileToken(null);
+	}, []);
+
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setSubmitOk(null);
 		setSubmitError(null);
+		setTurnstileError(null);
+
 		// Validate everything (single page) or current step if stepped but on last screen we validate current and allow submit
 		const fieldsToValidate =
 			schema?.steps && schema.steps.length > 0
@@ -236,6 +258,13 @@ function PublicFormContent() {
 			setSubmitError("Please fix the highlighted errors.");
 			return;
 		}
+
+		// Verify Turnstile if enabled
+		if (turnstileSiteKey && !turnstileToken) {
+			setTurnstileError("Please complete the verification challenge.");
+			return;
+		}
+
 		try {
 			const res = await fetch(`/api/forms/${publicId}/submit`, {
 				method: "POST",
@@ -244,6 +273,7 @@ function PublicFormContent() {
 					formId,
 					formVersion,
 					answers: values,
+					turnstileToken: turnstileToken || undefined,
 					meta: {
 						userAgent: navigator.userAgent,
 						language: navigator.language,
@@ -599,6 +629,22 @@ function PublicFormContent() {
 						)}
 					</div>
 				))}
+				{/* Turnstile CAPTCHA widget - show before submit button */}
+				{turnstileSiteKey && (
+					<div className="pt-4">
+						<TurnstileWidget
+							siteKey={turnstileSiteKey}
+							onVerify={handleTurnstileVerify}
+							onError={handleTurnstileError}
+							onExpired={handleTurnstileExpired}
+							theme="auto"
+						/>
+						{turnstileError && (
+							<p className="mt-2 text-sm text-red-600">{turnstileError}</p>
+						)}
+					</div>
+				)}
+
 				{usingSteps ? (
 					<div className="mt-4 flex items-center justify-between">
 						<button
@@ -621,6 +667,7 @@ function PublicFormContent() {
 							<button
 								type="submit"
 								className="rounded bg-black px-4 py-2 text-white hover:bg-gray-800"
+								disabled={turnstileSiteKey ? !turnstileToken : false}
 							>
 								Submit
 							</button>
@@ -631,6 +678,7 @@ function PublicFormContent() {
 						<button
 							type="submit"
 							className="rounded bg-black px-4 py-2 text-white hover:bg-gray-800"
+							disabled={turnstileSiteKey ? !turnstileToken : false}
 						>
 							Submit
 						</button>

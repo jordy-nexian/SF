@@ -1,32 +1,12 @@
 /**
- * Simple in-memory rate limiter for serverless environments.
- * Uses a sliding window approach with automatic cleanup.
+ * Distributed rate limiter using Upstash Redis.
+ * Works correctly across all serverless instances.
  *
- * Note: In a multi-instance deployment, consider using Redis or
- * Vercel's Edge Config for distributed rate limiting.
+ * Falls back to permissive mode if Redis is unavailable (logs warning).
  */
 
-type RateLimitEntry = {
-	count: number;
-	resetAt: number;
-};
-
-const store = new Map<string, RateLimitEntry>();
-
-// Cleanup old entries every 60 seconds
-const CLEANUP_INTERVAL = 60_000;
-let lastCleanup = Date.now();
-
-function cleanup() {
-	const now = Date.now();
-	if (now - lastCleanup < CLEANUP_INTERVAL) return;
-	lastCleanup = now;
-	for (const [key, entry] of store.entries()) {
-		if (entry.resetAt < now) {
-			store.delete(key);
-		}
-	}
-}
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 export type RateLimitConfig = {
 	/** Maximum requests allowed in the window */
@@ -42,48 +22,84 @@ export type RateLimitResult = {
 	resetAt: number;
 };
 
+// Initialize Redis client (lazy - only when first used)
+let redis: Redis | null = null;
+let rateLimiters: Map<string, Ratelimit> = new Map();
+
+function getRedis(): Redis | null {
+	if (redis) return redis;
+	
+	const url = process.env.UPSTASH_REDIS_REST_URL;
+	const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+	
+	if (!url || !token) {
+		console.warn('[RateLimit] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not configured. Rate limiting disabled.');
+		return null;
+	}
+	
+	redis = new Redis({ url, token });
+	return redis;
+}
+
+function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
+	const redisClient = getRedis();
+	if (!redisClient) return null;
+	
+	// Cache rate limiters by config to avoid recreating
+	const key = `${config.limit}:${config.windowMs}`;
+	let limiter = rateLimiters.get(key);
+	
+	if (!limiter) {
+		limiter = new Ratelimit({
+			redis: redisClient,
+			limiter: Ratelimit.slidingWindow(config.limit, `${config.windowMs} ms`),
+			analytics: true,
+			prefix: 'stateless-forms',
+		});
+		rateLimiters.set(key, limiter);
+	}
+	
+	return limiter;
+}
+
 /**
  * Check and consume rate limit for a given key.
  * @param key Unique identifier (e.g., IP address, tenant ID)
  * @param config Rate limit configuration
  * @returns Result indicating if request is allowed
  */
-export function rateLimit(key: string, config: RateLimitConfig): RateLimitResult {
-	cleanup();
-
-	const now = Date.now();
-	const entry = store.get(key);
-
-	// No existing entry or window expired
-	if (!entry || entry.resetAt < now) {
-		const resetAt = now + config.windowMs;
-		store.set(key, { count: 1, resetAt });
+export async function rateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
+	const limiter = getRateLimiter(config);
+	
+	// Fallback: if Redis not configured, allow all requests (with warning logged once)
+	if (!limiter) {
 		return {
 			success: true,
 			limit: config.limit,
-			remaining: config.limit - 1,
-			resetAt,
+			remaining: config.limit,
+			resetAt: Date.now() + config.windowMs,
 		};
 	}
-
-	// Within window
-	if (entry.count < config.limit) {
-		entry.count++;
+	
+	try {
+		const result = await limiter.limit(key);
+		
+		return {
+			success: result.success,
+			limit: result.limit,
+			remaining: result.remaining,
+			resetAt: result.reset,
+		};
+	} catch (error) {
+		// On Redis error, fail open (allow request) but log
+		console.error('[RateLimit] Redis error, failing open:', error instanceof Error ? error.message : 'unknown');
 		return {
 			success: true,
 			limit: config.limit,
-			remaining: config.limit - entry.count,
-			resetAt: entry.resetAt,
+			remaining: config.limit,
+			resetAt: Date.now() + config.windowMs,
 		};
 	}
-
-	// Rate limited
-	return {
-		success: false,
-		limit: config.limit,
-		remaining: 0,
-		resetAt: entry.resetAt,
-	};
 }
 
 /**
@@ -110,6 +126,12 @@ export const RATE_LIMITS = {
 	/** Auth attempts: 5 per minute per IP */
 	auth: { limit: 5, windowMs: 60_000 },
 } as const;
+
+
+
+
+
+
 
 
 
