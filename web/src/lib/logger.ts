@@ -1,209 +1,199 @@
 /**
- * Structured logging using Pino
- * 
- * Provides consistent, JSON-formatted logs with request IDs for traceability.
- * In development, logs are pretty-printed; in production, JSON for log aggregators.
+ * Lightweight structured logger for serverless environments
+ * Compatible with Vercel and Next.js 16+ Turbopack
  */
 
-import pino from 'pino';
+import { customAlphabet } from 'nanoid';
 
-// Log levels match Pino defaults
-export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+const generateId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
 
-// Get log level from environment (default: info in prod, debug in dev)
-const level: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 
-	(process.env.NODE_ENV === 'production' ? 'info' : 'debug');
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-// Create base logger
-const baseLogger = pino({
-	level,
-	// Use pretty print in development
-	...(process.env.NODE_ENV !== 'production' && {
-		transport: {
-			target: 'pino-pretty',
-			options: {
-				colorize: true,
-				ignore: 'pid,hostname',
-				translateTime: 'SYS:HH:MM:ss.l',
-			},
-		},
-	}),
-	// Base configuration for all logs
-	base: {
-		env: process.env.NODE_ENV || 'development',
-		service: 'stateless-forms',
-	},
-	// Custom serializers
-	serializers: {
-		err: pino.stdSerializers.err,
-		error: pino.stdSerializers.err,
-	},
-	// Redact sensitive fields
-	redact: {
-		paths: [
-			'password',
-			'passwordHash',
-			'token',
-			'secret',
-			'apiKey',
-			'authorization',
-			'cookie',
-			'*.password',
-			'*.passwordHash',
-			'*.token',
-			'*.secret',
-			'*.apiKey',
-		],
-		censor: '[REDACTED]',
-	},
-});
+const LOG_LEVELS: Record<LogLevel, number> = {
+	debug: 0,
+	info: 1,
+	warn: 2,
+	error: 3,
+};
 
-/**
- * Create a child logger with additional context
- */
-export function createLogger(context: Record<string, unknown>) {
-	return baseLogger.child(context);
-}
+const currentLevel = LOG_LEVELS[(process.env.LOG_LEVEL as LogLevel) || 'info'] ?? LOG_LEVELS.info;
 
-/**
- * Create a request-scoped logger with request ID
- */
-export function createRequestLogger(requestId: string, path?: string) {
-	return baseLogger.child({
-		requestId,
-		...(path && { path }),
-	});
-}
+// Sensitive fields to redact
+const REDACT_FIELDS = new Set([
+	'password',
+	'token',
+	'secret',
+	'authorization',
+	'cookie',
+	'apiKey',
+	'api_key',
+]);
 
-/**
- * Generate a unique request ID
- */
-export function generateRequestId(): string {
-	return `req_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-/**
- * Log submission event (no PII)
- */
-export function logSubmissionEvent(
-	logger: pino.Logger,
-	event: {
-		type: 'received' | 'validated' | 'relayed' | 'failed';
-		formId: string;
-		tenantId?: string;
-		webhookStatus?: number;
-		duration?: number;
-		error?: string;
-	}
-) {
-	const { type, formId, tenantId, webhookStatus, duration, error } = event;
-	
-	const logData = {
-		event: `submission.${type}`,
-		formId,
-		...(tenantId && { tenantId }),
-		...(webhookStatus && { webhookStatus }),
-		...(duration !== undefined && { durationMs: duration }),
-	};
-	
-	if (type === 'failed') {
-		logger.error({ ...logData, error }, `Submission failed: ${error}`);
-	} else if (type === 'relayed') {
-		logger.info(logData, `Submission relayed to webhook`);
-	} else {
-		logger.debug(logData, `Submission ${type}`);
-	}
-}
-
-/**
- * Log webhook relay event
- */
-export function logWebhookEvent(
-	logger: pino.Logger,
-	event: {
-		type: 'sending' | 'success' | 'failed' | 'retry';
-		webhookUrl: string;
-		formId: string;
-		status?: number;
-		duration?: number;
-		error?: string;
-		attempt?: number;
-	}
-) {
-	// Mask webhook URL to prevent secret leakage
-	const maskedUrl = maskWebhookUrl(event.webhookUrl);
-	
-	const logData = {
-		event: `webhook.${event.type}`,
-		webhookUrl: maskedUrl,
-		formId: event.formId,
-		...(event.status && { status: event.status }),
-		...(event.duration !== undefined && { durationMs: event.duration }),
-		...(event.attempt && { attempt: event.attempt }),
-	};
-	
-	if (event.type === 'failed') {
-		logger.error({ ...logData, error: event.error }, `Webhook delivery failed: ${event.error}`);
-	} else if (event.type === 'success') {
-		logger.info(logData, `Webhook delivered successfully`);
-	} else if (event.type === 'retry') {
-		logger.warn(logData, `Retrying webhook delivery`);
-	} else {
-		logger.debug(logData, `Sending webhook`);
-	}
-}
-
-/**
- * Mask sensitive parts of webhook URL
- */
-function maskWebhookUrl(url: string): string {
-	try {
-		const parsed = new URL(url);
-		// Mask path after first segment
-		const pathParts = parsed.pathname.split('/').filter(Boolean);
-		if (pathParts.length > 1) {
-			parsed.pathname = '/' + pathParts[0] + '/***';
+function redactSensitive(obj: Record<string, unknown>): Record<string, unknown> {
+	const result: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (REDACT_FIELDS.has(key.toLowerCase())) {
+			result[key] = '***REDACTED***';
+		} else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+			result[key] = redactSensitive(value as Record<string, unknown>);
+		} else {
+			result[key] = value;
 		}
-		// Remove query params
-		parsed.search = '';
-		return parsed.toString();
-	} catch {
-		return '[invalid-url]';
 	}
+	return result;
 }
 
-/**
- * Log rate limit event
- */
-export function logRateLimitEvent(
-	logger: pino.Logger,
-	event: {
-		key: string;
-		limit: number;
-		remaining: number;
-		blocked: boolean;
+interface LogEntry {
+	level: LogLevel;
+	timestamp: string;
+	message: string;
+	requestId?: string;
+	path?: string;
+	[key: string]: unknown;
+}
+
+function formatLog(level: LogLevel, context: Record<string, unknown>, message: string): string {
+	const entry: LogEntry = {
+		level,
+		timestamp: new Date().toISOString(),
+		message,
+		...redactSensitive(context),
+	};
+
+	// In production, output JSON for log aggregators
+	if (process.env.NODE_ENV === 'production') {
+		return JSON.stringify(entry);
 	}
-) {
+
+	// In development, output human-readable format
+	const { timestamp, requestId, path, ...rest } = entry;
+	const prefix = requestId ? `[${requestId}]` : '';
+	const pathInfo = path ? ` ${path}` : '';
+	const extras = Object.keys(rest).length > 2 ? ` ${JSON.stringify(rest)}` : '';
+	
+	return `${timestamp} ${level.toUpperCase().padEnd(5)} ${prefix}${pathInfo} ${message}${extras}`;
+}
+
+function shouldLog(level: LogLevel): boolean {
+	return LOG_LEVELS[level] >= currentLevel;
+}
+
+export interface Logger {
+	debug: (context: Record<string, unknown>, message: string) => void;
+	info: (context: Record<string, unknown>, message: string) => void;
+	warn: (context: Record<string, unknown>, message: string) => void;
+	error: (context: Record<string, unknown>, message: string) => void;
+	child: (defaultContext: Record<string, unknown>) => Logger;
+}
+
+function createLogger(defaultContext: Record<string, unknown> = {}): Logger {
+	const log = (level: LogLevel, context: Record<string, unknown>, message: string) => {
+		if (!shouldLog(level)) return;
+		
+		const mergedContext = { ...defaultContext, ...context };
+		const formatted = formatLog(level, mergedContext, message);
+		
+		switch (level) {
+			case 'debug':
+			case 'info':
+				console.log(formatted);
+				break;
+			case 'warn':
+				console.warn(formatted);
+				break;
+			case 'error':
+				console.error(formatted);
+				break;
+		}
+	};
+
+	return {
+		debug: (context, message) => log('debug', context, message),
+		info: (context, message) => log('info', context, message),
+		warn: (context, message) => log('warn', context, message),
+		error: (context, message) => log('error', context, message),
+		child: (childContext) => createLogger({ ...defaultContext, ...childContext }),
+	};
+}
+
+// Default logger instance
+export const logger = createLogger();
+
+// Generate a unique request ID
+export function generateRequestId(): string {
+	return `req_${generateId()}`;
+}
+
+// Create a request-scoped logger
+export function createRequestLogger(requestId: string, path: string): Logger {
+	return logger.child({ requestId, path });
+}
+
+// Structured event loggers
+interface SubmissionEventLog {
+	formId: string;
+	tenantId: string;
+	submissionId: string;
+	status: 'success' | 'error';
+	httpCode?: number;
+	durationMs?: number;
+	payloadSizeBytes?: number;
+	fieldCount?: number;
+	error?: string;
+}
+
+export function logSubmissionEvent(log: Logger, event: SubmissionEventLog) {
+	const level = event.status === 'error' ? 'error' : 'info';
+	log[level](event, `Submission ${event.status}: ${event.submissionId}`);
+}
+
+interface WebhookEventLog {
+	formId: string;
+	tenantId: string;
+	submissionId: string;
+	webhookUrl: string;
+	status: 'success' | 'error';
+	httpCode?: number;
+	durationMs?: number;
+	error?: string;
+	isBackup?: boolean;
+}
+
+export function logWebhookEvent(log: Logger, event: WebhookEventLog) {
+	const level = event.status === 'error' ? 'warn' : 'info';
+	const backup = event.isBackup ? ' (backup)' : '';
+	log[level](event, `Webhook ${event.status}${backup}: ${event.httpCode || 'N/A'}`);
+}
+
+interface RateLimitEventLog {
+	ip: string;
+	key: string;
+	limit: number;
+	remaining: number;
+	resetAt: number;
+	blocked: boolean;
+}
+
+export function logRateLimitEvent(log: Logger, event: RateLimitEventLog) {
 	if (event.blocked) {
-		logger.warn(
-			{
-				event: 'rateLimit.blocked',
-				key: maskRateLimitKey(event.key),
-				limit: event.limit,
-			},
-			'Rate limit exceeded'
-		);
+		log.warn(event, `Rate limit blocked: ${event.ip}`);
+	} else {
+		log.debug(event, `Rate limit checked: ${event.remaining}/${event.limit}`);
 	}
 }
 
-/**
- * Mask IP in rate limit key
- */
-function maskRateLimitKey(key: string): string {
-	// Mask last octet of IPv4
-	return key.replace(/\d+\.\d+\.\d+\.(\d+)/, 'x.x.x.$1');
+interface CaptchaEventLog {
+	formId: string;
+	tenantId: string;
+	submissionId: string;
+	success: boolean;
+	error?: string;
 }
 
-// Export the base logger for simple cases
-export const logger = baseLogger;
-export default baseLogger;
+export function logCaptchaEvent(log: Logger, event: CaptchaEventLog) {
+	if (event.success) {
+		log.info(event, 'CAPTCHA verification successful');
+	} else {
+		log.warn(event, `CAPTCHA verification failed: ${event.error || 'unknown'}`);
+	}
+}
