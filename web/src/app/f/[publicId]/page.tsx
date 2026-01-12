@@ -102,11 +102,14 @@ function PublicFormContent() {
 		setLoading(true);
 		fetch(`/api/forms/${publicId}`)
 			.then(async (r) => {
-				const data = await r.json();
+				const json = await r.json();
 				if (!r.ok) {
-					throw new Error(data.error || data.message || "Form not found");
+					// Handle standardized error response format
+					const errorMsg = json.error?.message || json.message || json.error || "Form not found";
+					throw new Error(errorMsg);
 				}
-				return data;
+				// Handle standardized success response format: { success: true, data: {...} }
+				return json.data ?? json;
 			})
 			.then((data) => {
 				if (!active) return;
