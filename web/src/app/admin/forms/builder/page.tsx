@@ -74,6 +74,7 @@ function FormBuilderContent() {
 	const [success, setSuccess] = useState<string | null>(null);
 	const [templateName, setTemplateName] = useState<string | null>(null);
 	const [showPreview, setShowPreview] = useState(false);
+	const [activePanel, setActivePanel] = useState<"fields" | "design">("fields");
 
 	// Load template if specified
 	useEffect(() => {
@@ -226,27 +227,125 @@ function FormBuilderContent() {
 
 	return (
 		<div className="flex h-[calc(100vh-80px)] gap-4">
-			{/* Field Palette */}
-			<div className="w-52 shrink-0 rounded-xl p-4" style={cardStyle}>
-				<h3 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Add Fields</h3>
-				<div className="space-y-2">
-					{FIELD_TYPES.map((field) => (
-						<div
-							key={field.type}
-							draggable
-							onDragStart={() => handleDragStart({ type: "new-field", fieldType: field.type })}
-							onClick={() => addField(field.type)}
-							className="flex cursor-move items-center gap-3 rounded-lg p-2.5 text-sm transition-all"
-							style={{ 
-								background: 'rgba(255, 255, 255, 0.03)',
-								border: '1px solid transparent',
-								color: '#cbd5e1',
-							}}
-						>
-							<span className="w-6 text-center" style={{ color: '#64748b' }}>{field.icon}</span>
-							<span>{field.label}</span>
+			{/* Left Panel - Fields / Design */}
+			<div className="w-52 shrink-0 rounded-xl" style={cardStyle}>
+				{/* Tab Switcher */}
+				<div className="flex border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+					<button
+						onClick={() => setActivePanel("fields")}
+						className="flex-1 px-3 py-2.5 text-xs font-medium transition-all"
+						style={{
+							color: activePanel === "fields" ? '#818cf8' : '#64748b',
+							borderBottom: activePanel === "fields" ? '2px solid #818cf8' : '2px solid transparent',
+						}}
+					>
+						Fields
+					</button>
+					<button
+						onClick={() => setActivePanel("design")}
+						className="flex-1 px-3 py-2.5 text-xs font-medium transition-all"
+						style={{
+							color: activePanel === "design" ? '#818cf8' : '#64748b',
+							borderBottom: activePanel === "design" ? '2px solid #818cf8' : '2px solid transparent',
+						}}
+					>
+						Design
+					</button>
+				</div>
+
+				<div className="p-4">
+					{activePanel === "fields" ? (
+						<>
+							<h3 className="mb-3 text-xs font-medium" style={{ color: '#64748b' }}>Drag or click to add</h3>
+							<div className="space-y-2">
+								{FIELD_TYPES.map((field) => (
+									<div
+										key={field.type}
+										draggable
+										onDragStart={() => handleDragStart({ type: "new-field", fieldType: field.type })}
+										onClick={() => addField(field.type)}
+										className="flex cursor-move items-center gap-3 rounded-lg p-2.5 text-sm transition-all hover:bg-white/5"
+										style={{ 
+											background: 'rgba(255, 255, 255, 0.03)',
+											border: '1px solid transparent',
+											color: '#cbd5e1',
+										}}
+									>
+										<span className="w-6 text-center" style={{ color: '#64748b' }}>{field.icon}</span>
+										<span>{field.label}</span>
+									</div>
+								))}
+							</div>
+						</>
+					) : (
+						<div className="space-y-5">
+							{/* Layout */}
+							<div>
+								<h3 className="mb-2 text-xs font-medium" style={{ color: '#64748b' }}>Layout</h3>
+								<div className="space-y-1.5">
+									{[
+										{ value: "single", label: "Single Column", icon: "▭" },
+										{ value: "two-column", label: "Two Columns", icon: "▭▭" },
+										{ value: "card", label: "Card Style", icon: "▢" },
+									].map((opt) => (
+										<button
+											key={opt.value}
+											onClick={() => setSchema((prev) => ({ ...prev, layout: opt.value as any }))}
+											className="flex w-full items-center gap-2 rounded-lg p-2 text-sm transition-all"
+											style={{
+												background: schema.layout === opt.value ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+												border: schema.layout === opt.value ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+												color: schema.layout === opt.value ? '#a5b4fc' : '#94a3b8',
+											}}
+										>
+											<span className="font-mono text-xs">{opt.icon}</span>
+											<span>{opt.label}</span>
+										</button>
+									))}
+								</div>
+							</div>
+
+							{/* Field Style */}
+							<div>
+								<h3 className="mb-2 text-xs font-medium" style={{ color: '#64748b' }}>Field Style</h3>
+								<div className="space-y-1.5">
+									{[
+										{ value: "outline", label: "Outline" },
+										{ value: "filled", label: "Filled" },
+										{ value: "underline", label: "Underline" },
+									].map((opt) => (
+										<button
+											key={opt.value}
+											onClick={() => setSchema((prev) => ({ ...prev, fieldStyle: opt.value as any }))}
+											className="flex w-full items-center gap-2 rounded-lg p-2 text-sm transition-all"
+											style={{
+												background: (schema.fieldStyle || "outline") === opt.value ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+												border: (schema.fieldStyle || "outline") === opt.value ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+												color: (schema.fieldStyle || "outline") === opt.value ? '#a5b4fc' : '#94a3b8',
+											}}
+										>
+											<span>{opt.label}</span>
+										</button>
+									))}
+								</div>
+							</div>
+
+							{/* Theme Link */}
+							<div className="pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+								<p className="mb-2 text-xs" style={{ color: '#64748b' }}>
+									Colors & typography are set in your account theme.
+								</p>
+								<a
+									href="/admin/themes"
+									className="flex items-center gap-2 rounded-lg p-2 text-sm transition-all hover:bg-white/5"
+									style={{ color: '#818cf8' }}
+								>
+									<span>🎨</span>
+									<span>Edit Theme</span>
+								</a>
+							</div>
 						</div>
-					))}
+					)}
 				</div>
 			</div>
 

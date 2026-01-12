@@ -62,6 +62,9 @@ export type Step = {
 	visibilityCondition?: VisibilityCondition;
 };
 
+export type FormLayout = "single" | "two-column" | "card";
+export type FieldStyle = "outline" | "filled" | "underline";
+
 export type FormSchema = {
 	id: string;
 	version: number;
@@ -69,6 +72,9 @@ export type FormSchema = {
 	description?: string;
 	steps?: Step[];
 	fields: Field[];
+	// Visual customization
+	layout?: FormLayout;
+	fieldStyle?: FieldStyle;
 };
 
 /**
