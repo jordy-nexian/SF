@@ -384,10 +384,46 @@ function PublicFormContent() {
 		);
 	}
 
+	// Themed input styles using CSS variables
+	const inputStyle: React.CSSProperties = {
+		width: "100%",
+		backgroundColor: "transparent",
+		border: "1px solid var(--form-border, #d1d5db)",
+		borderRadius: "var(--form-radius, 0.375rem)",
+		padding: "var(--form-input-padding, 0.5rem 0.75rem)",
+		color: "var(--form-text, #1f2937)",
+		fontSize: "var(--form-font-size, 1rem)",
+		outline: "none",
+	};
+
+	const buttonStyle: React.CSSProperties = {
+		backgroundColor: "var(--form-btn-bg, #000)",
+		color: "var(--form-btn-text, #fff)",
+		borderRadius: "var(--form-radius, 0.375rem)",
+		padding: "var(--form-input-padding, 0.5rem 0.75rem)",
+		border: "none",
+		cursor: "pointer",
+		fontWeight: 500,
+	};
+
+	const secondaryButtonStyle: React.CSSProperties = {
+		backgroundColor: "transparent",
+		color: "var(--form-text, #1f2937)",
+		borderRadius: "var(--form-radius, 0.375rem)",
+		padding: "var(--form-input-padding, 0.5rem 0.75rem)",
+		border: "1px solid var(--form-border, #d1d5db)",
+		cursor: "pointer",
+	};
+
 	return (
 		<div
 			className="mx-auto max-w-2xl p-6"
-			style={themeStyle as React.CSSProperties}
+			style={{
+				...themeStyle as React.CSSProperties,
+				backgroundColor: "var(--form-bg, #ffffff)",
+				color: "var(--form-text, #1f2937)",
+				fontFamily: "var(--form-font, system-ui)",
+			}}
 		>
 			{/* Recovery notice */}
 			{recoveredFromStorage && (
@@ -407,47 +443,52 @@ function PublicFormContent() {
 				</div>
 			)}
 
-			<h1 className="text-2xl font-semibold">{schema.title}</h1>
+			<h1 style={{ fontSize: "var(--form-heading-size, 1.5rem)", fontWeight: 600 }}>{schema.title}</h1>
 			{schema.description && (
-				<p className="mt-2 text-gray-600">{schema.description}</p>
+				<p style={{ marginTop: "0.5rem", opacity: 0.7 }}>{schema.description}</p>
 			)}
 			{usingSteps && visibleSteps.length > 0 && (
-				<div className="mt-4">
-					<div className="mb-2 flex items-center justify-between text-sm text-gray-600">
+				<div style={{ marginTop: "1rem" }}>
+					<div style={{ marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", fontSize: "0.875rem", opacity: 0.7 }}>
 						<span>
 							Step {Math.min(activeStepIdx + 1, visibleSteps.length)} of {visibleSteps.length}
 						</span>
 						<span>{progressPct}%</span>
 					</div>
-					<div className="h-2 w-full rounded bg-gray-200">
+					<div style={{ height: "0.5rem", width: "100%", borderRadius: "var(--form-radius, 0.375rem)", backgroundColor: "var(--form-border, #d1d5db)", overflow: "hidden" }}>
 						<div
-							className="h-2 rounded bg-black"
-							style={{ width: `${progressPct}%` }}
+							style={{ 
+								height: "100%", 
+								borderRadius: "var(--form-radius, 0.375rem)", 
+								backgroundColor: "var(--form-primary, #000)",
+								width: `${progressPct}%`,
+								transition: "width 0.3s ease",
+							}}
 						/>
 					</div>
 					{visibleSteps[activeStepIdx]?.title && (
-						<h2 className="mt-4 text-xl font-medium">
+						<h2 style={{ marginTop: "1rem", fontSize: "1.25rem", fontWeight: 500 }}>
 							{visibleSteps[activeStepIdx]?.title}
 						</h2>
 					)}
 					{visibleSteps[activeStepIdx]?.description && (
-						<p className="text-gray-600">
+						<p style={{ opacity: 0.7 }}>
 							{visibleSteps[activeStepIdx]?.description}
 						</p>
 					)}
 				</div>
 			)}
-			<form className="mt-6 space-y-4" onSubmit={onSubmit}>
+			<form className="mt-6" style={{ display: "flex", flexDirection: "column", gap: "var(--form-field-spacing, 1rem)" }} onSubmit={onSubmit}>
 				{currentFields.map((field) => (
-					<div key={field.key} className="space-y-1">
-						<label className="block text-sm font-medium">
+					<div key={field.key} style={{ marginBottom: "var(--form-field-spacing, 0)" }}>
+						<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.25rem" }}>
 							{field.label}
-							{field.required ? " *" : ""}
+							{field.required && <span style={{ color: "var(--form-error, #dc2626)" }}> *</span>}
 						</label>
 						{field.type === "text" && (
 							<input
 								type="text"
-								className="w-full rounded border px-3 py-2"
+								style={inputStyle}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.value)}
 								required={field.required}
@@ -456,7 +497,7 @@ function PublicFormContent() {
 						{field.type === "email" && (
 							<input
 								type="email"
-								className="w-full rounded border px-3 py-2"
+								style={inputStyle}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.value)}
 								required={field.required}
@@ -465,7 +506,7 @@ function PublicFormContent() {
 						{field.type === "number" && (
 							<input
 								type="number"
-								className="w-full rounded border px-3 py-2"
+								style={inputStyle}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.valueAsNumber)}
 								required={field.required}
@@ -474,14 +515,14 @@ function PublicFormContent() {
 						{field.type === "boolean" && (
 							<input
 								type="checkbox"
-								className="h-4 w-4"
+								style={{ width: "1.25rem", height: "1.25rem", accentColor: "var(--form-primary, #000)" }}
 								checked={!!values[field.key]}
 								onChange={(e) => onChange(field.key, e.target.checked)}
 							/>
 						)}
 						{field.type === "textarea" && (
 							<textarea
-								className="w-full rounded border px-3 py-2"
+								style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.value)}
 								required={field.required}
@@ -490,7 +531,7 @@ function PublicFormContent() {
 						)}
 						{field.type === "select" && (
 							<select
-								className="w-full rounded border px-3 py-2"
+								style={inputStyle}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.value)}
 								required={field.required}
@@ -506,15 +547,16 @@ function PublicFormContent() {
 							</select>
 						)}
 						{field.type === "radio" && (
-							<div className="space-y-1">
+							<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 								{field.options?.map((opt) => (
-									<label key={opt.value} className="flex items-center gap-2">
+									<label key={opt.value} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
 										<input
 											type="radio"
 											name={field.key}
 											value={opt.value}
 											checked={values[field.key] === opt.value}
 											onChange={(e) => onChange(field.key, e.target.value)}
+											style={{ accentColor: "var(--form-primary, #000)" }}
 										/>
 										<span>{opt.label}</span>
 									</label>
@@ -522,12 +564,12 @@ function PublicFormContent() {
 							</div>
 						)}
 						{field.type === "checkboxGroup" && (
-							<div className="space-y-1">
+							<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 								{field.options?.map((opt) => {
 									const selected: string[] = values[field.key] ?? [];
 									const checked = selected.includes(opt.value);
 									return (
-										<label key={opt.value} className="flex items-center gap-2">
+										<label key={opt.value} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
 											<input
 												type="checkbox"
 												checked={checked}
@@ -537,6 +579,7 @@ function PublicFormContent() {
 													else next.delete(opt.value);
 													onChange(field.key, Array.from(next));
 												}}
+												style={{ width: "1rem", height: "1rem", accentColor: "var(--form-primary, #000)" }}
 											/>
 											<span>{opt.label}</span>
 										</label>
@@ -547,21 +590,21 @@ function PublicFormContent() {
 						{field.type === "date" && (
 							<input
 								type="date"
-								className="w-full rounded border px-3 py-2"
+								style={inputStyle}
 								value={values[field.key] ?? ""}
 								onChange={(e) => onChange(field.key, e.target.value)}
 								required={field.required}
 							/>
 						)}
 						{field.type === "repeatable" && field.itemFields && (
-							<div className="space-y-2">
+							<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 								{((values[field.key] as any[]) ?? []).map((row, idx) => (
-									<div key={idx} className="rounded border p-3">
-										<div className="flex items-center justify-between">
-											<div className="text-sm font-medium">Item {idx + 1}</div>
+									<div key={idx} style={{ border: "1px solid var(--form-border, #d1d5db)", borderRadius: "var(--form-radius, 0.375rem)", padding: "0.75rem" }}>
+										<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+											<div style={{ fontSize: "0.875rem", fontWeight: 500 }}>Item {idx + 1}</div>
 											<button
 												type="button"
-												className="text-sm text-red-600"
+												style={{ fontSize: "0.875rem", color: "var(--form-error, #dc2626)", background: "none", border: "none", cursor: "pointer" }}
 												onClick={() => {
 													const arr = Array.isArray(values[field.key])
 														? [...(values[field.key] as any[])]
@@ -573,16 +616,16 @@ function PublicFormContent() {
 												Remove
 											</button>
 										</div>
-										<div className="mt-2 grid gap-3">
+										<div style={{ marginTop: "0.5rem", display: "grid", gap: "0.75rem" }}>
 											{(field.itemFields ?? []).map((sub) => (
-												<div key={sub.key} className="space-y-1">
-													<label className="block text-sm">
+												<div key={sub.key}>
+													<label style={{ display: "block", fontSize: "0.875rem", marginBottom: "0.25rem" }}>
 														{sub.label}
-														{sub.required ? " *" : ""}
+														{sub.required && <span style={{ color: "var(--form-error, #dc2626)" }}> *</span>}
 													</label>
 													<input
 														type={sub.type === "number" ? "number" : "text"}
-														className="w-full rounded border px-3 py-2"
+														style={inputStyle}
 														value={(row?.[sub.key] as any) ?? ""}
 														onChange={(e) => {
 															const arr = Array.isArray(values[field.key])
@@ -598,7 +641,7 @@ function PublicFormContent() {
 														}}
 													/>
 													{errors[`${field.key}[${idx}].${sub.key}`] && (
-														<p className="text-xs text-red-600">
+														<p style={{ fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--form-error, #dc2626)" }}>
 															{errors[`${field.key}[${idx}].${sub.key}`]}
 														</p>
 													)}
@@ -610,7 +653,7 @@ function PublicFormContent() {
 								<div>
 									<button
 										type="button"
-										className="rounded border px-3 py-1 text-sm"
+										style={secondaryButtonStyle}
 										onClick={() => {
 											const arr = Array.isArray(values[field.key])
 												? [...(values[field.key] as any[])]
@@ -625,16 +668,16 @@ function PublicFormContent() {
 							</div>
 						)}
 						{field.helpText && (
-							<p className="text-xs text-gray-500">{field.helpText}</p>
+							<p style={{ fontSize: "0.75rem", marginTop: "0.25rem", opacity: 0.6 }}>{field.helpText}</p>
 						)}
 						{errors[field.key] && (
-							<p className="text-xs text-red-600">{errors[field.key]}</p>
+							<p style={{ fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--form-error, #dc2626)" }}>{errors[field.key]}</p>
 						)}
 					</div>
 				))}
 				{/* Turnstile CAPTCHA widget - show before submit button */}
 				{turnstileSiteKey && (
-					<div className="pt-4">
+					<div style={{ paddingTop: "1rem" }}>
 						<TurnstileWidget
 							siteKey={turnstileSiteKey}
 							onVerify={handleTurnstileVerify}
@@ -643,16 +686,16 @@ function PublicFormContent() {
 							theme="auto"
 						/>
 						{turnstileError && (
-							<p className="mt-2 text-sm text-red-600">{turnstileError}</p>
+							<p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--form-error, #dc2626)" }}>{turnstileError}</p>
 						)}
 					</div>
 				)}
 
 				{usingSteps ? (
-					<div className="mt-4 flex items-center justify-between">
+					<div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--form-border, #d1d5db)", paddingTop: "1rem" }}>
 						<button
 							type="button"
-							className="rounded border px-4 py-2"
+							style={{ ...secondaryButtonStyle, opacity: activeStepIdx === 0 ? 0.5 : 1 }}
 							onClick={prevStep}
 							disabled={activeStepIdx === 0}
 						>
@@ -661,7 +704,7 @@ function PublicFormContent() {
 						{activeStepIdx < Math.max(visibleSteps.length - 1, 0) ? (
 							<button
 								type="button"
-								className="rounded bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+								style={buttonStyle}
 								onClick={nextStep}
 							>
 								Next
@@ -669,7 +712,7 @@ function PublicFormContent() {
 						) : (
 							<button
 								type="submit"
-								className="rounded bg-black px-4 py-2 text-white hover:bg-gray-800"
+								style={{ ...buttonStyle, opacity: (turnstileSiteKey && !turnstileToken) ? 0.5 : 1 }}
 								disabled={turnstileSiteKey ? !turnstileToken : false}
 							>
 								Submit
@@ -677,18 +720,18 @@ function PublicFormContent() {
 						)}
 					</div>
 				) : (
-					<div className="pt-2">
+					<div style={{ paddingTop: "0.5rem" }}>
 						<button
 							type="submit"
-							className="rounded bg-black px-4 py-2 text-white hover:bg-gray-800"
+							style={{ ...buttonStyle, opacity: (turnstileSiteKey && !turnstileToken) ? 0.5 : 1 }}
 							disabled={turnstileSiteKey ? !turnstileToken : false}
 						>
 							Submit
 						</button>
 					</div>
 				)}
-				{submitOk && <p className="text-green-600">{submitOk}</p>}
-				{submitError && <p className="text-red-600">{submitError}</p>}
+				{submitOk && <p style={{ color: "var(--form-success, #16a34a)" }}>{submitOk}</p>}
+				{submitError && <p style={{ color: "var(--form-error, #dc2626)" }}>{submitError}</p>}
 			</form>
 		</div>
 	);

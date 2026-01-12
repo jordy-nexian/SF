@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, Suspense, useEffect } from "react";
+import { useState, useCallback, Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { FormSchema, Field } from "@/types/form-schema";
 import FormRenderer from "@/components/FormRenderer";
 import { getTemplateById } from "@/lib/form-templates";
+import { defaultTheme, themeToCssVars, type ThemeConfig } from "@/types/theme";
 
 const FIELD_TYPES = [
 	{ type: "text", label: "Text Input", icon: "Aa" },
@@ -75,6 +76,23 @@ function FormBuilderContent() {
 	const [templateName, setTemplateName] = useState<string | null>(null);
 	const [showPreview, setShowPreview] = useState(false);
 	const [activePanel, setActivePanel] = useState<"fields" | "design">("fields");
+	const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
+
+	// Fetch tenant theme
+	useEffect(() => {
+		fetch("/api/admin/settings")
+			.then((r) => r.ok ? r.json() : null)
+			.then((json) => {
+				const data = json?.data ?? json;
+				if (data?.theme) {
+					setTheme({ ...defaultTheme, ...data.theme });
+				}
+			})
+			.catch(() => {});
+	}, []);
+
+	// Convert theme to CSS variables for preview
+	const themeCssVars = useMemo(() => themeToCssVars(theme), [theme]);
 
 	// Load template if specified
 	useEffect(() => {
@@ -697,22 +715,31 @@ function FormBuilderContent() {
 				>
 					<div 
 						className="relative w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl shadow-2xl"
-						style={{ background: '#ffffff' }}
+						style={{ 
+							background: theme.backgroundColor,
+							...themeCssVars,
+						} as React.CSSProperties}
 						onClick={(e) => e.stopPropagation()}
 					>
 						{/* Modal Header */}
 						<div 
 							className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-							style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}
+							style={{ 
+								background: theme.backgroundColor, 
+								borderBottom: `1px solid ${theme.borderColor}`,
+								color: theme.textColor,
+							}}
 						>
 							<div>
-								<h2 className="text-lg font-semibold text-gray-900">Form Preview</h2>
-								<p className="text-sm text-gray-500">This is how your form will appear to users</p>
+								<h2 className="text-lg font-semibold" style={{ color: theme.textColor }}>Form Preview</h2>
+								<p className="text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
+									This is how your form will appear to users
+								</p>
 							</div>
 							<button
 								onClick={() => setShowPreview(false)}
-								className="rounded-full p-2 transition-colors hover:bg-gray-100"
-								style={{ color: '#6b7280' }}
+								className="rounded-full p-2 transition-colors"
+								style={{ color: theme.textColor, opacity: 0.6 }}
 							>
 								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -720,8 +747,8 @@ function FormBuilderContent() {
 							</button>
 						</div>
 						
-						{/* Form Preview Content */}
-						<div className="p-6">
+						{/* Form Preview Content - Theme CSS vars applied */}
+						<div className="p-6" style={{ fontFamily: theme.fontFamily }}>
 							<FormRenderer schema={schema} mode="preview" />
 						</div>
 					</div>
