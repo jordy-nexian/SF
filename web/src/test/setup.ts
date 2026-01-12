@@ -7,9 +7,6 @@ import { beforeAll, afterAll, afterEach, vi } from 'vitest';
 
 // Mock environment variables for tests
 beforeAll(() => {
-	// Set test environment
-	process.env.NODE_ENV = 'test';
-	
 	// Mock database URL (tests should use mocks, not real DB)
 	process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 	

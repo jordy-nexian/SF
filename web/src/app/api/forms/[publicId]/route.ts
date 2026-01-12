@@ -101,7 +101,7 @@ export async function GET(
 		// Include Turnstile site key if configured
 		const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
 
-		return NextResponse.json({
+		return api.success({
 			formId: form.id,
 			formVersion: selectedVersion.versionNumber,
 			schema: selectedVersion.schema,

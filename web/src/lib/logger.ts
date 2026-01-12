@@ -129,68 +129,34 @@ export function createRequestLogger(requestId: string, path: string): Logger {
 	return logger.child({ requestId, path });
 }
 
-// Structured event loggers
-interface SubmissionEventLog {
-	formId: string;
-	tenantId: string;
-	submissionId: string;
-	status: 'success' | 'error';
-	httpCode?: number;
-	durationMs?: number;
-	payloadSizeBytes?: number;
-	fieldCount?: number;
-	error?: string;
+// Structured event loggers - using flexible Record types for compatibility
+export function logSubmissionEvent(log: Logger, event: Record<string, unknown>) {
+	const status = event.status ?? event.type;
+	const isError = status === 'error' || status === 'failed';
+	const level = isError ? 'error' : 'info';
+	const submissionId = event.submissionId ?? 'unknown';
+	log[level](event, `Submission ${status}: ${submissionId}`);
 }
 
-export function logSubmissionEvent(log: Logger, event: SubmissionEventLog) {
-	const level = event.status === 'error' ? 'error' : 'info';
-	log[level](event, `Submission ${event.status}: ${event.submissionId}`);
+export function logWebhookEvent(log: Logger, event: Record<string, unknown>) {
+	const status = event.status ?? event.type;
+	const isError = status === 'error' || status === 'failed';
+	const level = isError ? 'warn' : 'info';
+	const isBackup = event.isBackup ? ' (backup)' : '';
+	const httpCode = event.httpCode ?? event.status ?? 'N/A';
+	log[level](event, `Webhook ${status}${isBackup}: ${httpCode}`);
 }
 
-interface WebhookEventLog {
-	formId: string;
-	tenantId: string;
-	submissionId: string;
-	webhookUrl: string;
-	status: 'success' | 'error';
-	httpCode?: number;
-	durationMs?: number;
-	error?: string;
-	isBackup?: boolean;
-}
-
-export function logWebhookEvent(log: Logger, event: WebhookEventLog) {
-	const level = event.status === 'error' ? 'warn' : 'info';
-	const backup = event.isBackup ? ' (backup)' : '';
-	log[level](event, `Webhook ${event.status}${backup}: ${event.httpCode || 'N/A'}`);
-}
-
-interface RateLimitEventLog {
-	ip: string;
-	key: string;
-	limit: number;
-	remaining: number;
-	resetAt: number;
-	blocked: boolean;
-}
-
-export function logRateLimitEvent(log: Logger, event: RateLimitEventLog) {
-	if (event.blocked) {
-		log.warn(event, `Rate limit blocked: ${event.ip}`);
+export function logRateLimitEvent(log: Logger, event: Record<string, unknown>) {
+	const blocked = event.blocked;
+	if (blocked) {
+		log.warn(event, `Rate limit blocked: ${event.ip ?? event.key}`);
 	} else {
 		log.debug(event, `Rate limit checked: ${event.remaining}/${event.limit}`);
 	}
 }
 
-interface CaptchaEventLog {
-	formId: string;
-	tenantId: string;
-	submissionId: string;
-	success: boolean;
-	error?: string;
-}
-
-export function logCaptchaEvent(log: Logger, event: CaptchaEventLog) {
+export function logCaptchaEvent(log: Logger, event: Record<string, unknown>) {
 	if (event.success) {
 		log.info(event, 'CAPTCHA verification successful');
 	} else {
