@@ -74,11 +74,16 @@ function NewFormContent() {
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({ name, publicId, schema: parsedSchema }),
 			});
+			const json = await res.json().catch(() => ({}));
 			if (!res.ok) {
-				const j = await res.json().catch(() => ({}));
-				throw new Error(j?.error || "Failed to create form");
+				// Handle standardized error response
+				const errorMsg = json.error?.message || json.error || "Failed to create form";
+				throw new Error(errorMsg);
 			}
-			router.push("/admin");
+			// Handle standardized success response: { success: true, data: { formId: "..." } }
+			const responseData = json.data ?? json;
+			const formId = responseData.formId || responseData.id;
+			router.push(`/admin/forms/${formId}`);
 			router.refresh();
 		} catch (err: any) {
 			setError(err?.message || "Failed to create form");

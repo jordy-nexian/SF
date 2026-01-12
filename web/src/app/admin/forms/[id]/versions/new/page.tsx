@@ -27,7 +27,9 @@ export default function NewVersionPage() {
 			try {
 				const res = await fetch(`/api/admin/forms/${formId}`);
 				if (!res.ok) throw new Error("Failed to load form");
-				const data = await res.json();
+				const json = await res.json();
+				// Handle standardized response format: { success: true, data: {...} }
+				const data = json.data ?? json;
 				setFormName(data.name);
 				
 				// Get the latest version's schema as starting point
@@ -70,8 +72,9 @@ export default function NewVersionPage() {
 			});
 
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				throw new Error(data.error || "Failed to create version");
+				const json = await res.json().catch(() => ({}));
+				const errorMsg = json.error?.message || json.error || "Failed to create version";
+				throw new Error(errorMsg);
 			}
 
 			router.push(`/admin/forms/${formId}`);

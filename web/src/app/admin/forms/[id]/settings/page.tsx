@@ -49,7 +49,11 @@ export default function FormSettingsPage() {
 			fetch(`/api/admin/forms/${formId}`).then((r) => (r.ok ? r.json() : null)),
 			fetch("/api/admin/billing/usage").then((r) => r.json()),
 		])
-			.then(([formData, usageData]) => {
+			.then(([formJson, usageJson]) => {
+				// Handle standardized response format: { success: true, data: {...} }
+				const formData = formJson?.data ?? formJson;
+				const usageData = usageJson?.data ?? usageJson;
+				
 				if (formData) {
 					setName(formData.name || "");
 					setWebhookUrl(formData.primaryN8nWebhookUrl || "");
@@ -87,8 +91,9 @@ export default function FormSettingsPage() {
 			});
 
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				throw new Error(data.error || "Failed to save settings");
+				const json = await res.json().catch(() => ({}));
+				const errorMsg = json.error?.message || json.error || "Failed to save settings";
+				throw new Error(errorMsg);
 			}
 
 			setSuccess("Settings saved successfully");

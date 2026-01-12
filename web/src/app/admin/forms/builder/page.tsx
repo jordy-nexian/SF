@@ -198,17 +198,23 @@ function FormBuilderContent() {
 				body: JSON.stringify({ name: formName, publicId, schema }),
 			});
 
-			const data = await res.json().catch(() => ({}));
-			console.log("Save response:", res.status, data);
+			const json = await res.json().catch(() => ({}));
+			console.log("Save response:", res.status, json);
 
 			if (!res.ok) {
-				throw new Error(data.error || `Failed to save form (${res.status})`);
+				// Handle standardized error response
+				const errorMsg = json.error?.message || json.error || `Failed to save form (${res.status})`;
+				throw new Error(errorMsg);
 			}
+
+			// Handle standardized success response: { success: true, data: { formId: "..." } }
+			const responseData = json.data ?? json;
+			const savedFormId = responseData.formId || responseData.id;
 
 			setSuccess("Form saved! Redirecting...");
 			// Short delay to show success message
 			setTimeout(() => {
-				router.push(`/admin/forms/${data.formId || data.id}`);
+				router.push(`/admin/forms/${savedFormId}`);
 			}, 500);
 		} catch (err) {
 			console.error("Save error:", err);
