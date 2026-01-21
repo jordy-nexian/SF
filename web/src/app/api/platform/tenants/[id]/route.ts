@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/platform-auth";
+import { logPlatformAudit } from "@/lib/platform-audit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+// Helper to extract IP and user agent from request
+function getRequestContext(req: NextRequest) {
+	const xff = req.headers.get("x-forwarded-for");
+	const ipAddress = xff ? xff.split(",")[0]?.trim() : req.headers.get("x-real-ip") || undefined;
+	const userAgent = req.headers.get("user-agent") || undefined;
+	return { ipAddress, userAgent };
+}
 
 // GET tenant detail
 export async function GET(
@@ -102,10 +111,16 @@ export async function PUT(
 	const { id } = await context.params;
 	const body = await req.json().catch(() => ({}));
 	const parsed = updateSchema.safeParse(body);
-	
+
 	if (!parsed.success) {
 		return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 	}
+
+	// Get current tenant state for audit log
+	const existingTenant = await prisma.tenant.findUnique({
+		where: { id },
+		select: { name: true, plan: true, subscriptionStatus: true },
+	});
 
 	const tenant = await prisma.tenant.update({
 		where: { id },
@@ -131,12 +146,45 @@ export async function PUT(
 		},
 	});
 
+	// Audit log the update
+	const { ipAddress, userAgent } = getRequestContext(req);
+	if (parsed.data.plan) {
+		await logPlatformAudit({
+			adminEmail: session.email,
+			action: "tenant.plan.updated",
+			targetType: "tenant",
+			targetId: id,
+			metadata: {
+				tenantName: existingTenant?.name,
+				oldPlan: existingTenant?.plan,
+				newPlan: parsed.data.plan,
+			},
+			ipAddress,
+			userAgent,
+		});
+	}
+	if (parsed.data.subscriptionStatus) {
+		await logPlatformAudit({
+			adminEmail: session.email,
+			action: "tenant.status.updated",
+			targetType: "tenant",
+			targetId: id,
+			metadata: {
+				tenantName: existingTenant?.name,
+				oldStatus: existingTenant?.subscriptionStatus,
+				newStatus: parsed.data.subscriptionStatus,
+			},
+			ipAddress,
+			userAgent,
+		});
+	}
+
 	return NextResponse.json(tenant);
 }
 
 // DELETE tenant
 export async function DELETE(
-	_req: NextRequest,
+	req: NextRequest,
 	context: { params: Promise<{ id: string }> }
 ) {
 	const session = await requirePlatformAdmin();
@@ -146,11 +194,21 @@ export async function DELETE(
 
 	const { id } = await context.params;
 
+	// Get tenant info for audit log before deletion
+	const tenantToDelete = await prisma.tenant.findUnique({
+		where: { id },
+		select: {
+			name: true,
+			plan: true,
+			_count: { select: { users: true, forms: true } },
+		},
+	});
+
 	// Delete in order: submissions, form versions, forms, users, themes, audit logs, tenant
 	await prisma.$transaction([
 		prisma.submissionEvent.deleteMany({ where: { tenantId: id } }),
-		prisma.formVersion.deleteMany({ 
-			where: { form: { tenantId: id } } 
+		prisma.formVersion.deleteMany({
+			where: { form: { tenantId: id } }
 		}),
 		prisma.form.deleteMany({ where: { tenantId: id } }),
 		prisma.user.deleteMany({ where: { tenantId: id } }),
@@ -158,6 +216,23 @@ export async function DELETE(
 		prisma.auditLog.deleteMany({ where: { tenantId: id } }),
 		prisma.tenant.delete({ where: { id } }),
 	]);
+
+	// Audit log the deletion (after successful transaction)
+	const { ipAddress, userAgent } = getRequestContext(req);
+	await logPlatformAudit({
+		adminEmail: session.email,
+		action: "tenant.deleted",
+		targetType: "tenant",
+		targetId: id,
+		metadata: {
+			tenantName: tenantToDelete?.name,
+			tenantPlan: tenantToDelete?.plan,
+			userCount: tenantToDelete?._count?.users,
+			formCount: tenantToDelete?._count?.forms,
+		},
+		ipAddress,
+		userAgent,
+	});
 
 	return NextResponse.json({ success: true });
 }

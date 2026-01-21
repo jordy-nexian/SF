@@ -27,6 +27,18 @@ export async function GET() {
 		return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 	}
 
+	// Hide sensitive data from viewers
+	if (session.role === "viewer") {
+		return NextResponse.json({
+			id: tenant.id,
+			name: tenant.name,
+			plan: tenant.plan,
+			customDomain: tenant.customDomain,
+			customDomainVerified: tenant.customDomainVerified,
+			// Deliberately exclude: sharedSecret, defaultN8nWebhookUrl
+		});
+	}
+
 	return NextResponse.json(tenant);
 }
 
@@ -39,6 +51,14 @@ const updateSchema = z.object({
 export async function PUT(req: NextRequest) {
 	const session = await requireTenantSession();
 	if (!session) return forbidden();
+
+	// Only owners and admins can update tenant settings
+	if (session.role === "viewer") {
+		return NextResponse.json(
+			{ error: "Only owners and admins can update settings" },
+			{ status: 403 }
+		);
+	}
 
 	const body = await req.json().catch(() => ({}));
 	const parsed = updateSchema.safeParse(body);
@@ -69,10 +89,6 @@ export async function PUT(req: NextRequest) {
 
 	return NextResponse.json(updated);
 }
-
-
-
-
 
 
 

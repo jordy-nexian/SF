@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,21 @@ const signupSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+	// Rate limit by IP to prevent mass account creation
+	const clientIp = getClientIp(req.headers);
+	const rl = await rateLimit(`signup:${clientIp}`, RATE_LIMITS.signup);
+	if (!rl.success) {
+		return NextResponse.json(
+			{ error: "Too many signup attempts. Please try again later." },
+			{
+				status: 429,
+				headers: {
+					'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+				},
+			}
+		);
+	}
+
 	try {
 		const body = await req.json().catch(() => ({}));
 		const parsed = signupSchema.safeParse(body);

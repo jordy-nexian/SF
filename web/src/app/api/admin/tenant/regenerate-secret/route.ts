@@ -9,6 +9,14 @@ export async function POST() {
 	const session = await requireTenantSession();
 	if (!session) return forbidden();
 
+	// Only owners and admins can regenerate the webhook secret
+	if (session.role === "viewer") {
+		return NextResponse.json(
+			{ error: "Only owners and admins can regenerate secrets" },
+			{ status: 403 }
+		);
+	}
+
 	// Generate a new secure secret
 	const newSecret = randomBytes(32).toString("hex");
 

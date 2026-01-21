@@ -125,6 +125,10 @@ export const RATE_LIMITS = {
 	formFetch: { limit: 60, windowMs: 60_000 },
 	/** Auth attempts: 5 per minute per IP */
 	auth: { limit: 5, windowMs: 60_000 },
+	/** Signup: 5 requests per 15 minutes per IP */
+	signup: { limit: 5, windowMs: 15 * 60_000 },
+	/** Login: 5 attempts per minute per IP (stricter for brute force prevention) */
+	login: { limit: 5, windowMs: 60_000 },
 } as const;
 
 
