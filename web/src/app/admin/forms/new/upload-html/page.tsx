@@ -96,6 +96,20 @@ export default function UploadHtmlTemplatePage() {
         );
     };
 
+    // Helper function to infer field type from label
+    const inferFieldType = (label: string): string => {
+        const lowerLabel = label.toLowerCase();
+        if (lowerLabel.includes('email')) return 'email';
+        if (lowerLabel.includes('phone') || lowerLabel.includes('tel')) return 'text';
+        if (lowerLabel.includes('date')) return 'date';
+        if (lowerLabel.includes('amount') || lowerLabel.includes('turnover') ||
+            lowerLabel.includes('employees') || lowerLabel.includes('jobs') ||
+            lowerLabel.includes('number') && !lowerLabel.includes('company')) return 'number';
+        if (lowerLabel.includes('address') || lowerLabel.includes('description') ||
+            lowerLabel.includes('activity') || lowerLabel.includes('purpose')) return 'textarea';
+        return 'text';
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -132,7 +146,22 @@ export default function UploadHtmlTemplatePage() {
                 }
             }
 
-            // 3. Create the form linked to the template
+            // 3. Generate a form schema from the token mappings
+            const schema = {
+                id: publicId,
+                version: 1,
+                title: name,
+                description: `Form generated from HTML template: ${fileName}`,
+                fields: validMappings.map(m => ({
+                    key: m.payloadKey,
+                    type: inferFieldType(m.label),
+                    label: m.label,
+                    required: false,
+                })),
+                steps: [],
+            };
+
+            // 4. Create the form linked to the template WITH the schema
             const formRes = await fetch("/api/admin/forms", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
@@ -140,6 +169,7 @@ export default function UploadHtmlTemplatePage() {
                     name,
                     publicId,
                     templateId,
+                    schema, // This will create a FormVersion
                 }),
             });
             const formJson = await formRes.json().catch(() => ({}));
