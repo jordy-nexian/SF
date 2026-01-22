@@ -88,7 +88,7 @@ function FormBuilderContent() {
 					setTheme({ ...defaultTheme, ...data.theme });
 				}
 			})
-			.catch(() => {});
+			.catch(() => { });
 	}, []);
 
 	// Convert theme to CSS variables for preview
@@ -108,6 +108,28 @@ function FormBuilderContent() {
 			}
 		}
 	}, [templateId]);
+
+	// Load existing form if formId is provided (edit mode)
+	useEffect(() => {
+		if (!formId) return;
+
+		fetch(`/api/admin/forms/${formId}`)
+			.then((r) => r.ok ? r.json() : Promise.reject(new Error("Form not found")))
+			.then((json) => {
+				const data = json.data ?? json;
+				setFormName(data.name || "");
+				setPublicId(data.publicId || "");
+				if (data.currentVersion?.schema) {
+					setSchema(data.currentVersion.schema);
+				} else if (data.schema) {
+					setSchema(data.schema);
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to load form:", err);
+				setError("Failed to load form for editing");
+			});
+	}, [formId]);
 
 	const selectedField = schema.fields.find((f) => f.key === selectedFieldKey);
 
@@ -283,7 +305,7 @@ function FormBuilderContent() {
 										onDragStart={() => handleDragStart({ type: "new-field", fieldType: field.type })}
 										onClick={() => addField(field.type)}
 										className="flex cursor-move items-center gap-3 rounded-lg p-2.5 text-sm transition-all hover:bg-white/5"
-										style={{ 
+										style={{
 											background: 'rgba(255, 255, 255, 0.03)',
 											border: '1px solid transparent',
 											color: '#cbd5e1',
@@ -708,24 +730,24 @@ function FormBuilderContent() {
 
 			{/* Preview Modal */}
 			{showPreview && (
-				<div 
+				<div
 					className="fixed inset-0 z-50 flex items-center justify-center p-4"
 					style={{ background: 'rgba(0, 0, 0, 0.8)' }}
 					onClick={() => setShowPreview(false)}
 				>
-					<div 
+					<div
 						className="relative w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl shadow-2xl"
-						style={{ 
+						style={{
 							background: theme.backgroundColor,
 							...themeCssVars,
 						} as React.CSSProperties}
 						onClick={(e) => e.stopPropagation()}
 					>
 						{/* Modal Header */}
-						<div 
+						<div
 							className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-							style={{ 
-								background: theme.backgroundColor, 
+							style={{
+								background: theme.backgroundColor,
 								borderBottom: `1px solid ${theme.borderColor}`,
 								color: theme.textColor,
 							}}
@@ -746,7 +768,7 @@ function FormBuilderContent() {
 								</svg>
 							</button>
 						</div>
-						
+
 						{/* Form Preview Content - Theme CSS vars applied */}
 						<div className="p-6" style={{ fontFamily: theme.fontFamily }}>
 							<FormRenderer schema={schema} mode="preview" />

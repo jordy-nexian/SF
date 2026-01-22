@@ -95,7 +95,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 			<div className="mb-6 flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<h1 className="text-2xl font-bold text-white">{form.name}</h1>
-					<span 
+					<span
 						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize"
 						style={{ background: statusStyle.bg, color: statusStyle.text }}
 					>
@@ -104,9 +104,20 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 					</span>
 				</div>
 				<div className="flex items-center gap-3">
+					<Link
+						href={`/admin/forms/builder?formId=${form.id}`}
+						className="rounded-full px-4 py-1.5 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
+						style={{
+							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+							color: 'white',
+							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+						}}
+					>
+						✏️ Edit Form
+					</Link>
 					<DuplicateFormButton formId={form.id} formName={form.name} />
-					<Link 
-						href={`/admin/forms/${form.id}/settings`} 
+					<Link
+						href={`/admin/forms/${form.id}/settings`}
 						className="rounded-full px-4 py-1.5 text-sm transition-all"
 						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 					>
@@ -159,8 +170,8 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 					<h2 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Versions</h2>
 					<ul className="space-y-2 max-h-48 overflow-y-auto">
 						{form.versions.map((v) => (
-							<li 
-								key={v.id} 
+							<li
+								key={v.id}
 								className="flex items-center justify-between rounded-lg p-3"
 								style={{ background: 'rgba(255, 255, 255, 0.03)' }}
 							>
@@ -170,7 +181,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 								</div>
 								<div className="flex items-center gap-2">
 									{form.currentVersionId === v.id ? (
-										<span 
+										<span
 											className="rounded-full px-2.5 py-1 text-xs font-medium"
 											style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}
 										>
@@ -199,7 +210,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 					<div className="grid gap-4 md:grid-cols-3">
 						<div>
 							<div className="text-xs mb-2" style={{ color: '#64748b' }}>Hosted URL</div>
-							<code 
+							<code
 								className="block rounded-lg p-3 text-xs break-all font-mono"
 								style={{ background: 'rgba(255, 255, 255, 0.03)', color: '#818cf8' }}
 							>
@@ -209,7 +220,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 						</div>
 						<div>
 							<div className="text-xs mb-2" style={{ color: '#64748b' }}>Iframe Embed</div>
-							<pre 
+							<pre
 								className="whitespace-pre-wrap rounded-lg p-3 text-xs font-mono"
 								style={{ background: 'rgba(255, 255, 255, 0.03)', color: '#cbd5e1' }}
 							>
@@ -219,11 +230,11 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 						</div>
 						<div>
 							<div className="text-xs mb-2" style={{ color: '#64748b' }}>JS Embed</div>
-							<pre 
+							<pre
 								className="whitespace-pre-wrap rounded-lg p-3 text-xs font-mono"
 								style={{ background: 'rgba(255, 255, 255, 0.03)', color: '#cbd5e1' }}
 							>
-{`<script src="/embed.js" data-form-id="${form.publicId}"></script>
+								{`<script src="/embed.js" data-form-id="${form.publicId}"></script>
 <div id="stateless-form"></div>`}
 							</pre>
 							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>Auto-resizing with events</p>

@@ -27,6 +27,11 @@ export async function GET(
 		publicId: form.publicId,
 		status: form.status,
 		currentVersionId: form.currentVersionId,
+		currentVersion: form.currentVersion ? {
+			id: form.currentVersion.id,
+			versionNumber: form.currentVersion.versionNumber,
+			schema: form.currentVersion.schema,
+		} : null,
 		primaryN8nWebhookUrl: form.primaryN8nWebhookUrl,
 		backupWebhookUrl: form.backupWebhookUrl,
 		thankYouUrl: form.thankYouUrl,
