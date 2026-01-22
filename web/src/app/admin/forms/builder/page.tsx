@@ -428,206 +428,166 @@ function FormBuilderContent() {
 				</div>
 			</div>
 
-			{/* Canvas */}
-			<div className="flex-1 overflow-auto rounded-xl p-5" style={cardStyle}>
-				<div className="mb-5 grid gap-4 sm:grid-cols-2">
-					<div>
-						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Name</label>
+			{/* Canvas / Main Editor Area */}
+			{activePanel === "template" ? (
+				// HTML Editor takes full center space
+				<div className="flex-1 rounded-xl overflow-hidden flex flex-col" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+					<div className="bg-[#1e1e1e] border-b border-[#333] px-4 py-2 text-xs text-gray-400 flex justify-between items-center shrink-0">
+						<span>{formName || 'Untitled'}.html</span>
+						<span>{htmlContent.length.toLocaleString()} chars</span>
+					</div>
+					<div className="flex-1 min-h-0">
+						<HtmlTemplateEditor
+							htmlContent={htmlContent}
+							onHtmlChange={setHtmlContent}
+							tokens={tokens}
+							onTokensChange={setTokens}
+						/>
+					</div>
+				</div>
+			) : (
+				// Visual Builder Canvas
+				<div className="flex-1 overflow-auto rounded-xl p-5" style={cardStyle}>
+					<div className="mb-5 grid gap-4 sm:grid-cols-2">
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Name</label>
+							<input
+								type="text"
+								className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+								style={inputStyle}
+								value={formName}
+								onChange={(e) => setFormName(e.target.value)}
+							/>
+						</div>
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Public ID (URL slug)</label>
+							<input
+								type="text"
+								className="w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none"
+								style={inputStyle}
+								value={publicId}
+								onChange={(e) => setPublicId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+								placeholder="my-form"
+							/>
+						</div>
+					</div>
+
+					<div className="mb-4">
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Title</label>
 						<input
 							type="text"
 							className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
 							style={inputStyle}
-							value={formName}
-							onChange={(e) => setFormName(e.target.value)}
+							value={schema.title}
+							onChange={(e) => setSchema((prev) => ({ ...prev, title: e.target.value }))}
 						/>
 					</div>
-					<div>
-						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Public ID (URL slug)</label>
-						<input
-							type="text"
-							className="w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none"
+
+					<div className="mb-5">
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Description</label>
+						<textarea
+							className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
 							style={inputStyle}
-							value={publicId}
-							onChange={(e) => setPublicId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-							placeholder="my-form"
+							rows={2}
+							value={schema.description || ""}
+							onChange={(e) => setSchema((prev) => ({ ...prev, description: e.target.value }))}
 						/>
 					</div>
-				</div>
 
-				<div className="mb-4">
-					<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Title</label>
-					<input
-						type="text"
-						className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
-						style={inputStyle}
-						value={schema.title}
-						onChange={(e) => setSchema((prev) => ({ ...prev, title: e.target.value }))}
-					/>
-				</div>
-
-				<div className="mb-5">
-					<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Description</label>
-					<textarea
-						className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
-						style={inputStyle}
-						rows={2}
-						value={schema.description || ""}
-						onChange={(e) => setSchema((prev) => ({ ...prev, description: e.target.value }))}
-					/>
-				</div>
-
-				{/* Field List */}
-				<div
-					className="min-h-[200px] rounded-xl p-4"
-					style={{ border: '2px dashed #334155' }}
-					onDragOver={handleDragOver}
-					onDrop={(e) => handleDrop(e)}
-				>
-					{schema.fields.length === 0 ? (
-						<div className="flex h-32 items-center justify-center" style={{ color: '#64748b' }}>
-							Drag fields here or click to add
-						</div>
-					) : (
-						<div className="space-y-2">
-							{schema.fields.map((field, index) => (
-								<div
-									key={field.key}
-									onClick={() => setSelectedFieldKey(field.key)}
-									className="flex items-center justify-between rounded-lg p-3 cursor-pointer transition-all"
-									style={{
-										background: selectedFieldKey === field.key ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-										border: selectedFieldKey === field.key ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
-									}}
-								>
-									<div className="flex items-center gap-3">
-										<span style={{ color: '#64748b' }}>
-											{FIELD_TYPES.find((t) => t.type === field.type)?.icon || "?"}
-										</span>
-										<div>
-											<div className="font-medium text-white">{field.label}</div>
-											<div className="text-xs" style={{ color: '#64748b' }}>
-												{field.type} • {field.key}
-												{field.required && " • required"}
+					{/* Field List */}
+					<div
+						className="min-h-[200px] rounded-xl p-4"
+						style={{ border: '2px dashed #334155' }}
+						onDragOver={handleDragOver}
+						onDrop={(e) => handleDrop(e)}
+					>
+						{schema.fields.length === 0 ? (
+							<div className="flex h-32 items-center justify-center" style={{ color: '#64748b' }}>
+								Drag fields here or click to add
+							</div>
+						) : (
+							<div className="space-y-2">
+								{schema.fields.map((field, index) => (
+									<div
+										key={field.key}
+										onClick={() => setSelectedFieldKey(field.key)}
+										className="flex items-center justify-between rounded-lg p-3 cursor-pointer transition-all"
+										style={{
+											background: selectedFieldKey === field.key ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+											border: selectedFieldKey === field.key ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+										}}
+									>
+										<div className="flex items-center gap-3">
+											<span style={{ color: '#64748b' }}>
+												{FIELD_TYPES.find((t) => t.type === field.type)?.icon || "?"}
+											</span>
+											<div>
+												<div className="font-medium text-white">{field.label}</div>
+												<div className="text-xs" style={{ color: '#64748b' }}>
+													{field.type} • {field.key}
+													{field.required && " • required"}
+												</div>
 											</div>
 										</div>
+										<div className="flex items-center gap-1">
+											<button
+												onClick={(e) => { e.stopPropagation(); moveField(field.key, "up"); }}
+												disabled={index === 0}
+												className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
+												style={{ color: '#94a3b8' }}
+											>
+												↑
+											</button>
+											<button
+												onClick={(e) => { e.stopPropagation(); moveField(field.key, "down"); }}
+												disabled={index === schema.fields.length - 1}
+												className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
+												style={{ color: '#94a3b8' }}
+											>
+												↓
+											</button>
+											<button
+												onClick={(e) => { e.stopPropagation(); deleteField(field.key); }}
+												className="rounded p-1.5 transition-all active:scale-90 active:bg-red-500/10"
+												style={{ color: '#f87171' }}
+											>
+												×
+											</button>
+										</div>
 									</div>
-									<div className="flex items-center gap-1">
-										<button
-											onClick={(e) => { e.stopPropagation(); moveField(field.key, "up"); }}
-											disabled={index === 0}
-											className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
-											style={{ color: '#94a3b8' }}
-										>
-											↑
-										</button>
-										<button
-											onClick={(e) => { e.stopPropagation(); moveField(field.key, "down"); }}
-											disabled={index === schema.fields.length - 1}
-											className="rounded p-1.5 transition-all disabled:opacity-30 active:scale-90 active:bg-white/5"
-											style={{ color: '#94a3b8' }}
-										>
-											↓
-										</button>
-										<button
-											onClick={(e) => { e.stopPropagation(); deleteField(field.key); }}
-											className="rounded p-1.5 transition-all active:scale-90 active:bg-red-500/10"
-											style={{ color: '#f87171' }}
-										>
-											×
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-
-				{/* Actions */}
-				<div className="mt-5 flex items-center gap-4">
-					<button
-						onClick={saveForm}
-						disabled={saving}
-						className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
-						style={{
-							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
-							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
-						}}
-					>
-						{saving ? "Saving..." : "Save Form"}
-					</button>
-					<button
-						onClick={() => setShowPreview(true)}
-						className="rounded-full px-5 py-2.5 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
-						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
-					>
-						👁 Preview
-					</button>
-					<Link href="/admin" className="text-sm transition-colors" style={{ color: '#94a3b8' }}>
-						Cancel
-					</Link>
-					{error && <span className="text-sm" style={{ color: '#f87171' }}>{error}</span>}
-					{success && <span className="text-sm" style={{ color: '#10b981' }}>{success}</span>}
-				</div>
-			</div>
-
-			{/* Center Panel - Canvas / Main Editor */}
-			<div className="flex-1 rounded-xl overflow-hidden relative flex flex-col" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
-				{activePanel === "template" ? (
-					// HTML Editor Canvas
-					<div className="h-full flex flex-col">
-						<div className="bg-[#1e1e1e] border-b border-[#333] px-4 py-2 text-xs text-gray-400 flex justify-between items-center">
-							<span>{formName}.html</span>
-							<span>{htmlContent.length} chars</span>
-						</div>
-						<div className="flex-1 min-h-0">
-							<HtmlTemplateEditor
-								htmlContent={htmlContent}
-								onHtmlChange={setHtmlContent}
-								tokens={tokens}
-								onTokensChange={setTokens}
-							/>
-						</div>
-					</div>
-				) : (
-					// Visual Form Canvas
-					<div className="h-full overflow-y-auto p-8 custom-scrollbar">
-						<div className="mx-auto max-w-2xl">
-							<div
-								className="min-h-[600px] rounded-xl shadow-2xl p-8 transition-all"
-								style={{
-									background: theme.backgroundColor,
-									border: `1px solid ${theme.borderColor}`,
-									...themeCssVars
-								} as React.CSSProperties}
-							>
-								{/* Placeholder Form Header */}
-								<div className="mb-8 border-b pb-6" style={{ borderColor: theme.borderColor }}>
-									<h1 className="text-3xl font-bold mb-2" style={{ color: theme.textColor }}>{schema.title}</h1>
-									{schema.description && (
-										<div style={{ color: theme.textColor, opacity: 0.7 }}>{schema.description}</div>
-									)}
-								</div>
-
-								{schema.fields.length === 0 ? (
-									<div className="border-2 border-dashed rounded-lg p-12 text-center" style={{ borderColor: theme.borderColor }}>
-										<div className="text-4xl mb-3 opacity-20">✏️</div>
-										<p style={{ color: theme.textColor, opacity: 0.5 }}>
-											Your form is empty. <br />
-											Drag fields from the sidebar to build it.
-										</p>
-									</div>
-								) : (
-									<FormRenderer schema={schema} mode="preview" />
-								)}
+								))}
 							</div>
-
-							<div className="mt-8 text-center text-xs text-gray-500">
-								End of form preview
-							</div>
-						</div>
+						)}
 					</div>
-				)}
-			</div>
+
+					{/* Actions */}
+					<div className="mt-5 flex items-center gap-4">
+						<button
+							onClick={saveForm}
+							disabled={saving}
+							className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
+							style={{
+								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+							}}
+						>
+							{saving ? "Saving..." : "Save Form"}
+						</button>
+						<button
+							onClick={() => setShowPreview(true)}
+							className="rounded-full px-5 py-2.5 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
+							style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+						>
+							👁 Preview
+						</button>
+						<Link href="/admin" className="text-sm transition-colors" style={{ color: '#94a3b8' }}>
+							Cancel
+						</Link>
+						{error && <span className="text-sm" style={{ color: '#f87171' }}>{error}</span>}
+						{success && <span className="text-sm" style={{ color: '#10b981' }}>{success}</span>}
+					</div>
+				</div>
+			)}
 
 			{/* Properties Panel */}
 			<div className="w-72 shrink-0 rounded-xl p-4" style={cardStyle}>
