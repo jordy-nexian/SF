@@ -3,6 +3,17 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamic import to avoid SSR issues with Monaco editor
+const HtmlTemplateEditor = dynamic(() => import("@/components/HtmlTemplateEditor"), {
+    ssr: false,
+    loading: () => (
+        <div className="rounded-xl p-6 flex items-center justify-center" style={{ height: '400px', background: 'rgba(255, 255, 255, 0.05)' }}>
+            <span style={{ color: '#94a3b8' }}>Loading editor...</span>
+        </div>
+    ),
+});
 
 interface ExtractedToken {
     tokenId: string;
@@ -245,6 +256,27 @@ export default function UploadHtmlTemplatePage() {
                                 Change file
                             </button>
                         </div>
+
+                        {/* HTML Editor with Live Preview */}
+                        <HtmlTemplateEditor
+                            htmlContent={htmlContent}
+                            onHtmlChange={setHtmlContent}
+                            tokens={tokens}
+                            onTokensChange={(newTokens) => {
+                                setTokens(newTokens);
+                                // Update mappings for new tokens
+                                setMappings(prev => {
+                                    const existingMap = new Map(prev.map(m => [m.tokenId, m]));
+                                    return newTokens.map(t =>
+                                        existingMap.get(t.tokenId) || {
+                                            tokenId: t.tokenId,
+                                            label: t.label,
+                                            payloadKey: t.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+                                        }
+                                    );
+                                });
+                            }}
+                        />
 
                         {/* Form details */}
                         <div className="rounded-xl p-5 space-y-4" style={cardStyle}>
