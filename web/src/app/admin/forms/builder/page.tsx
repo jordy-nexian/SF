@@ -589,202 +589,203 @@ function FormBuilderContent() {
 				</div>
 			)}
 
-			{/* Properties Panel */}
-			<div className="w-72 shrink-0 rounded-xl p-4" style={cardStyle}>
-				<h3 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Field Properties</h3>
-				{selectedField ? (
-					<div className="space-y-4">
-						<div>
-							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Label</label>
-							<input
-								type="text"
-								className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-								style={inputStyle}
-								value={selectedField.label}
-								onChange={(e) => updateField(selectedField.key, { label: e.target.value })}
-							/>
-						</div>
-
-						<div>
-							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Field Key</label>
-							<input
-								type="text"
-								className="w-full rounded-lg px-3 py-2 font-mono text-sm focus:outline-none"
-								style={inputStyle}
-								value={selectedField.key}
-								onChange={(e) => {
-									const newKey = e.target.value.replace(/[^a-z0-9_]/gi, "");
-									if (newKey && !schema.fields.some((f) => f.key === newKey && f.key !== selectedField.key)) {
-										setSchema((prev) => ({
-											...prev,
-											fields: prev.fields.map((f) =>
-												f.key === selectedField.key ? { ...f, key: newKey } : f
-											),
-										}));
-										setSelectedFieldKey(newKey);
-									}
-								}}
-							/>
-						</div>
-
-						<div>
-							<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Help Text</label>
-							<input
-								type="text"
-								className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-								style={inputStyle}
-								value={selectedField.helpText || ""}
-								onChange={(e) => updateField(selectedField.key, { helpText: e.target.value || undefined })}
-								placeholder="Optional help text"
-							/>
-						</div>
-
-						<div className="flex items-center gap-2">
-							<input
-								type="checkbox"
-								id="required"
-								checked={selectedField.required || false}
-								onChange={(e) => updateField(selectedField.key, { required: e.target.checked })}
-								className="rounded"
-							/>
-							<label htmlFor="required" className="text-sm" style={{ color: '#cbd5e1' }}>Required</label>
-						</div>
-
-						{/* Options for select/radio/checkbox */}
-						{["select", "radio", "checkboxGroup"].includes(selectedField.type) && (
+			{/* Properties Panel - Hidden in HTML mode */}
+			{activePanel !== "template" && (
+				<div className="w-72 shrink-0 rounded-xl p-4" style={cardStyle}>
+					<h3 className="mb-4 text-sm font-medium" style={{ color: '#94a3b8' }}>Field Properties</h3>
+					{selectedField ? (
+						<div className="space-y-4">
 							<div>
-								<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Options</label>
-								<div className="space-y-2">
-									{(selectedField.options || []).map((opt, i) => (
-										<div key={i} className="flex gap-2">
-											<input
-												type="text"
-												className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-												style={inputStyle}
-												value={opt.label}
-												onChange={(e) => {
-													const newOptions = [...(selectedField.options || [])];
-													newOptions[i] = {
-														...newOptions[i],
-														label: e.target.value,
-														value: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "_"),
-													};
-													updateField(selectedField.key, { options: newOptions });
-												}}
-											/>
-											<button
-												onClick={() => {
-													const newOptions = (selectedField.options || []).filter((_, idx) => idx !== i);
-													updateField(selectedField.key, { options: newOptions });
-												}}
-												style={{ color: '#f87171' }}
-											>
-												×
-											</button>
-										</div>
-									))}
-									<button
-										onClick={() => {
-											const newOptions = [
-												...(selectedField.options || []),
-												{ value: `option_${Date.now()}`, label: "New Option" },
-											];
-											updateField(selectedField.key, { options: newOptions });
-										}}
-										className="text-sm transition-colors"
-										style={{ color: '#818cf8' }}
-									>
-										+ Add option
-									</button>
-								</div>
+								<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Label</label>
+								<input
+									type="text"
+									className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+									style={inputStyle}
+									value={selectedField.label}
+									onChange={(e) => updateField(selectedField.key, { label: e.target.value })}
+								/>
 							</div>
-						)}
 
-						{/* Validation */}
-						<div className="pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-							<label className="mb-2 block text-xs font-medium" style={{ color: '#64748b' }}>Validation</label>
-							{["text", "textarea", "email"].includes(selectedField.type) && (
-								<div className="grid grid-cols-2 gap-2">
-									<div>
-										<label className="text-xs" style={{ color: '#64748b' }}>Min Length</label>
-										<input
-											type="number"
-											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
-											style={inputStyle}
-											value={selectedField.validation?.minLength || ""}
-											onChange={(e) =>
-												updateField(selectedField.key, {
-													validation: {
-														...selectedField.validation,
-														minLength: e.target.value ? parseInt(e.target.value) : undefined,
-													},
-												})
-											}
-										/>
-									</div>
-									<div>
-										<label className="text-xs" style={{ color: '#64748b' }}>Max Length</label>
-										<input
-											type="number"
-											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
-											style={inputStyle}
-											value={selectedField.validation?.maxLength || ""}
-											onChange={(e) =>
-												updateField(selectedField.key, {
-													validation: {
-														...selectedField.validation,
-														maxLength: e.target.value ? parseInt(e.target.value) : undefined,
-													},
-												})
-											}
-										/>
+							<div>
+								<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Field Key</label>
+								<input
+									type="text"
+									className="w-full rounded-lg px-3 py-2 font-mono text-sm focus:outline-none"
+									style={inputStyle}
+									value={selectedField.key}
+									onChange={(e) => {
+										const newKey = e.target.value.replace(/[^a-z0-9_]/gi, "");
+										if (newKey && !schema.fields.some((f) => f.key === newKey && f.key !== selectedField.key)) {
+											setSchema((prev) => ({
+												...prev,
+												fields: prev.fields.map((f) =>
+													f.key === selectedField.key ? { ...f, key: newKey } : f
+												),
+											}));
+											setSelectedFieldKey(newKey);
+										}
+									}}
+								/>
+							</div>
+
+							<div>
+								<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Help Text</label>
+								<input
+									type="text"
+									className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+									style={inputStyle}
+									value={selectedField.helpText || ""}
+									onChange={(e) => updateField(selectedField.key, { helpText: e.target.value || undefined })}
+									placeholder="Optional help text"
+								/>
+							</div>
+
+							<div className="flex items-center gap-2">
+								<input
+									type="checkbox"
+									id="required"
+									checked={selectedField.required || false}
+									onChange={(e) => updateField(selectedField.key, { required: e.target.checked })}
+									className="rounded"
+								/>
+								<label htmlFor="required" className="text-sm" style={{ color: '#cbd5e1' }}>Required</label>
+							</div>
+
+							{/* Options for select/radio/checkbox */}
+							{["select", "radio", "checkboxGroup"].includes(selectedField.type) && (
+								<div>
+									<label className="mb-1.5 block text-xs" style={{ color: '#64748b' }}>Options</label>
+									<div className="space-y-2">
+										{(selectedField.options || []).map((opt, i) => (
+											<div key={i} className="flex gap-2">
+												<input
+													type="text"
+													className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+													style={inputStyle}
+													value={opt.label}
+													onChange={(e) => {
+														const newOptions = [...(selectedField.options || [])];
+														newOptions[i] = {
+															...newOptions[i],
+															label: e.target.value,
+															value: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+														};
+														updateField(selectedField.key, { options: newOptions });
+													}}
+												/>
+												<button
+													onClick={() => {
+														const newOptions = (selectedField.options || []).filter((_, idx) => idx !== i);
+														updateField(selectedField.key, { options: newOptions });
+													}}
+													style={{ color: '#f87171' }}
+												>
+													×
+												</button>
+											</div>
+										))}
+										<button
+											onClick={() => {
+												const newOptions = [
+													...(selectedField.options || []),
+													{ value: `option_${Date.now()}`, label: "New Option" },
+												];
+												updateField(selectedField.key, { options: newOptions });
+											}}
+											className="text-sm transition-colors"
+											style={{ color: '#818cf8' }}
+										>
+											+ Add option
+										</button>
 									</div>
 								</div>
 							)}
-							{selectedField.type === "number" && (
-								<div className="grid grid-cols-2 gap-2">
-									<div>
-										<label className="text-xs" style={{ color: '#64748b' }}>Min Value</label>
-										<input
-											type="number"
-											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
-											style={inputStyle}
-											value={selectedField.validation?.min ?? ""}
-											onChange={(e) =>
-												updateField(selectedField.key, {
-													validation: {
-														...selectedField.validation,
-														min: e.target.value ? parseFloat(e.target.value) : undefined,
-													},
-												})
-											}
-										/>
+
+							{/* Validation */}
+							<div className="pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+								<label className="mb-2 block text-xs font-medium" style={{ color: '#64748b' }}>Validation</label>
+								{["text", "textarea", "email"].includes(selectedField.type) && (
+									<div className="grid grid-cols-2 gap-2">
+										<div>
+											<label className="text-xs" style={{ color: '#64748b' }}>Min Length</label>
+											<input
+												type="number"
+												className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+												style={inputStyle}
+												value={selectedField.validation?.minLength || ""}
+												onChange={(e) =>
+													updateField(selectedField.key, {
+														validation: {
+															...selectedField.validation,
+															minLength: e.target.value ? parseInt(e.target.value) : undefined,
+														},
+													})
+												}
+											/>
+										</div>
+										<div>
+											<label className="text-xs" style={{ color: '#64748b' }}>Max Length</label>
+											<input
+												type="number"
+												className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+												style={inputStyle}
+												value={selectedField.validation?.maxLength || ""}
+												onChange={(e) =>
+													updateField(selectedField.key, {
+														validation: {
+															...selectedField.validation,
+															maxLength: e.target.value ? parseInt(e.target.value) : undefined,
+														},
+													})
+												}
+											/>
+										</div>
 									</div>
-									<div>
-										<label className="text-xs" style={{ color: '#64748b' }}>Max Value</label>
-										<input
-											type="number"
-											className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
-											style={inputStyle}
-											value={selectedField.validation?.max ?? ""}
-											onChange={(e) =>
-												updateField(selectedField.key, {
-													validation: {
-														...selectedField.validation,
-														max: e.target.value ? parseFloat(e.target.value) : undefined,
-													},
-												})
-											}
-										/>
+								)}
+								{selectedField.type === "number" && (
+									<div className="grid grid-cols-2 gap-2">
+										<div>
+											<label className="text-xs" style={{ color: '#64748b' }}>Min Value</label>
+											<input
+												type="number"
+												className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+												style={inputStyle}
+												value={selectedField.validation?.min ?? ""}
+												onChange={(e) =>
+													updateField(selectedField.key, {
+														validation: {
+															...selectedField.validation,
+															min: e.target.value ? parseFloat(e.target.value) : undefined,
+														},
+													})
+												}
+											/>
+										</div>
+										<div>
+											<label className="text-xs" style={{ color: '#64748b' }}>Max Value</label>
+											<input
+												type="number"
+												className="w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+												style={inputStyle}
+												value={selectedField.validation?.max ?? ""}
+												onChange={(e) =>
+													updateField(selectedField.key, {
+														validation: {
+															...selectedField.validation,
+															max: e.target.value ? parseFloat(e.target.value) : undefined,
+														},
+													})
+												}
+											/>
+										</div>
 									</div>
-								</div>
-							)}
+								)}
+							</div>
 						</div>
-					</div>
-				) : (
-					<p className="text-sm" style={{ color: '#64748b' }}>Select a field to edit its properties</p>
-				)}
-			</div>
+					) : (
+						<p className="text-sm" style={{ color: '#64748b' }}>Select a field to edit its properties</p>
+					)}
+				</div>)}
 
 			{/* Preview Modal */}
 			{showPreview && (
