@@ -259,7 +259,7 @@ export default function UploadHtmlTemplatePage() {
                         </div>
 
                         {/* HTML Editor with Live Preview */}
-                        <div className="h-[500px]">
+                        <div className="h-[700px]">
                             <HtmlTemplateEditor
                                 htmlContent={htmlContent}
                                 onHtmlChange={setHtmlContent}
@@ -318,32 +318,85 @@ export default function UploadHtmlTemplatePage() {
 
                         {/* Token mappings */}
                         <div className="rounded-xl p-5" style={cardStyle}>
-                            <h2 className="text-lg font-semibold text-white mb-4">Token Mappings</h2>
-                            <p className="text-sm mb-4" style={{ color: '#94a3b8' }}>
-                                Map each token to a payload field name. When pre-populating the form, the system will look for these keys in the incoming data.
-                            </p>
-                            <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {mappings.map((mapping) => (
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-white">Token Mappings</h2>
+                                    <p className="text-sm" style={{ color: '#94a3b8' }}>
+                                        Drag to reorder. Map tokens to payload field names.
+                                    </p>
+                                </div>
+                                <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc' }}>
+                                    {mappings.length} tokens
+                                </span>
+                            </div>
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                                {mappings.map((mapping, index) => (
                                     <div
                                         key={mapping.tokenId}
-                                        className="grid grid-cols-2 gap-4 items-center p-3 rounded-lg"
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData('text/plain', index.toString());
+                                            e.currentTarget.style.opacity = '0.5';
+                                        }}
+                                        onDragEnd={(e) => {
+                                            e.currentTarget.style.opacity = '1';
+                                        }}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.style.borderTop = '2px solid #818cf8';
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.currentTarget.style.borderTop = 'none';
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.style.borderTop = 'none';
+                                            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                                            const toIndex = index;
+                                            if (fromIndex !== toIndex) {
+                                                setMappings(prev => {
+                                                    const newMappings = [...prev];
+                                                    const [moved] = newMappings.splice(fromIndex, 1);
+                                                    newMappings.splice(toIndex, 0, moved);
+                                                    return newMappings;
+                                                });
+                                            }
+                                        }}
+                                        className="flex items-center gap-3 p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:bg-white/5"
                                         style={{ background: 'rgba(0,0,0,0.2)' }}
                                     >
-                                        <div>
+                                        {/* Drag handle */}
+                                        <div className="text-gray-500 select-none" style={{ cursor: 'grab' }}>
+                                            ⠿
+                                        </div>
+
+                                        {/* Token info */}
+                                        <div className="flex-1 min-w-0">
                                             <p className="text-white text-sm font-medium truncate" title={mapping.label}>
                                                 {mapping.label}
                                             </p>
                                             <p className="text-xs font-mono truncate" style={{ color: '#64748b' }} title={mapping.tokenId}>
-                                                {mapping.tokenId.substring(0, 8)}...
+                                                ID: {mapping.tokenId.substring(0, 12)}...
                                             </p>
                                         </div>
+
+                                        {/* Arrow */}
+                                        <div style={{ color: '#64748b' }}>→</div>
+
+                                        {/* Payload key input */}
                                         <input
-                                            className="w-full rounded px-3 py-2 text-sm font-mono focus:outline-none"
+                                            className="w-48 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                             style={inputStyle}
                                             value={mapping.payloadKey}
                                             onChange={(e) => updateMapping(mapping.tokenId, e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
                                             placeholder="payload_key"
                                         />
+
+                                        {/* Order number */}
+                                        <span className="text-xs w-6 text-center" style={{ color: '#64748b' }}>
+                                            #{index + 1}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
