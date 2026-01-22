@@ -38,8 +38,36 @@ function PublicFormContent() {
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
 	// Extract pre-fill values from URL parameters
+	// Supports both individual field params and ?data=base64(JSON)
 	function getPrefillValues(fieldKeys: string[]): Record<string, any> {
 		const prefill: Record<string, any> = {};
+
+		// First, check for base64-encoded data payload (from Quickbase/N8N)
+		const dataParam = searchParams.get("data");
+		if (dataParam) {
+			try {
+				// Decode base64 and parse JSON
+				const decoded = atob(dataParam);
+				const payload = JSON.parse(decoded);
+				// Copy all matching field keys from payload
+				for (const key of fieldKeys) {
+					if (payload[key] !== undefined) {
+						prefill[key] = payload[key];
+					}
+				}
+				// Also check for any keys in payload that might be mappings
+				// (the API will have already applied token mappings)
+				Object.keys(payload).forEach(payloadKey => {
+					if (fieldKeys.includes(payloadKey)) {
+						prefill[payloadKey] = payload[payloadKey];
+					}
+				});
+			} catch {
+				console.warn("Failed to decode data parameter");
+			}
+		}
+
+		// Then, individual URL params (which override ?data values)
 		for (const key of fieldKeys) {
 			const value = searchParams.get(key);
 			if (value !== null) {
@@ -457,9 +485,9 @@ function PublicFormContent() {
 					</div>
 					<div style={{ height: "0.5rem", width: "100%", borderRadius: "var(--form-radius, 0.375rem)", backgroundColor: "var(--form-border, #d1d5db)", overflow: "hidden" }}>
 						<div
-							style={{ 
-								height: "100%", 
-								borderRadius: "var(--form-radius, 0.375rem)", 
+							style={{
+								height: "100%",
+								borderRadius: "var(--form-radius, 0.375rem)",
 								backgroundColor: "var(--form-primary, #000)",
 								width: `${progressPct}%`,
 								transition: "width 0.3s ease",

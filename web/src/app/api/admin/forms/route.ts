@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest) {
 	try {
 		const session = await requireTenantSession();
 		if (!session) return api.unauthorized();
-		
+
 		const forms = await prisma.form.findMany({
 			where: { tenantId: session.tenantId },
 			orderBy: { updatedAt: "desc" },
@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
 				updatedAt: true,
 			},
 		});
-		
+
 		return api.success({ forms });
 	} catch (err) {
 		console.error("Error fetching forms:", err);
@@ -36,6 +36,7 @@ const createFormSchema = z.object({
 	name: z.string().min(1),
 	publicId: z.string().regex(/^[a-z0-9-]+$/),
 	schema: z.any().optional(),
+	templateId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,13 +58,13 @@ export async function POST(req: NextRequest) {
 				`You've reached your limit of ${limitCheck.limit} forms. Please upgrade your plan to create more.`
 			);
 		}
-		
+
 		const body = await req.json().catch(() => ({}));
 		const parsed = createFormSchema.safeParse(body);
 		if (!parsed.success) {
 			return api.validationError("Invalid form data", parsed.error.format());
 		}
-		const { name, publicId, schema } = parsed.data;
+		const { name, publicId, schema, templateId } = parsed.data;
 
 		// Check for duplicate publicId
 		const existing = await prisma.form.findFirst({
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
 					name,
 					publicId,
 					status: "draft",
+					templateId: templateId || null,
 				},
 			});
 			if (schema) {

@@ -34,16 +34,29 @@ export default function TemplatesPage() {
 						</Link>
 					</p>
 				</div>
-				<Link 
-					href="/admin/forms/builder" 
-					className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:opacity-90"
-					style={{ 
-						background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
-						color: 'white',
-					}}
-				>
-					Blank Form
-				</Link>
+				<div className="flex gap-2">
+					<Link
+						href="/admin/forms/new/upload-html"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98]"
+						style={{
+							background: 'rgba(255, 255, 255, 0.05)',
+							border: '1px solid rgba(255, 255, 255, 0.1)',
+							color: '#94a3b8',
+						}}
+					>
+						📄 Upload HTML
+					</Link>
+					<Link
+						href="/admin/forms/builder"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:opacity-90"
+						style={{
+							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+							color: 'white',
+						}}
+					>
+						Blank Form
+					</Link>
+				</div>
 			</div>
 
 			{/* Category filters */}
@@ -94,7 +107,7 @@ export default function TemplatesPage() {
 							<h3 className="font-semibold text-white group-hover:text-indigo-400 transition-colors">
 								{template.name}
 							</h3>
-							<span 
+							<span
 								className="rounded-full px-2 py-0.5 text-xs capitalize"
 								style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}
 							>

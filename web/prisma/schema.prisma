@@ -78,6 +78,7 @@ model Tenant {
   forms                  Form[]
   themes                 Theme[]
   submissionEvents       SubmissionEvent[]
+  htmlTemplates          HtmlTemplate[]
 }
 
 model User {
@@ -110,10 +111,13 @@ model Form {
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 
+  templateId              String?
+
   tenant                  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   versions                FormVersion[]
   currentVersion          FormVersion? @relation("CurrentFormVersion", fields: [currentVersionId], references: [id])
   submissionEvents        SubmissionEvent[]
+  template                HtmlTemplate? @relation("FormTemplate", fields: [templateId], references: [id])
 
   @@index([tenantId])
 }
@@ -196,4 +200,35 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([userId])
+}
+
+// HTML Templates for pre-populated forms
+model HtmlTemplate {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  htmlContent     String   @db.Text
+  extractedTokens Json     // [{tokenId, label, position}]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mappings        TokenMapping[]
+  forms           Form[]   @relation("FormTemplate")
+
+  @@index([tenantId])
+}
+
+// Token-to-payload field mappings
+model TokenMapping {
+  id          String       @id @default(cuid())
+  templateId  String
+  tokenId     String       // data-token-id UUID from HTML
+  tokenLabel  String       // Human-readable label
+  payloadKey  String       // Key in incoming JSON payload
+
+  template    HtmlTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, tokenId])
+  @@index([templateId])
 }

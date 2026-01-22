@@ -35,17 +35,24 @@ export default async function AdminHome() {
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold text-white">Forms</h1>
 				<div className="flex gap-3">
-					<Link 
-						href="/admin/forms/new/templates" 
+					<Link
+						href="/admin/forms/new/upload-html"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
+						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+					>
+						📄 Upload HTML
+					</Link>
+					<Link
+						href="/admin/forms/new/templates"
 						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
 						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
 					>
 						Templates
 					</Link>
-					<Link 
-						href="/admin/forms/builder" 
+					<Link
+						href="/admin/forms/builder"
 						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
-						style={{ 
+						style={{
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 							color: 'white',
 							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
@@ -56,9 +63,9 @@ export default async function AdminHome() {
 				</div>
 			</div>
 
-			<div 
+			<div
 				className="overflow-hidden rounded-xl"
-				style={{ 
+				style={{
 					background: 'rgba(255, 255, 255, 0.05)',
 					border: '1px solid rgba(255, 255, 255, 0.1)',
 				}}
@@ -77,7 +84,7 @@ export default async function AdminHome() {
 						{forms.map((f) => (
 							<tr key={f.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
 								<td className="px-5 py-4 font-medium">
-									<Link 
+									<Link
 										href={`/admin/forms/${f.id}`}
 										className="text-white transition-colors hover:text-purple-400"
 									>
@@ -85,8 +92,8 @@ export default async function AdminHome() {
 									</Link>
 								</td>
 								<td className="px-5 py-4">
-									<Link 
-										href={`/f/${f.publicId}`} 
+									<Link
+										href={`/f/${f.publicId}`}
 										target="_blank"
 										className="font-mono text-sm transition-colors"
 										style={{ color: '#818cf8' }}
@@ -102,7 +109,7 @@ export default async function AdminHome() {
 								</td>
 								<td className="px-5 py-4">
 									<div className="flex items-center gap-2">
-										<Link 
+										<Link
 											href={`/admin/forms/${f.id}`}
 											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
 											style={{ color: '#94a3b8' }}
@@ -121,7 +128,7 @@ export default async function AdminHome() {
 							<tr>
 								<td className="px-5 py-12 text-center" colSpan={5} style={{ color: '#64748b' }}>
 									<div className="flex flex-col items-center gap-3">
-										<div 
+										<div
 											className="w-12 h-12 rounded-full flex items-center justify-center"
 											style={{ background: 'rgba(255, 255, 255, 0.05)' }}
 										>
@@ -150,7 +157,7 @@ function StatusBadge({ status }: { status: string }) {
 	const style = styles[status] || styles.draft;
 
 	return (
-		<span 
+		<span
 			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize"
 			style={{ background: style.bg, color: style.text }}
 		>
