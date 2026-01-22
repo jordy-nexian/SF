@@ -96,8 +96,9 @@ export default function HtmlTemplateEditor({
     return (
         <div className="rounded-xl overflow-hidden flex flex-col h-full" style={cardStyle}>
             {/* Tab header */}
-            <div className="flex border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <div className="flex border-b shrink-0" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
                 <button
+                    type="button"
                     onClick={() => setActiveTab("editor")}
                     className="flex-1 px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
                     style={{
@@ -110,6 +111,7 @@ export default function HtmlTemplateEditor({
                     HTML Editor
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab("preview")}
                     className="flex-1 px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
                     style={{
