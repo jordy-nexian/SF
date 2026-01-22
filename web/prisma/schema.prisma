@@ -127,6 +127,7 @@ model FormVersion {
   formId         String
   versionNumber  Int
   schema         Json
+  htmlContent    String?  @db.Text
   trafficWeight  Int      @default(0)  // A/B test weight (0 = not in test)
   createdAt      DateTime @default(now())
 

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+
+// Configure Monaco loader to use jsdelivr
+loader.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs" } });
 
 interface ExtractedToken {
     tokenId: string;
@@ -159,6 +162,10 @@ export default function HtmlTemplateEditor({
                     <div
                         className="h-full overflow-auto p-4"
                         style={{ background: '#ffffff' }}
+                        onClickCapture={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
                     >
                         {htmlContent ? (
                             <div

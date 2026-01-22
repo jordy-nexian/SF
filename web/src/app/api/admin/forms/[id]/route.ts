@@ -31,6 +31,7 @@ export async function GET(
 			id: form.currentVersion.id,
 			versionNumber: form.currentVersion.versionNumber,
 			schema: form.currentVersion.schema,
+			htmlContent: form.currentVersion.htmlContent,
 		} : null,
 		primaryN8nWebhookUrl: form.primaryN8nWebhookUrl,
 		backupWebhookUrl: form.backupWebhookUrl,
@@ -54,6 +55,8 @@ const updateSchema = z.object({
 	thankYouUrl: z.string().url().nullable().optional(),
 	thankYouMessage: z.string().nullable().optional(),
 	settings: z.any().optional(),
+	schema: z.any().optional(),
+	htmlContent: z.string().optional(),
 });
 
 export async function PUT(
@@ -72,7 +75,7 @@ export async function PUT(
 	// Ensure the form belongs to tenant
 	const form = await prisma.form.findFirst({
 		where: { id, tenantId: session.tenantId },
-		select: { id: true, status: true },
+		select: { id: true, status: true, currentVersionId: true },
 	});
 	if (!form) return api.notFound("Form not found");
 
@@ -113,6 +116,33 @@ export async function PUT(
 		} catch {
 			// Audit log failure shouldn't break the operation
 		}
+	}
+
+	// Update current version schema/html if provided
+	if ((parsed.data.schema || parsed.data.htmlContent) && form.currentVersionId) {
+		const updateVersionData: any = {};
+		if (parsed.data.schema) updateVersionData.schema = parsed.data.schema;
+		if (parsed.data.htmlContent !== undefined) updateVersionData.htmlContent = parsed.data.htmlContent;
+
+		await prisma.formVersion.update({
+			where: { id: form.currentVersionId },
+			data: updateVersionData,
+		});
+	} else if ((parsed.data.schema || parsed.data.htmlContent) && !form.currentVersionId) {
+		// Edge case: Form has no current version but we want to save schema?
+		// Create version 1
+		const ver = await prisma.formVersion.create({
+			data: {
+				formId: form.id,
+				versionNumber: 1,
+				schema: parsed.data.schema || {},
+				htmlContent: parsed.data.htmlContent,
+			},
+		});
+		await prisma.form.update({
+			where: { id: form.id },
+			data: { currentVersionId: ver.id },
+		});
 	}
 
 	return api.success({ id: updated.id });

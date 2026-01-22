@@ -7,6 +7,12 @@ import type { FormSchema, Field } from "@/types/form-schema";
 import FormRenderer from "@/components/FormRenderer";
 import { getTemplateById } from "@/lib/form-templates";
 import { defaultTheme, themeToCssVars, type ThemeConfig } from "@/types/theme";
+import dynamic from "next/dynamic";
+
+const HtmlTemplateEditor = dynamic(() => import("@/components/HtmlTemplateEditor"), {
+	ssr: false,
+	loading: () => <div className="text-white p-4">Loading editor...</div>,
+});
 
 const FIELD_TYPES = [
 	{ type: "text", label: "Text Input", icon: "Aa" },
@@ -75,8 +81,10 @@ function FormBuilderContent() {
 	const [success, setSuccess] = useState<string | null>(null);
 	const [templateName, setTemplateName] = useState<string | null>(null);
 	const [showPreview, setShowPreview] = useState(false);
-	const [activePanel, setActivePanel] = useState<"fields" | "design">("fields");
+	const [activePanel, setActivePanel] = useState<"fields" | "design" | "template">("fields");
 	const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
+	const [htmlContent, setHtmlContent] = useState("");
+	const [tokens, setTokens] = useState<any[]>([]);
 
 	// Fetch tenant theme
 	useEffect(() => {
@@ -123,6 +131,10 @@ function FormBuilderContent() {
 					setSchema(data.currentVersion.schema);
 				} else if (data.schema) {
 					setSchema(data.schema);
+				}
+				if (data.currentVersion?.htmlContent) {
+					setHtmlContent(data.currentVersion.htmlContent);
+					setActivePanel("template"); // Switch to template view if HTML exists
 				}
 			})
 			.catch((err) => {
@@ -236,7 +248,7 @@ function FormBuilderContent() {
 			const res = await fetch(endpoint, {
 				method,
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({ name: formName, publicId, schema }),
+				body: JSON.stringify({ name: formName, publicId, schema, htmlContent }),
 			});
 
 			const json = await res.json().catch(() => ({}));
@@ -291,10 +303,37 @@ function FormBuilderContent() {
 					>
 						Design
 					</button>
+					<button
+						onClick={() => setActivePanel("template")}
+						className="flex-1 px-3 py-2.5 text-xs font-medium transition-all"
+						style={{
+							color: activePanel === "template" ? '#818cf8' : '#64748b',
+							borderBottom: activePanel === "template" ? '2px solid #818cf8' : '2px solid transparent',
+						}}
+					>
+						HTML
+					</button>
 				</div>
 
-				<div className="p-4">
-					{activePanel === "fields" ? (
+				<div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
+					{activePanel === "template" ? (
+						<div className="h-full flex flex-col">
+							<div className="mb-4">
+								<h3 className="mb-1 text-xs font-medium text-white">HTML Template</h3>
+								<p className="text-xs" style={{ color: '#94a3b8' }}>
+									Edit the raw HTML for this form version.
+								</p>
+							</div>
+							<div className="flex-1 min-h-0">
+								<HtmlTemplateEditor
+									htmlContent={htmlContent}
+									onHtmlChange={setHtmlContent}
+									tokens={tokens}
+									onTokensChange={setTokens}
+								/>
+							</div>
+						</div>
+					) : activePanel === "fields" ? (
 						<>
 							<h3 className="mb-3 text-xs font-medium" style={{ color: '#64748b' }}>Drag or click to add</h3>
 							<div className="space-y-2">

@@ -37,6 +37,7 @@ const createFormSchema = z.object({
 	publicId: z.string().regex(/^[a-z0-9-]+$/),
 	schema: z.any().optional(),
 	templateId: z.string().optional(),
+	htmlContent: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -64,7 +65,19 @@ export async function POST(req: NextRequest) {
 		if (!parsed.success) {
 			return api.validationError("Invalid form data", parsed.error.format());
 		}
-		const { name, publicId, schema, templateId } = parsed.data;
+		const { name, publicId, schema, templateId, htmlContent } = parsed.data;
+
+		// If templateId provided but no htmlContent, fetch from template
+		let initialHtml = htmlContent;
+		if (templateId && !initialHtml) {
+			const template = await prisma.htmlTemplate.findUnique({
+				where: { id: templateId },
+				select: { htmlContent: true },
+			});
+			if (template) {
+				initialHtml = template.htmlContent;
+			}
+		}
 
 		// Check for duplicate publicId
 		const existing = await prisma.form.findFirst({
@@ -93,6 +106,7 @@ export async function POST(req: NextRequest) {
 						formId: form.id,
 						versionNumber: 1,
 						schema,
+						htmlContent: initialHtml,
 					},
 				});
 				await tx.form.update({

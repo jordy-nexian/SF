@@ -181,6 +181,7 @@ export default function UploadHtmlTemplatePage() {
                     publicId,
                     templateId,
                     schema, // This will create a FormVersion
+                    htmlContent,
                 }),
             });
             const formJson = await formRes.json().catch(() => ({}));
