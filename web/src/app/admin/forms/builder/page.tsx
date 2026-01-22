@@ -317,21 +317,21 @@ function FormBuilderContent() {
 
 				<div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
 					{activePanel === "template" ? (
-						<div className="h-full flex flex-col">
-							<div className="mb-4">
-								<h3 className="mb-1 text-xs font-medium text-white">HTML Template</h3>
-								<p className="text-xs" style={{ color: '#94a3b8' }}>
-									Edit the raw HTML for this form version.
+						<div className="p-4 text-center space-y-4 pt-10">
+							<div className="text-4xl opacity-50">{"</>"}</div>
+							<div className="text-sm" style={{ color: '#94a3b8' }}>
+								<p className="mb-2">HTML Editing Mode</p>
+								<p className="text-xs opacity-75">
+									The code editor is now active in the main view.
 								</p>
 							</div>
-							<div className="flex-1 min-h-0">
-								<HtmlTemplateEditor
-									htmlContent={htmlContent}
-									onHtmlChange={setHtmlContent}
-									tokens={tokens}
-									onTokensChange={setTokens}
-								/>
-							</div>
+							<button
+								onClick={() => setActivePanel("fields")}
+								className="text-xs underline hover:no-underline"
+								style={{ color: '#818cf8' }}
+							>
+								← Back to visual builder
+							</button>
 						</div>
 					) : activePanel === "fields" ? (
 						<>
@@ -568,6 +568,65 @@ function FormBuilderContent() {
 					{error && <span className="text-sm" style={{ color: '#f87171' }}>{error}</span>}
 					{success && <span className="text-sm" style={{ color: '#10b981' }}>{success}</span>}
 				</div>
+			</div>
+
+			{/* Center Panel - Canvas / Main Editor */}
+			<div className="flex-1 rounded-xl overflow-hidden relative flex flex-col" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+				{activePanel === "template" ? (
+					// HTML Editor Canvas
+					<div className="h-full flex flex-col">
+						<div className="bg-[#1e1e1e] border-b border-[#333] px-4 py-2 text-xs text-gray-400 flex justify-between items-center">
+							<span>{formName}.html</span>
+							<span>{htmlContent.length} chars</span>
+						</div>
+						<div className="flex-1 min-h-0">
+							<HtmlTemplateEditor
+								htmlContent={htmlContent}
+								onHtmlChange={setHtmlContent}
+								tokens={tokens}
+								onTokensChange={setTokens}
+							/>
+						</div>
+					</div>
+				) : (
+					// Visual Form Canvas
+					<div className="h-full overflow-y-auto p-8 custom-scrollbar">
+						<div className="mx-auto max-w-2xl">
+							<div
+								className="min-h-[600px] rounded-xl shadow-2xl p-8 transition-all"
+								style={{
+									background: theme.backgroundColor,
+									border: `1px solid ${theme.borderColor}`,
+									...themeCssVars
+								} as React.CSSProperties}
+							>
+								{/* Placeholder Form Header */}
+								<div className="mb-8 border-b pb-6" style={{ borderColor: theme.borderColor }}>
+									<h1 className="text-3xl font-bold mb-2" style={{ color: theme.textColor }}>{schema.title}</h1>
+									{schema.description && (
+										<div style={{ color: theme.textColor, opacity: 0.7 }}>{schema.description}</div>
+									)}
+								</div>
+
+								{schema.fields.length === 0 ? (
+									<div className="border-2 border-dashed rounded-lg p-12 text-center" style={{ borderColor: theme.borderColor }}>
+										<div className="text-4xl mb-3 opacity-20">✏️</div>
+										<p style={{ color: theme.textColor, opacity: 0.5 }}>
+											Your form is empty. <br />
+											Drag fields from the sidebar to build it.
+										</p>
+									</div>
+								) : (
+									<FormRenderer schema={schema} mode="preview" />
+								)}
+							</div>
+
+							<div className="mt-8 text-center text-xs text-gray-500">
+								End of form preview
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* Properties Panel */}

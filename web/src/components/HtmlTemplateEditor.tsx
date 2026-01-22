@@ -94,7 +94,7 @@ export default function HtmlTemplateEditor({
     }, []);
 
     return (
-        <div className="rounded-xl overflow-hidden" style={cardStyle}>
+        <div className="rounded-xl overflow-hidden flex flex-col h-full" style={cardStyle}>
             {/* Tab header */}
             <div className="flex border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
                 <button
@@ -132,7 +132,7 @@ export default function HtmlTemplateEditor({
             </div>
 
             {/* Content */}
-            <div style={{ height: '400px' }}>
+            <div className="flex-1 min-h-0 relative">
                 {activeTab === "editor" ? (
                     <Editor
                         height="100%"
