@@ -46,8 +46,8 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         }
 
         // Combine extracted tokens with their mappings
-        const tokens = (template.extractedTokens as ExtractedToken[]).map(token => {
-            const mapping = template.mappings.find(m => m.tokenId === token.tokenId);
+        const tokens = (template.extractedTokens as unknown as ExtractedToken[]).map(token => {
+            const mapping = template.mappings.find((m: { tokenId: string }) => m.tokenId === token.tokenId);
             return {
                 tokenId: token.tokenId,
                 label: token.label,
@@ -61,7 +61,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
             templateName: template.name,
             tokens,
             mappedCount: template.mappings.length,
-            totalCount: (template.extractedTokens as ExtractedToken[]).length,
+            totalCount: (template.extractedTokens as unknown as ExtractedToken[]).length,
         });
     } catch (err) {
         console.error("Error fetching mappings:", err);
@@ -99,7 +99,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         }
 
         const { mappings } = parsed.data;
-        const extractedTokens = template.extractedTokens as ExtractedToken[];
+        const extractedTokens = template.extractedTokens as unknown as ExtractedToken[];
 
         // Validate that all tokenIds exist in the template
         const validTokenIds = new Set(extractedTokens.map(t => t.tokenId));

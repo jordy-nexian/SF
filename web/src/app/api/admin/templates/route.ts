@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
                 tenantId: session.tenantId,
                 name,
                 htmlContent,
-                extractedTokens: extractedTokens,
+                extractedTokens: extractedTokens as unknown as object,
             },
         });
 

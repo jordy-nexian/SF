@@ -20,7 +20,7 @@ export function extractTokensFromHtml(html: string): ExtractedToken[] {
     // Matches: <span class="fe-token" data-token-id="UUID" ...>Content</span>
     const tokenRegex = /<span[^>]*class=["'][^"']*fe-token[^"']*["'][^>]*data-token-id=["']([^"']+)["'][^>]*>([^<]*)<\/span>/gi;
 
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = tokenRegex.exec(html)) !== null) {
         tokens.push({
             tokenId: match[1],
@@ -32,13 +32,14 @@ export function extractTokensFromHtml(html: string): ExtractedToken[] {
     // Also check for tokens where data-token-id comes before class
     const altRegex = /<span[^>]*data-token-id=["']([^"']+)["'][^>]*class=["'][^"']*fe-token[^"']*["'][^>]*>([^<]*)<\/span>/gi;
 
-    while ((match = altRegex.exec(html)) !== null) {
+    let altMatch: RegExpExecArray | null;
+    while ((altMatch = altRegex.exec(html)) !== null) {
         // Avoid duplicates
-        if (!tokens.some(t => t.tokenId === match[1])) {
+        if (!tokens.some(t => t.tokenId === altMatch![1])) {
             tokens.push({
-                tokenId: match[1],
-                label: match[2].trim(),
-                position: match.index,
+                tokenId: altMatch[1],
+                label: altMatch[2].trim(),
+                position: altMatch.index,
             });
         }
     }
