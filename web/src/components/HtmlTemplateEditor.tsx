@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Editor, { loader } from "@monaco-editor/react";
-
-// Configure Monaco loader to use jsdelivr
-loader.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs" } });
+import Editor from "@monaco-editor/react";
 
 interface ExtractedToken {
     tokenId: string;
