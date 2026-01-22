@@ -259,25 +259,27 @@ export default function UploadHtmlTemplatePage() {
                         </div>
 
                         {/* HTML Editor with Live Preview */}
-                        <HtmlTemplateEditor
-                            htmlContent={htmlContent}
-                            onHtmlChange={setHtmlContent}
-                            tokens={tokens}
-                            onTokensChange={(newTokens) => {
-                                setTokens(newTokens);
-                                // Update mappings for new tokens
-                                setMappings(prev => {
-                                    const existingMap = new Map(prev.map(m => [m.tokenId, m]));
-                                    return newTokens.map(t =>
-                                        existingMap.get(t.tokenId) || {
-                                            tokenId: t.tokenId,
-                                            label: t.label,
-                                            payloadKey: t.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-                                        }
-                                    );
-                                });
-                            }}
-                        />
+                        <div className="h-[500px]">
+                            <HtmlTemplateEditor
+                                htmlContent={htmlContent}
+                                onHtmlChange={setHtmlContent}
+                                tokens={tokens}
+                                onTokensChange={(newTokens) => {
+                                    setTokens(newTokens);
+                                    // Update mappings for new tokens
+                                    setMappings(prev => {
+                                        const existingMap = new Map(prev.map(m => [m.tokenId, m]));
+                                        return newTokens.map(t =>
+                                            existingMap.get(t.tokenId) || {
+                                                tokenId: t.tokenId,
+                                                label: t.label,
+                                                payloadKey: t.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+                                            }
+                                        );
+                                    });
+                                }}
+                            />
+                        </div>
 
                         {/* Form details */}
                         <div className="rounded-xl p-5 space-y-4" style={cardStyle}>
