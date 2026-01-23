@@ -3,40 +3,12 @@ import type { User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
-// Simple in-memory rate limiter for login attempts
-// In production with multiple instances, use Redis via @upstash/ratelimit
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const LOGIN_LIMIT = 5;
-const LOGIN_WINDOW_MS = 60_000; // 1 minute
-
-function checkLoginRateLimit(email: string): { allowed: boolean; retryAfter?: number } {
-	const now = Date.now();
-	const key = email.toLowerCase().trim();
-	const record = loginAttempts.get(key);
-
-	if (!record || now > record.resetAt) {
-		loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
-		return { allowed: true };
-	}
-
-	if (record.count >= LOGIN_LIMIT) {
-		return { allowed: false, retryAfter: Math.ceil((record.resetAt - now) / 1000) };
-	}
-
-	record.count++;
-	return { allowed: true };
+// Validate NEXTAUTH_SECRET at module load time (fail-fast security check)
+if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
+	throw new Error('[Auth] CRITICAL: NEXTAUTH_SECRET environment variable is required in production');
 }
-
-// Clean up old entries periodically
-setInterval(() => {
-	const now = Date.now();
-	for (const [key, record] of loginAttempts.entries()) {
-		if (now > record.resetAt) {
-			loginAttempts.delete(key);
-		}
-	}
-}, 60_000);
 
 // Impersonation expiry: 1 hour
 const IMPERSONATION_MAX_DURATION_MS = 60 * 60 * 1000;
@@ -59,12 +31,16 @@ export const authOptions: NextAuthOptions = {
 					return null;
 				}
 
-				// Rate limit by email to prevent brute force
-				const rateCheck = checkLoginRateLimit(credentials.email);
-				if (!rateCheck.allowed) {
-					// Return null to indicate auth failure
-					// NextAuth will show generic error
-					console.warn(`[Auth] Rate limited login attempt for: ${credentials.email.substring(0, 3)}***`);
+				// Rate limit by email to prevent brute force (distributed via Upstash Redis)
+				const emailKey = `login:${credentials.email.toLowerCase().trim()}`;
+				const rateCheck = await rateLimit(emailKey, RATE_LIMITS.login);
+				if (!rateCheck.success) {
+					// Log differently for degraded mode vs actual rate limit
+					if (rateCheck.degraded) {
+						console.warn(`[Auth] Rate limiter unavailable, blocking login for: ${credentials.email.substring(0, 3)}***`);
+					} else {
+						console.warn(`[Auth] Rate limited login attempt for: ${credentials.email.substring(0, 3)}***`);
+					}
 					return null;
 				}
 

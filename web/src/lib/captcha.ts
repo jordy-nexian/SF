@@ -25,7 +25,7 @@ export async function verifyTurnstileToken(
 	ip?: string
 ): Promise<TurnstileVerifyResult> {
 	const secretKey = process.env.TURNSTILE_SECRET_KEY;
-	
+
 	// If Turnstile is not configured, allow all requests (development mode)
 	if (!secretKey) {
 		if (process.env.NODE_ENV === 'production') {
@@ -33,15 +33,15 @@ export async function verifyTurnstileToken(
 		}
 		return { success: true };
 	}
-	
+
 	// Empty token means widget wasn't rendered or user didn't complete
 	if (!token || typeof token !== 'string') {
-		return { 
-			success: false, 
-			errorCodes: ['missing-input-response'] 
+		return {
+			success: false,
+			errorCodes: ['missing-input-response']
 		};
 	}
-	
+
 	try {
 		const formData = new URLSearchParams();
 		formData.append('secret', secretKey);
@@ -49,7 +49,7 @@ export async function verifyTurnstileToken(
 		if (ip) {
 			formData.append('remoteip', ip);
 		}
-		
+
 		const response = await fetch(TURNSTILE_VERIFY_URL, {
 			method: 'POST',
 			headers: {
@@ -57,17 +57,17 @@ export async function verifyTurnstileToken(
 			},
 			body: formData.toString(),
 		});
-		
+
 		if (!response.ok) {
 			console.error('[Turnstile] Verification request failed:', response.status);
-			return { 
-				success: false, 
-				errorCodes: ['http-error'] 
+			return {
+				success: false,
+				errorCodes: ['http-error']
 			};
 		}
-		
+
 		const result = await response.json();
-		
+
 		return {
 			success: result.success === true,
 			errorCodes: result['error-codes'],
@@ -76,9 +76,8 @@ export async function verifyTurnstileToken(
 		};
 	} catch (error) {
 		console.error('[Turnstile] Verification error:', error instanceof Error ? error.message : 'unknown');
-		// Fail open on network errors to not block legitimate users
-		// This is a tradeoff - could fail closed in high-security scenarios
-		return { success: true };
+		// Fail-closed: network error should block suspicious requests (security-first)
+		return { success: false, errorCodes: ['network-error'] };
 	}
 }
 

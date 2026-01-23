@@ -28,10 +28,10 @@ export async function POST(
 	let submissionId = crypto.randomUUID();
 	const requestId = generateRequestId();
 	const { publicId } = await context.params;
-	
+
 	// Create request-scoped logger
 	const logger = createRequestLogger(requestId, `/api/forms/${publicId}/submit`);
-	
+
 	logger.debug({ submissionId, publicId }, 'Submission received');
 
 	// Rate limiting by IP (distributed via Upstash Redis)
@@ -107,7 +107,7 @@ export async function POST(
 			turnstileToken as string,
 			clientIp
 		);
-		
+
 		if (!turnstileResult.success) {
 			return NextResponse.json(
 				{
@@ -216,7 +216,9 @@ export async function POST(
 	// Validate webhook URL for SSRF protection
 	const webhookValidation = validateWebhookUrl(webhookUrl);
 	if (!webhookValidation.valid) {
-		console.error(`Invalid webhook URL for form ${form.id}: ${webhookValidation.error}`);
+		// Mask URL in logs - show domain only for debugging without exposing full path
+		const maskedUrl = (() => { try { return new URL(webhookUrl).hostname; } catch { return '[invalid]'; } })();
+		console.error(`Invalid webhook URL for form ${form.id} (${maskedUrl}): ${webhookValidation.error}`);
 		return NextResponse.json(
 			{
 				status: 'error',
@@ -319,11 +321,11 @@ export async function POST(
 		webhookUrl,
 		formId: form.id,
 	});
-	
+
 	const webhookStart = Date.now();
 	let { status, success } = await sendWebhook(webhookUrl);
 	const webhookDuration = Date.now() - webhookStart;
-	
+
 	if (success) {
 		logWebhookEvent(logger, {
 			type: 'success',
@@ -352,7 +354,7 @@ export async function POST(
 			const backup = await sendWebhook(backupUrl);
 			status = backup.status;
 			success = backup.success;
-			
+
 			if (success) {
 				logWebhookEvent(logger, {
 					type: 'success',
@@ -384,7 +386,7 @@ export async function POST(
 						: 0,
 			},
 		});
-		
+
 		logSubmissionEvent(logger, {
 			type: success ? 'relayed' : 'failed',
 			formId: form.id,
@@ -396,8 +398,8 @@ export async function POST(
 	} catch (err) {
 		// Log metadata only, no PII/answers
 		logger.error(
-			{ 
-				formId: form.id, 
+			{
+				formId: form.id,
 				tenantId: tenant.id,
 				error: err instanceof Error ? err.message : 'Unknown error',
 			},

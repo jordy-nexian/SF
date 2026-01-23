@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import * as api from '@/lib/api-response';
+import { validateWebhookUrl } from '@/lib/webhook-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,13 @@ export async function GET(
         searchParams.forEach((value, key) => {
             webhookUrl.searchParams.append(key, value);
         });
+
+        // SSRF protection: validate webhook URL before fetch
+        const webhookValidation = validateWebhookUrl(webhookUrl.origin);
+        if (!webhookValidation.valid) {
+            console.error(`[Prefill] Blocked SSRF attempt for form ${form.id}: ${webhookValidation.error}`);
+            return api.badRequest('Invalid prefill webhook configuration');
+        }
 
         // Fetch from webhook with timeout
         const controller = new AbortController();
@@ -151,7 +159,8 @@ export async function GET(
 }
 
 /**
- * Sanitize a value from webhook to prevent XSS or injection
+ * Sanitize a value from webhook to prevent XSS or injection.
+ * Uses HTML entity encoding for security instead of regex replacement.
  */
 function sanitizeValue(value: any): any {
     if (value === null || value === undefined) {
@@ -161,10 +170,14 @@ function sanitizeValue(value: any): any {
         return value;
     }
     if (typeof value === 'string') {
-        // Basic XSS sanitization - remove script tags and event handlers
+        // HTML entity encoding - comprehensive XSS protection
         return value
-            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            .replace(/on\w+\s*=/gi, '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;')
             .trim();
     }
     if (Array.isArray(value)) {

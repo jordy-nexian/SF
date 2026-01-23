@@ -28,7 +28,7 @@ describe('verifyTurnstileToken', () => {
 
 	it('returns failure for empty token', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		const result = await verifyTurnstileToken('');
 		expect(result.success).toBe(false);
 		expect(result.errorCodes).toContain('missing-input-response');
@@ -36,7 +36,7 @@ describe('verifyTurnstileToken', () => {
 
 	it('returns failure for null token', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		const result = await verifyTurnstileToken(null as any);
 		expect(result.success).toBe(false);
 		expect(result.errorCodes).toContain('missing-input-response');
@@ -44,7 +44,7 @@ describe('verifyTurnstileToken', () => {
 
 	it('verifies valid token successfully', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({
@@ -55,7 +55,7 @@ describe('verifyTurnstileToken', () => {
 		});
 
 		const result = await verifyTurnstileToken('valid-token', '1.2.3.4');
-		
+
 		expect(result.success).toBe(true);
 		expect(mockFetch).toHaveBeenCalledWith(
 			'https://challenges.cloudflare.com/turnstile/v0/siteverify',
@@ -67,7 +67,7 @@ describe('verifyTurnstileToken', () => {
 
 	it('returns failure for invalid token', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({
@@ -77,32 +77,33 @@ describe('verifyTurnstileToken', () => {
 		});
 
 		const result = await verifyTurnstileToken('invalid-token');
-		
+
 		expect(result.success).toBe(false);
 		expect(result.errorCodes).toContain('invalid-input-response');
 	});
 
-	it('fails open on network error', async () => {
+	it('fails closed on network error', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
 		const result = await verifyTurnstileToken('some-token');
-		
-		// Should fail open to not block legitimate users
-		expect(result.success).toBe(true);
+
+		// Fail-closed: network errors should block requests (security-first)
+		expect(result.success).toBe(false);
+		expect(result.errorCodes).toContain('network-error');
 	});
 
 	it('returns failure on HTTP error', async () => {
 		process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-		
+
 		mockFetch.mockResolvedValueOnce({
 			ok: false,
 			status: 500,
 		});
 
 		const result = await verifyTurnstileToken('some-token');
-		
+
 		expect(result.success).toBe(false);
 		expect(result.errorCodes).toContain('http-error');
 	});

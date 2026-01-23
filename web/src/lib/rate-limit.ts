@@ -20,6 +20,7 @@ export type RateLimitResult = {
 	limit: number;
 	remaining: number;
 	resetAt: number;
+	degraded?: boolean;  // true when Redis unavailable (fail-closed mode)
 };
 
 // Initialize Redis client (lazy - only when first used)
@@ -28,15 +29,15 @@ let rateLimiters: Map<string, Ratelimit> = new Map();
 
 function getRedis(): Redis | null {
 	if (redis) return redis;
-	
+
 	const url = process.env.UPSTASH_REDIS_REST_URL;
 	const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-	
+
 	if (!url || !token) {
 		console.warn('[RateLimit] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not configured. Rate limiting disabled.');
 		return null;
 	}
-	
+
 	redis = new Redis({ url, token });
 	return redis;
 }
@@ -44,11 +45,11 @@ function getRedis(): Redis | null {
 function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
 	const redisClient = getRedis();
 	if (!redisClient) return null;
-	
+
 	// Cache rate limiters by config to avoid recreating
 	const key = `${config.limit}:${config.windowMs}`;
 	let limiter = rateLimiters.get(key);
-	
+
 	if (!limiter) {
 		limiter = new Ratelimit({
 			redis: redisClient,
@@ -58,7 +59,7 @@ function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
 		});
 		rateLimiters.set(key, limiter);
 	}
-	
+
 	return limiter;
 }
 
@@ -70,20 +71,21 @@ function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
  */
 export async function rateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
 	const limiter = getRateLimiter(config);
-	
-	// Fallback: if Redis not configured, allow all requests (with warning logged once)
+
+	// Fail-closed: if Redis not configured, reject requests (security-first)
 	if (!limiter) {
 		return {
-			success: true,
+			success: false,
 			limit: config.limit,
-			remaining: config.limit,
-			resetAt: Date.now() + config.windowMs,
+			remaining: 0,
+			resetAt: Date.now() + 30_000, // Retry after 30 seconds
+			degraded: true,
 		};
 	}
-	
+
 	try {
 		const result = await limiter.limit(key);
-		
+
 		return {
 			success: result.success,
 			limit: result.limit,
@@ -91,13 +93,14 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
 			resetAt: result.reset,
 		};
 	} catch (error) {
-		// On Redis error, fail open (allow request) but log
-		console.error('[RateLimit] Redis error, failing open:', error instanceof Error ? error.message : 'unknown');
+		// Fail-closed: on Redis error, reject request (security-first)
+		console.error('[RateLimit] Redis error, failing closed:', error instanceof Error ? error.message : 'unknown');
 		return {
-			success: true,
+			success: false,
 			limit: config.limit,
-			remaining: config.limit,
-			resetAt: Date.now() + config.windowMs,
+			remaining: 0,
+			resetAt: Date.now() + 30_000, // Retry after 30 seconds
+			degraded: true,
 		};
 	}
 }
