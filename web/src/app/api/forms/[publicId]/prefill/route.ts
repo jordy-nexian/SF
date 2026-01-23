@@ -94,13 +94,20 @@ export async function GET(
             return api.success({ prefillData: {}, error: 'Prefill unavailable' });
         }
 
-        // Build mappings from TokenMappings (payloadKey -> tokenId)
-        // TokenMappings use: payloadKey = key in webhook response, tokenId = form field ID
+        // Build mappings from TokenMappings
+        // Priority: payloadKey -> tokenId (user-configured), then tokenLabel -> tokenId (original label)
         const templateMappings: Record<string, string> = {};
         if (form.template?.mappings) {
             for (const mapping of form.template.mappings) {
-                // Map payloadKey (webhook key) to tokenId (form field ID)
-                templateMappings[mapping.payloadKey] = mapping.tokenId;
+                // First, map tokenLabel (original label from HTML) to tokenId
+                // This handles webhooks that return the same labels as the template
+                templateMappings[mapping.tokenLabel] = mapping.tokenId;
+
+                // Then, map payloadKey (user-configured) to tokenId
+                // This allows users to customize what webhook keys map to which fields
+                if (mapping.payloadKey && mapping.payloadKey !== mapping.tokenLabel) {
+                    templateMappings[mapping.payloadKey] = mapping.tokenId;
+                }
             }
         }
 

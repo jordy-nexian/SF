@@ -10,6 +10,7 @@ import type {
 import { evaluateVisibility, validateField, getByPath } from "@/types/form-schema";
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { replaceTokensWithValues } from "@/lib/html-template-parser";
 
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
@@ -38,6 +39,7 @@ function PublicFormContent() {
 	const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 	const [prefilling, setPrefilling] = useState(false);
+	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
 
 	// Extract pre-fill values from URL parameters
 	// Supports both individual field params and ?data=base64(JSON)
@@ -179,9 +181,10 @@ function PublicFormContent() {
 						.then(res => res.json())
 						.then(prefillResponse => {
 							if (prefillResponse.success && prefillResponse.data?.prefillData) {
-								const prefillData = prefillResponse.data.prefillData;
-								if (Object.keys(prefillData).length > 0) {
-									setValues(prev => ({ ...prev, ...prefillData }));
+								const fetchedPrefillData = prefillResponse.data.prefillData;
+								if (Object.keys(fetchedPrefillData).length > 0) {
+									setPrefillData(fetchedPrefillData);
+									setValues(prev => ({ ...prev, ...fetchedPrefillData }));
 								}
 							}
 						})
@@ -215,6 +218,15 @@ function PublicFormContent() {
 		}
 		return schema.fields;
 	}, [schema]);
+
+	// Process HTML content with prefill values
+	// This replaces fe-token spans with actual values from the webhook
+	const processedHtmlContent = useMemo(() => {
+		if (!htmlContent) return null;
+		if (Object.keys(prefillData).length === 0) return htmlContent;
+		// prefillData is keyed by tokenId, which matches data-token-id in HTML
+		return replaceTokensWithValues(htmlContent, prefillData);
+	}, [htmlContent, prefillData]);
 
 	function onChange(key: string, value: any) {
 		setValues((prev) => {
@@ -500,7 +512,7 @@ function PublicFormContent() {
 						{/* A4-like paper container */}
 						<div
 							className="html-template-form"
-							dangerouslySetInnerHTML={{ __html: htmlContent }}
+							dangerouslySetInnerHTML={{ __html: processedHtmlContent || '' }}
 							style={{
 								maxWidth: "850px",
 								margin: "0 auto",
