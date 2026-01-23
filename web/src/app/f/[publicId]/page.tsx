@@ -37,6 +37,7 @@ function PublicFormContent() {
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 	const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
+	const [prefilling, setPrefilling] = useState(false);
 
 	// Extract pre-fill values from URL parameters
 	// Supports both individual field params and ?data=base64(JSON)
@@ -169,6 +170,27 @@ function PublicFormContent() {
 				setErrors({});
 				setActiveStepIdx(0);
 				setFormError(null);
+
+				// Fetch prefill data from webhook (if configured)
+				const queryString = window.location.search;
+				if (queryString) {
+					setPrefilling(true);
+					fetch(`/api/forms/${publicId}/prefill${queryString}`)
+						.then(res => res.json())
+						.then(prefillResponse => {
+							if (prefillResponse.success && prefillResponse.data?.prefillData) {
+								const prefillData = prefillResponse.data.prefillData;
+								if (Object.keys(prefillData).length > 0) {
+									setValues(prev => ({ ...prev, ...prefillData }));
+								}
+							}
+						})
+						.catch(err => {
+							console.warn('Prefill failed:', err);
+							// Silent failure - form still works
+						})
+						.finally(() => setPrefilling(false));
+				}
 			})
 			.catch((e) => {
 				if (!active) return;
@@ -517,9 +539,27 @@ function PublicFormContent() {
 							gap: "16px",
 						}}
 					>
-						{/* Error message (left side) */}
+						{/* Status area (left side) */}
 						<div style={{ flex: 1 }}>
-							{submitError && (
+							{prefilling && (
+								<div
+									style={{
+										padding: "8px 12px",
+										borderRadius: "6px",
+										backgroundColor: "#eff6ff",
+										border: "1px solid #bfdbfe",
+										color: "#2563eb",
+										fontSize: "14px",
+										display: "flex",
+										alignItems: "center",
+										gap: "8px",
+									}}
+								>
+									<span style={{ animation: "spin 1s linear infinite" }}>⟳</span>
+									Prefilling form data...
+								</div>
+							)}
+							{!prefilling && submitError && (
 								<div
 									style={{
 										padding: "8px 12px",

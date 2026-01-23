@@ -42,6 +42,8 @@ export default function FormSettingsPage() {
 	const [backupWebhookUrl, setBackupWebhookUrl] = useState("");
 	const [thankYouUrl, setThankYouUrl] = useState("");
 	const [thankYouMessage, setThankYouMessage] = useState("");
+	const [prefillWebhookUrl, setPrefillWebhookUrl] = useState("");
+	const [prefillFieldMappings, setPrefillFieldMappings] = useState("");
 	const [features, setFeatures] = useState<Features>({ webhookFailover: false, abTesting: false });
 
 	useEffect(() => {
@@ -53,13 +55,19 @@ export default function FormSettingsPage() {
 				// Handle standardized response format: { success: true, data: {...} }
 				const formData = formJson?.data ?? formJson;
 				const usageData = usageJson?.data ?? usageJson;
-				
+
 				if (formData) {
 					setName(formData.name || "");
 					setWebhookUrl(formData.primaryN8nWebhookUrl || "");
 					setBackupWebhookUrl(formData.backupWebhookUrl || "");
 					setThankYouUrl(formData.thankYouUrl || "");
 					setThankYouMessage(formData.thankYouMessage || "");
+					setPrefillWebhookUrl(formData.prefillWebhookUrl || "");
+					setPrefillFieldMappings(
+						formData.prefillFieldMappings
+							? JSON.stringify(formData.prefillFieldMappings, null, 2)
+							: ""
+					);
 				}
 				if (usageData?.features) {
 					setFeatures({
@@ -87,6 +95,8 @@ export default function FormSettingsPage() {
 					backupWebhookUrl: features.webhookFailover ? (backupWebhookUrl || null) : null,
 					thankYouUrl: thankYouUrl || null,
 					thankYouMessage: thankYouMessage || null,
+					prefillWebhookUrl: prefillWebhookUrl || null,
+					prefillFieldMappings: prefillFieldMappings ? JSON.parse(prefillFieldMappings) : null,
 				}),
 			});
 
@@ -178,7 +188,7 @@ export default function FormSettingsPage() {
 								disabled={!features.webhookFailover}
 							/>
 							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
-								{features.webhookFailover 
+								{features.webhookFailover
 									? "If the primary webhook fails, we'll automatically retry with this backup URL."
 									: "Upgrade to Pro to enable automatic failover to a backup webhook."
 								}
@@ -226,6 +236,48 @@ export default function FormSettingsPage() {
 					</div>
 				</div>
 
+				{/* Prefill Settings */}
+				<div className="rounded-xl p-6" style={cardStyle}>
+					<h2 className="mb-4 font-semibold text-white">Prefill from Webhook</h2>
+					<p className="text-sm mb-4" style={{ color: '#94a3b8' }}>
+						Automatically prefill form fields with data from an external webhook when the form loads.
+					</p>
+					<div className="space-y-4">
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								Prefill Webhook URL
+							</label>
+							<input
+								type="url"
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={inputStyle}
+								value={prefillWebhookUrl}
+								onChange={(e) => setPrefillWebhookUrl(e.target.value)}
+								placeholder="https://hooks.example.com/webhook/..."
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								Query parameters from the form URL will be forwarded to this webhook.
+							</p>
+						</div>
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								Field Mappings (JSON)
+							</label>
+							<textarea
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={inputStyle}
+								rows={6}
+								value={prefillFieldMappings}
+								onChange={(e) => setPrefillFieldMappings(e.target.value)}
+								placeholder={`{\n  "Organisation - Company Name": "company_name",\n  "Record ID#": "record_id"\n}`}
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								Maps webhook labels to form field names. Format: {'{"Webhook Label": "formFieldName"}'}
+							</p>
+						</div>
+					</div>
+				</div>
+
 				{/* A/B Testing - Pro Feature */}
 				<div className="rounded-xl p-6" style={cardStyle}>
 					<div className="flex items-center justify-between mb-4">
@@ -242,7 +294,7 @@ export default function FormSettingsPage() {
 							</p>
 						</div>
 					) : (
-						<div 
+						<div
 							className="p-4 rounded-lg text-center"
 							style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
 						>

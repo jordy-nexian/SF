@@ -107,6 +107,8 @@ model Form {
   currentVersionId        String?
   thankYouUrl             String?     // Redirect after submission
   thankYouMessage         String?     // Message if no redirect
+  prefillWebhookUrl       String?     // Webhook URL to fetch prefill data on form load
+  prefillFieldMappings    Json?       // Maps webhook label to form field name
   settings                Json?       // Additional form settings (IP allowlist, etc.)
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
