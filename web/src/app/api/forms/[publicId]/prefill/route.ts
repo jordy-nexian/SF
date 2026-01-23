@@ -8,7 +8,11 @@ export const dynamic = 'force-dynamic';
  * Prefill API - Fetches data from configured webhook and returns mapped values
  * 
  * Webhook returns format: [{"label": "...", "value": ...}, ...]
- * This endpoint maps labels to form field names using prefillFieldMappings
+ * 
+ * Mapping sources (in priority order):
+ * 1. Manual prefillFieldMappings (Form.prefillFieldMappings) - overrides
+ * 2. TokenMappings from linked HtmlTemplate - auto from template
+ * 3. Direct key match - fallback for flat objects
  */
 export async function GET(
     request: NextRequest,
@@ -17,7 +21,7 @@ export async function GET(
     try {
         const { publicId } = await context.params;
 
-        // Get form with prefill config
+        // Get form with prefill config AND linked template with its mappings
         const form = await prisma.form.findUnique({
             where: { publicId },
             select: {
@@ -25,6 +29,18 @@ export async function GET(
                 status: true,
                 prefillWebhookUrl: true,
                 prefillFieldMappings: true,
+                template: {
+                    select: {
+                        id: true,
+                        mappings: {
+                            select: {
+                                tokenId: true,
+                                tokenLabel: true,
+                                payloadKey: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 
@@ -78,11 +94,24 @@ export async function GET(
             return api.success({ prefillData: {}, error: 'Prefill unavailable' });
         }
 
-        // Parse webhook response format: [{"label": "...", "value": ...}, ...]
-        const prefillData: Record<string, any> = {};
+        // Build mappings from TokenMappings (payloadKey -> tokenId)
+        // TokenMappings use: payloadKey = key in webhook response, tokenId = form field ID
+        const templateMappings: Record<string, string> = {};
+        if (form.template?.mappings) {
+            for (const mapping of form.template.mappings) {
+                // Map payloadKey (webhook key) to tokenId (form field ID)
+                templateMappings[mapping.payloadKey] = mapping.tokenId;
+            }
+        }
 
-        // Get field mappings (label -> fieldName)
-        const mappings = (form.prefillFieldMappings as Record<string, string>) || {};
+        // Manual mappings override template mappings
+        const manualMappings = (form.prefillFieldMappings as Record<string, string>) || {};
+
+        // Combined mappings: manual overrides template
+        const allMappings = { ...templateMappings, ...manualMappings };
+
+        // Parse webhook response and apply mappings
+        const prefillData: Record<string, any> = {};
 
         if (Array.isArray(webhookData)) {
             // Handle array of {label, value} objects
@@ -92,17 +121,16 @@ export async function GET(
                     const value = item.value;
 
                     // Check if we have a mapping for this label
-                    const fieldName = mappings[label];
+                    const fieldName = allMappings[label];
                     if (fieldName) {
-                        // Sanitize value (convert to string for text fields, keep numbers/booleans)
                         prefillData[fieldName] = sanitizeValue(value);
                     }
                 }
             }
         } else if (typeof webhookData === 'object' && webhookData !== null) {
-            // Handle flat object format (fallback)
+            // Handle flat object format
             for (const [key, value] of Object.entries(webhookData)) {
-                const fieldName = mappings[key] || key;
+                const fieldName = allMappings[key] || key;
                 prefillData[fieldName] = sanitizeValue(value);
             }
         }
