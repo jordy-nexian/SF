@@ -37,6 +37,8 @@ export async function GET(
 		backupWebhookUrl: form.backupWebhookUrl,
 		thankYouUrl: form.thankYouUrl,
 		thankYouMessage: form.thankYouMessage,
+		prefillWebhookUrl: form.prefillWebhookUrl,
+		prefillFieldMappings: form.prefillFieldMappings,
 		settings: form.settings,
 		versions: form.versions.map((v) => ({
 			id: v.id,
@@ -54,6 +56,8 @@ const updateSchema = z.object({
 	backupWebhookUrl: z.string().url().nullable().optional(),
 	thankYouUrl: z.string().url().nullable().optional(),
 	thankYouMessage: z.string().nullable().optional(),
+	prefillWebhookUrl: z.string().url().nullable().optional(),
+	prefillFieldMappings: z.any().nullable().optional(),
 	settings: z.any().optional(),
 	schema: z.any().optional(),
 	htmlContent: z.string().optional(),
@@ -98,6 +102,8 @@ export async function PUT(
 	if (parsed.data.backupWebhookUrl !== undefined) updateData.backupWebhookUrl = parsed.data.backupWebhookUrl;
 	if (parsed.data.thankYouUrl !== undefined) updateData.thankYouUrl = parsed.data.thankYouUrl;
 	if (parsed.data.thankYouMessage !== undefined) updateData.thankYouMessage = parsed.data.thankYouMessage;
+	if (parsed.data.prefillWebhookUrl !== undefined) updateData.prefillWebhookUrl = parsed.data.prefillWebhookUrl;
+	if (parsed.data.prefillFieldMappings !== undefined) updateData.prefillFieldMappings = parsed.data.prefillFieldMappings;
 	if (parsed.data.settings !== undefined) updateData.settings = parsed.data.settings;
 
 	const updated = await prisma.form.update({
