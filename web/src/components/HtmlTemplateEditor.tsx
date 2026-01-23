@@ -74,6 +74,12 @@ export default function HtmlTemplateEditor({
 }: HtmlTemplateEditorProps) {
     const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
     const [editorMounted, setEditorMounted] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Ensure component is mounted before rendering Monaco (fixes SSR hydration issue)
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Re-extract tokens when HTML changes
     const handleEditorChange = useCallback((value: string | undefined) => {
@@ -133,30 +139,36 @@ export default function HtmlTemplateEditor({
             {/* Content */}
             <div className="flex-1 min-h-0 relative">
                 {activeTab === "editor" ? (
-                    <Editor
-                        height="100%"
-                        defaultLanguage="html"
-                        value={htmlContent}
-                        onChange={handleEditorChange}
-                        onMount={handleEditorMount}
-                        theme="vs-dark"
-                        options={{
-                            minimap: { enabled: false },
-                            fontSize: 13,
-                            lineNumbers: "on",
-                            wordWrap: "on",
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            tabSize: 2,
-                            formatOnPaste: true,
-                            folding: true,
-                        }}
-                        loading={
-                            <div className="flex items-center justify-center h-full" style={{ color: '#94a3b8' }}>
-                                Loading editor...
-                            </div>
-                        }
-                    />
+                    !isMounted ? (
+                        <div className="flex items-center justify-center h-full" style={{ color: '#94a3b8' }}>
+                            Loading editor...
+                        </div>
+                    ) : (
+                        <Editor
+                            height="100%"
+                            defaultLanguage="html"
+                            value={htmlContent}
+                            onChange={handleEditorChange}
+                            onMount={handleEditorMount}
+                            theme="vs-dark"
+                            options={{
+                                minimap: { enabled: false },
+                                fontSize: 13,
+                                lineNumbers: "on",
+                                wordWrap: "on",
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                                tabSize: 2,
+                                formatOnPaste: true,
+                                folding: true,
+                            }}
+                            loading={
+                                <div className="flex items-center justify-center h-full" style={{ color: '#94a3b8' }}>
+                                    Loading editor...
+                                </div>
+                            }
+                        />
+                    )
                 ) : (
                     <div
                         className="h-full overflow-auto p-4"
