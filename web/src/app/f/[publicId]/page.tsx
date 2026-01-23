@@ -466,66 +466,97 @@ function PublicFormContent() {
 
 		return (
 			<div
-				className="min-h-screen py-8 px-4"
+				className="min-h-screen pb-20"
 				style={{
 					...themeStyle as React.CSSProperties,
 					backgroundColor: "#f3f4f6",
 				}}
 			>
-				<form onSubmit={handleHtmlFormSubmit}>
-					{/* A4-like paper container */}
-					<div
-						className="html-template-form"
-						dangerouslySetInnerHTML={{ __html: htmlContent }}
-						style={{
-							maxWidth: "850px",
-							margin: "0 auto",
-							backgroundColor: "#ffffff",
-							padding: "40px 60px",
-							borderRadius: "4px 4px 0 0",
-							boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
-							fontFamily: "var(--form-font, system-ui)",
-							color: "var(--form-text, #1f2937)",
-						}}
-					/>
+				{/* Main content with padding for fixed bottom bar */}
+				<div className="py-8 px-4">
+					<form id="html-template-form" onSubmit={handleHtmlFormSubmit}>
+						{/* A4-like paper container */}
+						<div
+							className="html-template-form"
+							dangerouslySetInnerHTML={{ __html: htmlContent }}
+							style={{
+								maxWidth: "850px",
+								margin: "0 auto",
+								backgroundColor: "#ffffff",
+								padding: "40px 60px",
+								borderRadius: "4px",
+								boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+								fontFamily: "var(--form-font, system-ui)",
+								color: "var(--form-text, #1f2937)",
+							}}
+						/>
+					</form>
+				</div>
 
-					{/* Submit section */}
+				{/* Fixed Bottom Bar */}
+				<div
+					style={{
+						position: "fixed",
+						bottom: 0,
+						left: 0,
+						right: 0,
+						backgroundColor: "#ffffff",
+						borderTop: "1px solid #e5e7eb",
+						boxShadow: "0 -4px 6px -1px rgba(0, 0, 0, 0.1)",
+						zIndex: 50,
+					}}
+				>
 					<div
 						style={{
 							maxWidth: "850px",
 							margin: "0 auto",
-							backgroundColor: "#ffffff",
-							padding: "24px 60px 40px",
-							borderRadius: "0 0 4px 4px",
-							borderTop: "1px solid #e5e7eb",
-							boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+							padding: "16px 24px",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							gap: "16px",
 						}}
 					>
-						{submitError && (
-							<div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
-								{submitError}
-							</div>
-						)}
+						{/* Error message (left side) */}
+						<div style={{ flex: 1 }}>
+							{submitError && (
+								<div
+									style={{
+										padding: "8px 12px",
+										borderRadius: "6px",
+										backgroundColor: "#fef2f2",
+										border: "1px solid #fecaca",
+										color: "#dc2626",
+										fontSize: "14px",
+									}}
+								>
+									{submitError}
+								</div>
+							)}
+						</div>
+
+						{/* Submit button (right side) */}
 						<button
 							type="submit"
+							form="html-template-form"
 							style={{
-								display: "inline-block",
 								padding: "12px 32px",
 								fontSize: "16px",
 								fontWeight: 600,
 								color: "#fff",
 								background: "linear-gradient(to right, #6366f1, #8b5cf6)",
 								border: "none",
-								borderRadius: "6px",
+								borderRadius: "8px",
 								cursor: "pointer",
 								transition: "all 0.2s",
 								boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
+								whiteSpace: "nowrap",
 							}}
 						>
-							Submit Form
+							Submit Form →
 						</button>
 					</div>
-				</form>
+				</div>
 			</div>
 		);
 	}
