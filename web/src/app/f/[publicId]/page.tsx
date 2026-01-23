@@ -23,6 +23,7 @@ function PublicFormContent() {
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [submitOk, setSubmitOk] = useState<string | null>(null);
 	const [schema, setSchema] = useState<FormSchema | null>(null);
+	const [htmlContent, setHtmlContent] = useState<string | null>(null);
 	const [theme, setTheme] = useState<ThemeConfig | null>(null);
 	const [formId, setFormId] = useState<string>("");
 	const [formVersion, setFormVersion] = useState<number>(0);
@@ -144,6 +145,7 @@ function PublicFormContent() {
 				setFormId(data.formId);
 				setFormVersion(data.formVersion);
 				setSchema(data.schema);
+				setHtmlContent(data.htmlContent || null);
 				setTheme(data.theme);
 				setThankYouUrl(data.thankYouUrl);
 				setThankYouMessage(data.thankYouMessage);
@@ -378,6 +380,28 @@ function PublicFormContent() {
 	}
 	if (!schema) {
 		return <div className="p-6">Form unavailable</div>;
+	}
+
+	// If HTML content is available, render it instead of schema-based form
+	if (htmlContent) {
+		return (
+			<div
+				className="min-h-screen"
+				style={{
+					...themeStyle as React.CSSProperties,
+					backgroundColor: "var(--form-bg, #ffffff)",
+				}}
+			>
+				<div
+					className="html-template-form"
+					dangerouslySetInnerHTML={{ __html: htmlContent }}
+					style={{
+						fontFamily: "var(--form-font, system-ui)",
+						color: "var(--form-text, #1f2937)",
+					}}
+				/>
+			</div>
+		);
 	}
 
 	const usingSteps = !!(schema.steps && schema.steps.length > 0);

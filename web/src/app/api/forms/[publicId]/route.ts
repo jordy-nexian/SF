@@ -22,6 +22,7 @@ export async function GET(
 						versionNumber: true,
 						trafficWeight: true,
 						schema: true,
+						htmlContent: true,
 					},
 				},
 				tenant: {
@@ -55,8 +56,8 @@ export async function GET(
 				weight: v.trafficWeight,
 			}));
 
-		// Track selected version info (we only need schema and versionNumber)
-		let selectedVersion: { schema: unknown; versionNumber: number } | null = null;
+		// Track selected version info (we need schema, htmlContent, and versionNumber)
+		let selectedVersion: { schema: unknown; htmlContent: string | null; versionNumber: number } | null = null;
 
 		// If A/B test is active, select version based on weights
 		if (abVersions.length > 0) {
@@ -64,7 +65,11 @@ export async function GET(
 			if (selectedId) {
 				const found = form.versions.find((v) => v.id === selectedId);
 				if (found) {
-					selectedVersion = { schema: found.schema, versionNumber: found.versionNumber };
+					selectedVersion = {
+						schema: found.schema,
+						htmlContent: found.htmlContent,
+						versionNumber: found.versionNumber
+					};
 				}
 			}
 		}
@@ -73,6 +78,7 @@ export async function GET(
 		if (!selectedVersion && form.currentVersion) {
 			selectedVersion = {
 				schema: form.currentVersion.schema,
+				htmlContent: (form.currentVersion as any).htmlContent || null,
 				versionNumber: form.currentVersion.versionNumber,
 			};
 		}
@@ -80,7 +86,11 @@ export async function GET(
 		// Fallback to highest version if no current version
 		if (!selectedVersion && form.versions.length > 0) {
 			const sorted = [...form.versions].sort((a, b) => b.versionNumber - a.versionNumber);
-			selectedVersion = { schema: sorted[0].schema, versionNumber: sorted[0].versionNumber };
+			selectedVersion = {
+				schema: sorted[0].schema,
+				htmlContent: sorted[0].htmlContent,
+				versionNumber: sorted[0].versionNumber
+			};
 		}
 
 		if (!selectedVersion) {
@@ -105,6 +115,7 @@ export async function GET(
 			formId: form.id,
 			formVersion: selectedVersion.versionNumber,
 			schema: selectedVersion.schema,
+			htmlContent: selectedVersion.htmlContent,
 			theme,
 			settings,
 			thankYouUrl: form.thankYouUrl,
