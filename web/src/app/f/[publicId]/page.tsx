@@ -386,16 +386,21 @@ function PublicFormContent() {
 	if (htmlContent) {
 		return (
 			<div
-				className="min-h-screen"
+				className="min-h-screen py-8 px-4"
 				style={{
 					...themeStyle as React.CSSProperties,
-					backgroundColor: "var(--form-bg, #ffffff)",
+					backgroundColor: "#f3f4f6",
 				}}
 			>
+				{/* A4-like paper container */}
 				<div
-					className="html-template-form"
+					className="html-template-form mx-auto shadow-lg"
 					dangerouslySetInnerHTML={{ __html: htmlContent }}
 					style={{
+						maxWidth: "850px",
+						backgroundColor: "#ffffff",
+						padding: "40px 60px",
+						borderRadius: "4px",
 						fontFamily: "var(--form-font, system-ui)",
 						color: "var(--form-text, #1f2937)",
 					}}
