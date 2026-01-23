@@ -394,7 +394,7 @@ function PublicFormContent() {
 			>
 				{/* A4-like paper container */}
 				<div
-					className="html-template-form shadow-lg"
+					className="html-template-form"
 					dangerouslySetInnerHTML={{ __html: htmlContent }}
 					style={{
 						maxWidth: "850px",
@@ -402,6 +402,7 @@ function PublicFormContent() {
 						backgroundColor: "#ffffff",
 						padding: "40px 60px",
 						borderRadius: "4px",
+						boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
 						fontFamily: "var(--form-font, system-ui)",
 						color: "var(--form-text, #1f2937)",
 					}}
