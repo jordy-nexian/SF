@@ -382,8 +382,88 @@ function PublicFormContent() {
 		return <div className="p-6">Form unavailable</div>;
 	}
 
+	// Handle HTML template form submission
+	async function handleHtmlFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		setSubmitError(null);
+
+		// Collect all form data from the HTML template
+		const formData = new FormData(e.currentTarget);
+		const answers: Record<string, any> = {};
+		formData.forEach((value, key) => {
+			// Handle multiple values (like checkboxes) by making them arrays
+			if (answers[key]) {
+				if (Array.isArray(answers[key])) {
+					answers[key].push(value);
+				} else {
+					answers[key] = [answers[key], value];
+				}
+			} else {
+				answers[key] = value;
+			}
+		});
+
+		try {
+			const res = await fetch(`/api/forms/${publicId}/submit`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					formId,
+					formVersion,
+					answers,
+					meta: {
+						userAgent: navigator.userAgent,
+						language: navigator.language,
+						htmlTemplate: true,
+					},
+				}),
+			});
+			const data = await res.json();
+			if (!res.ok || data.status !== "ok") {
+				throw new Error(
+					data?.message || "We couldn't submit your form. Please try again."
+				);
+			}
+
+			setSubmissionId(data.submissionId);
+			setSubmitOk(thankYouMessage || "Thanks, your response has been received.");
+
+			// Handle redirect
+			if (thankYouUrl) {
+				window.location.href = thankYouUrl;
+			}
+		} catch (err: any) {
+			setSubmitError(err?.message || "Submission failed");
+		}
+	}
+
 	// If HTML content is available, render it instead of schema-based form
 	if (htmlContent) {
+		// Show success message if submitted
+		if (submitOk && submissionId) {
+			return (
+				<div
+					className="min-h-screen py-8 px-4 flex items-center justify-center"
+					style={{ backgroundColor: "#f3f4f6" }}
+				>
+					<div
+						className="text-center p-8 bg-white rounded-lg shadow-lg"
+						style={{ maxWidth: "500px" }}
+					>
+						<div className="text-6xl mb-4">✓</div>
+						<h2 className="text-2xl font-semibold text-green-700 mb-2">
+							{thankYouMessage || "Thank you!"}
+						</h2>
+						<p className="text-gray-600 mb-4">{submitOk}</p>
+						<div className="bg-gray-50 rounded p-3 text-sm">
+							<div className="text-gray-500">Submission ID</div>
+							<div className="font-mono text-gray-800">{submissionId}</div>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
 		return (
 			<div
 				className="min-h-screen py-8 px-4"
@@ -392,21 +472,60 @@ function PublicFormContent() {
 					backgroundColor: "#f3f4f6",
 				}}
 			>
-				{/* A4-like paper container */}
-				<div
-					className="html-template-form"
-					dangerouslySetInnerHTML={{ __html: htmlContent }}
-					style={{
-						maxWidth: "850px",
-						margin: "0 auto",
-						backgroundColor: "#ffffff",
-						padding: "40px 60px",
-						borderRadius: "4px",
-						boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
-						fontFamily: "var(--form-font, system-ui)",
-						color: "var(--form-text, #1f2937)",
-					}}
-				/>
+				<form onSubmit={handleHtmlFormSubmit}>
+					{/* A4-like paper container */}
+					<div
+						className="html-template-form"
+						dangerouslySetInnerHTML={{ __html: htmlContent }}
+						style={{
+							maxWidth: "850px",
+							margin: "0 auto",
+							backgroundColor: "#ffffff",
+							padding: "40px 60px",
+							borderRadius: "4px 4px 0 0",
+							boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+							fontFamily: "var(--form-font, system-ui)",
+							color: "var(--form-text, #1f2937)",
+						}}
+					/>
+
+					{/* Submit section */}
+					<div
+						style={{
+							maxWidth: "850px",
+							margin: "0 auto",
+							backgroundColor: "#ffffff",
+							padding: "24px 60px 40px",
+							borderRadius: "0 0 4px 4px",
+							borderTop: "1px solid #e5e7eb",
+							boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+						}}
+					>
+						{submitError && (
+							<div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+								{submitError}
+							</div>
+						)}
+						<button
+							type="submit"
+							style={{
+								display: "inline-block",
+								padding: "12px 32px",
+								fontSize: "16px",
+								fontWeight: 600,
+								color: "#fff",
+								background: "linear-gradient(to right, #6366f1, #8b5cf6)",
+								border: "none",
+								borderRadius: "6px",
+								cursor: "pointer",
+								transition: "all 0.2s",
+								boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
+							}}
+						>
+							Submit Form
+						</button>
+					</div>
+				</form>
 			</div>
 		);
 	}
