@@ -174,26 +174,25 @@ function PublicFormContent() {
 				setFormError(null);
 
 				// Fetch prefill data from webhook (if configured)
-				const queryString = window.location.search;
-				if (queryString) {
-					setPrefilling(true);
-					fetch(`/api/forms/${publicId}/prefill${queryString}`)
-						.then(res => res.json())
-						.then(prefillResponse => {
-							if (prefillResponse.success && prefillResponse.data?.prefillData) {
-								const fetchedPrefillData = prefillResponse.data.prefillData;
-								if (Object.keys(fetchedPrefillData).length > 0) {
-									setPrefillData(fetchedPrefillData);
-									setValues(prev => ({ ...prev, ...fetchedPrefillData }));
-								}
+				// Always attempt prefill - query params are forwarded if present
+				const queryString = window.location.search || '';
+				setPrefilling(true);
+				fetch(`/api/forms/${publicId}/prefill${queryString}`)
+					.then(res => res.json())
+					.then(prefillResponse => {
+						if (prefillResponse.success && prefillResponse.data?.prefillData) {
+							const fetchedPrefillData = prefillResponse.data.prefillData;
+							if (Object.keys(fetchedPrefillData).length > 0) {
+								setPrefillData(fetchedPrefillData);
+								setValues(prev => ({ ...prev, ...fetchedPrefillData }));
 							}
-						})
-						.catch(err => {
-							console.warn('Prefill failed:', err);
-							// Silent failure - form still works
-						})
-						.finally(() => setPrefilling(false));
-				}
+						}
+					})
+					.catch(err => {
+						console.warn('Prefill failed:', err);
+						// Silent failure - form still works
+					})
+					.finally(() => setPrefilling(false));
 			})
 			.catch((e) => {
 				if (!active) return;
