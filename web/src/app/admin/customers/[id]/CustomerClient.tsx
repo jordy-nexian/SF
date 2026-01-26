@@ -97,6 +97,20 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
         }
     }
 
+    async function handleSendReminder(assignmentId: string) {
+        if (!confirm('Send a reminder email for this form?')) return;
+        try {
+            const res = await fetch(`/api/admin/assignments/${assignmentId}/remind`, {
+                method: 'POST',
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to send reminder');
+            alert(data.message || 'Reminder sent!');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Failed to send reminder');
+        }
+    }
+
     return (
         <div>
             <div className="flex items-center justify-between mb-8">
@@ -168,7 +182,15 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                                 <td className="px-6 py-4 text-slate-400">
                                     {assignment.completedAt ? new Date(assignment.completedAt).toLocaleDateString() : '—'}
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-6 py-4 text-right space-x-2">
+                                    {assignment.status !== 'completed' && (
+                                        <button
+                                            onClick={() => handleSendReminder(assignment.id)}
+                                            className="text-indigo-400 hover:text-indigo-300 text-sm"
+                                        >
+                                            Remind
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleDeleteAssignment(assignment.id)}
                                         className="text-red-400 hover:text-red-300 text-sm"

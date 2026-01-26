@@ -395,6 +395,26 @@ export async function POST(
 			duration: durationMs,
 			error: success ? undefined : 'Webhook delivery failed',
 		});
+
+		// Mark form assignment as completed if endCustomerId is provided
+		if (success && meta?.endCustomerId && typeof meta.endCustomerId === 'string') {
+			try {
+				await prisma.formAssignment.updateMany({
+					where: {
+						endCustomerId: meta.endCustomerId,
+						formId: form.id,
+						status: { not: 'completed' },
+					},
+					data: {
+						status: 'completed',
+						completedAt: new Date(),
+					},
+				});
+				logger.debug({ endCustomerId: meta.endCustomerId, formId: form.id }, 'Assignment marked as completed');
+			} catch (assignmentErr) {
+				logger.error({ error: assignmentErr instanceof Error ? assignmentErr.message : 'Unknown' }, 'Failed to update assignment status');
+			}
+		}
 	} catch (err) {
 		// Log metadata only, no PII/answers
 		logger.error(

@@ -67,6 +67,11 @@ model Tenant {
   customDomain           String?  @unique  // Custom domain for forms
   customDomainVerified   Boolean  @default(false)
   
+  // Portal branding
+  portalTitle            String?  // Custom portal title
+  portalLogoUrl          String?  // URL to logo image
+  portalPrimaryColor     String?  // Hex color code e.g. #6366f1
+  
   // Subscription fields
   stripeCustomerId       String?  @unique
   stripeSubscriptionId   String?
@@ -266,15 +271,16 @@ model EndCustomer {
 
 // Form assignments to end customers
 model FormAssignment {
-  id            String           @id @default(cuid())
-  endCustomerId String
-  formId        String
-  status        AssignmentStatus @default(pending)
-  dueDate       DateTime?
-  prefillData   Json?            // Optional cached prefill data
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  completedAt   DateTime?
+  id                  String           @id @default(cuid())
+  endCustomerId       String
+  formId              String
+  status              AssignmentStatus @default(pending)
+  dueDate             DateTime?
+  prefillData         Json?            // Optional cached prefill data
+  lastReminderSentAt  DateTime?        // Track when last reminder was sent
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  completedAt         DateTime?
 
   endCustomer   EndCustomer @relation(fields: [endCustomerId], references: [id], onDelete: Cascade)
   form          Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
