@@ -132,6 +132,8 @@ export const RATE_LIMITS = {
 	signup: { limit: 5, windowMs: 15 * 60_000 },
 	/** Login: 5 attempts per minute per IP (stricter for brute force prevention) */
 	login: { limit: 5, windowMs: 60_000 },
+	/** Magic link requests: 3 per 5 minutes per IP (portal auth) */
+	magicLink: { limit: 3, windowMs: 5 * 60_000 },
 } as const;
 
 

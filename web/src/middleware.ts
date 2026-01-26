@@ -38,7 +38,9 @@ function addSecurityHeaders(resp: NextResponse, isEmbed = false) {
 
 const PUBLIC_API = /^\/api\/forms\//;
 const ADMIN_API = /^\/api\/admin\//;
+const PORTAL_API = /^\/api\/portal\//;
 const PUBLIC_FORM_PAGE = /^\/f\//;
+const PORTAL_PAGE = /^\/portal/;
 
 export function middleware(req: NextRequest) {
 	const { method, nextUrl } = req;
@@ -65,6 +67,14 @@ export function middleware(req: NextRequest) {
 		return addSecurityHeaders(resp, true);
 	}
 
+	// Portal API - allow same-origin only (uses cookies)
+	if (PORTAL_API.test(pathname)) {
+		if (method === 'OPTIONS') {
+			return addSecurityHeaders(new NextResponse(null, { status: 204 }));
+		}
+		return addSecurityHeaders(NextResponse.next());
+	}
+
 	// Restrict admin APIs (no cross-origin for now)
 	if (ADMIN_API.test(pathname)) {
 		if (method === 'OPTIONS') {
@@ -78,11 +88,16 @@ export function middleware(req: NextRequest) {
 		return addSecurityHeaders(NextResponse.next(), true);
 	}
 
+	// Portal pages - standard security
+	if (PORTAL_PAGE.test(pathname)) {
+		return addSecurityHeaders(NextResponse.next());
+	}
+
 	return addSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
-	matcher: ['/api/:path*', '/f/:path*', '/'],
+	matcher: ['/api/:path*', '/f/:path*', '/portal/:path*', '/'],
 };
 
 
