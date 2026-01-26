@@ -19,8 +19,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 			<header style={{ borderBottom: '1px solid #1e293b', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)' }}>
 				<div className="mx-auto flex max-w-6xl items-center justify-between p-4">
 					<div className="flex items-center gap-6">
-						<Link 
-							href="/" 
+						<Link
+							href="/"
 							className="text-xl font-semibold"
 							style={{
 								background: 'linear-gradient(to right, #818cf8, #a78bfa)',
@@ -33,14 +33,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 						<nav className="flex items-center gap-1 text-sm">
 							<NavLink href="/admin">Forms</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
+							<NavLink href="/admin/customers">Customers</NavLink>
 							<NavLink href="/admin/team">Team</NavLink>
 							<NavLink href="/admin/themes">Themes</NavLink>
 							<NavLink href="/admin/billing">Billing</NavLink>
 							<NavLink href="/admin/settings">Settings</NavLink>
-							<Link 
-								href="/admin/forms/builder" 
+							<Link
+								href="/admin/forms/builder"
 								className="ml-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-[0.98] active:opacity-90"
-								style={{ 
+								style={{
 									background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 									color: 'white',
 								}}
@@ -62,8 +63,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
 	return (
-		<Link 
-			href={href} 
+		<Link
+			href={href}
 			className="px-3 py-1.5 rounded-lg text-sm transition-colors"
 			style={{ color: '#94a3b8' }}
 		>
