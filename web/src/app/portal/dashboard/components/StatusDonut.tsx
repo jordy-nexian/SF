@@ -18,12 +18,12 @@ export default function StatusDonut({
     completed,
     inProgress,
     notStarted,
-    size = 'lg',
+    size = 'md',
     className = '',
 }: StatusDonutProps) {
     const total = completed + inProgress + notStarted;
     const dimension = SIZES[size];
-    const strokeWidth = size === 'sm' ? 10 : size === 'md' ? 14 : 16;
+    const strokeWidth = size === 'sm' ? 10 : size === 'md' ? 12 : 16;
     const radius = (dimension - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const center = dimension / 2;
@@ -41,11 +41,11 @@ export default function StatusDonut({
     // Gap between segments (2px visual gap)
     const gap = total > 1 ? 4 : 0;
 
-    // Determine center text
+    // Determine center text - now shows percentage like admin
     const getCenterText = () => {
-        if (total === 0) return { main: '0', sub: 'forms' };
-        if (completed === total) return { main: '✓', sub: 'All done!' };
-        return { main: `${completed}/${total}`, sub: 'complete' };
+        if (total === 0) return { main: '0%', sub: 'complete' };
+        const percentage = Math.round((completed / total) * 100);
+        return { main: `${percentage}%`, sub: 'complete' };
     };
 
     const centerText = getCenterText();
@@ -129,14 +129,13 @@ export default function StatusDonut({
                 )}
             </svg>
 
-            {/* Center text */}
+            {/* Center text - now shows percentage */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`font-bold text-white ${size === 'sm' ? 'text-lg' : size === 'md' ? 'text-xl' : 'text-2xl'
+                <span className={`font-bold text-white ${size === 'sm' ? 'text-sm' : size === 'md' ? 'text-lg' : 'text-xl'
                     }`}>
                     {centerText.main}
                 </span>
-                <span className={`text-white/70 ${size === 'sm' ? 'text-xs' : 'text-sm'
-                    }`}>
+                <span className="text-xs text-white/60">
                     {centerText.sub}
                 </span>
             </div>

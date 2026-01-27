@@ -26,9 +26,8 @@ export default function FormRow({ form, onFormOpened }: FormRowProps) {
         const now = new Date();
         const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (daysUntilDue < 0) return { level: 'overdue', text: 'Overdue', class: 'bg-red-500/20 text-red-300' };
-        if (daysUntilDue <= 3) return { level: 'urgent', text: 'Due soon', class: 'bg-red-500/20 text-red-300' };
-        if (daysUntilDue <= 7) return { level: 'upcoming', text: `Due in ${daysUntilDue} days`, class: 'bg-amber-500/20 text-amber-300' };
+        if (daysUntilDue < 0) return { text: 'Overdue', class: 'bg-red-500/20 text-red-300' };
+        if (daysUntilDue <= 3) return { text: 'Due soon', class: 'bg-red-500/20 text-red-300' };
         return null;
     };
 
@@ -66,68 +65,56 @@ export default function FormRow({ form, onFormOpened }: FormRowProps) {
     }
 
     return (
-        <div
-            className={`bg-gradient-to-br from-white/10 to-white/5 border rounded-xl p-4 transition-all duration-200
-                      ${isCompleted
-                    ? 'border-white/10 opacity-75'
-                    : urgency?.level === 'overdue'
-                        ? 'border-red-500/30 bg-red-500/5'
-                        : 'border-white/20 hover:border-indigo-500/50'
-                }`}
-        >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                {/* Form info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className={status.class} aria-hidden="true">{status.icon}</span>
-                        <h3 className="font-semibold text-white truncate">{form.name}</h3>
-                        {urgency && (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${urgency.class}`}>
-                                {urgency.text}
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-white/70">
-                        <span>{status.label}</span>
-                        {form.dueDate && !isCompleted && (
-                            <>
-                                <span className="text-white/30">•</span>
-                                <span className={urgency?.level === 'overdue' ? 'text-red-400' : ''}>
-                                    Due: {new Date(form.dueDate).toLocaleDateString()}
-                                </span>
-                            </>
-                        )}
-                        {form.completedAt && (
-                            <>
-                                <span className="text-white/30">•</span>
-                                <span>Completed: {new Date(form.completedAt).toLocaleDateString()}</span>
-                            </>
-                        )}
-                        {form.status === 'in_progress' && (
-                            <>
-                                <span className="text-white/30">•</span>
-                                <span className="text-indigo-400">Resume where you left off</span>
-                            </>
-                        )}
-                    </div>
+        <div className={`px-5 py-4 flex items-center justify-between gap-4 ${isCompleted ? 'opacity-60' : ''}`}>
+            {/* Form info */}
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className={status.class} aria-hidden="true">{status.icon}</span>
+                    <span className="font-medium text-white truncate">{form.name}</span>
+                    {urgency && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${urgency.class}`}>
+                            {urgency.text}
+                        </span>
+                    )}
                 </div>
-
-                {/* CTA Button */}
-                <button
-                    onClick={handleClick}
-                    className={`flex-shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
-                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900
-                              ${isCompleted
-                            ? 'bg-white/10 text-white/80 hover:bg-white/20'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-500'
-                        }`}
-                >
-                    {getCta()}
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <span>{status.label}</span>
+                    {form.dueDate && !isCompleted && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span>Due: {new Date(form.dueDate).toLocaleDateString()}</span>
+                        </>
+                    )}
+                    {form.completedAt && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span>Completed: {new Date(form.completedAt).toLocaleDateString()}</span>
+                        </>
+                    )}
+                    {form.status === 'in_progress' && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-indigo-400">Resume where you left off</span>
+                        </>
+                    )}
+                </div>
             </div>
+
+            {/* CTA Button */}
+            <button
+                onClick={handleClick}
+                className={`flex-shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900
+                          ${isCompleted
+                        ? 'bg-white/10 text-white/80 hover:bg-white/20'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                    }`}
+            >
+                {getCta()}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
         </div>
     );
 }

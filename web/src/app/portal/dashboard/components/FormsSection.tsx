@@ -20,17 +20,20 @@ export default function FormsSection({
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
     return (
-        <section aria-label={`${title} section with ${count} forms`}>
+        <section
+            className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden"
+            aria-label={`${title} section with ${count} forms`}
+        >
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between py-2 group
-                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:rounded"
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-white/5 transition-colors
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400"
                 aria-expanded={isExpanded}
                 aria-controls={`section-${title.toLowerCase().replace(/\s/g, '-')}`}
             >
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <svg
-                        className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                        className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -38,8 +41,9 @@ export default function FormsSection({
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                    {title} ({count})
-                </h2>
+                    <h2 className="font-semibold text-white">{title}</h2>
+                    <span className="text-sm text-slate-400">({count})</span>
+                </div>
 
                 {urgencyBadge && (
                     <span className="text-xs font-medium px-2 py-1 bg-red-500/20 text-red-300 rounded-full">
@@ -48,13 +52,14 @@ export default function FormsSection({
                 )}
             </button>
 
-            <div
-                id={`section-${title.toLowerCase().replace(/\s/g, '-')}`}
-                className={`space-y-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'mt-3 max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-                    }`}
-            >
-                {children}
-            </div>
+            {isExpanded && (
+                <div
+                    id={`section-${title.toLowerCase().replace(/\s/g, '-')}`}
+                    className="divide-y divide-white/5"
+                >
+                    {children}
+                </div>
+            )}
         </section>
     );
 }
