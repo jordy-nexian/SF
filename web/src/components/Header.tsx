@@ -20,8 +20,14 @@ export default function Header() {
     return null;
   }
 
+  // Portal pages have their own header
+  const isPortalPage = pathname?.startsWith("/portal");
+  if (isPortalPage) {
+    return null;
+  }
+
   // Auth pages have their own centered branding - don't show duplicate header
-  const isAuthPage = pathname === "/signin" || pathname === "/signup" || 
+  const isAuthPage = pathname === "/signin" || pathname === "/signup" ||
     pathname === "/forgot-password" || pathname === "/reset-password";
   if (isAuthPage) {
     return null;
@@ -40,7 +46,7 @@ export default function Header() {
   // Loading state - show minimal header
   if (status === "loading") {
     return (
-      <header 
+      <header
         className="fixed top-0 left-0 right-0 z-50"
         style={isDarkPage ? {} : { borderBottom: '1px solid #e5e7eb', background: 'white' }}
       >
@@ -57,15 +63,15 @@ export default function Header() {
   // User is logged in - show Dashboard link and Log out
   if (session) {
     return (
-      <header 
+      <header
         className="fixed top-0 left-0 right-0 z-50"
-        style={isDarkPage ? { 
-          background: 'rgba(15, 23, 42, 0.8)', 
+        style={isDarkPage ? {
+          background: 'rgba(15, 23, 42, 0.8)',
           backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid #1e293b' 
-        } : { 
-          borderBottom: '1px solid #e5e7eb', 
-          background: 'white' 
+          borderBottom: '1px solid #1e293b'
+        } : {
+          borderBottom: '1px solid #e5e7eb',
+          background: 'white'
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4 px-6">
@@ -73,8 +79,8 @@ export default function Header() {
             Stateless Forms
           </Link>
           <nav className="flex items-center gap-4 text-sm">
-            <Link 
-              href="/admin" 
+            <Link
+              href="/admin"
               className="transition-colors"
               style={{ color: isDarkPage ? '#94a3b8' : '#4b5563' }}
             >
@@ -102,7 +108,7 @@ export default function Header() {
 
   // User is not logged in - show Login and Sign Up
   return (
-    <header 
+    <header
       className="fixed top-0 left-0 right-0 z-50"
       style={isDarkPage ? {} : { borderBottom: '1px solid #e5e7eb', background: 'white' }}
     >
@@ -111,15 +117,15 @@ export default function Header() {
           Stateless Forms
         </Link>
         <nav className="flex items-center gap-3 text-sm">
-          <Link 
-            href="/signin" 
+          <Link
+            href="/signin"
             className="px-4 py-1.5 transition-colors"
             style={{ color: isDarkPage ? '#94a3b8' : '#4b5563' }}
           >
             Log in
           </Link>
-          <Link 
-            href="/signup" 
+          <Link
+            href="/signup"
             className="rounded-full px-4 py-1.5 font-medium text-white transition-all active:scale-[0.98] active:shadow-[0_1px_5px_rgba(99,102,241,0.2)]"
             style={{
               background: 'linear-gradient(to right, #6366f1, #8b5cf6)',

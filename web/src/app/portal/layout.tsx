@@ -112,7 +112,12 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
                             <span className="text-sm text-white/70">{user.email}</span>
                             <button
                                 onClick={handleLogout}
-                                className="text-sm text-white/60 hover:text-white transition-colors"
+                                className="rounded-full px-4 py-1.5 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
+                                style={{
+                                    border: '1px solid #334155',
+                                    color: '#cbd5e1',
+                                    background: 'transparent',
+                                }}
                             >
                                 Sign out
                             </button>
