@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AdminStatsDonut } from '../components';
 
 interface Assignment {
     id: string;
@@ -28,12 +29,52 @@ interface CustomerClientProps {
 
 export default function CustomerClient({ initialCustomer, tenantForms }: CustomerClientProps) {
     const router = useRouter();
-    const [customer, setCustomer] = useState(initialCustomer);
+    const [customer] = useState(initialCustomer);
     const [isInviteLoading, setIsInviteLoading] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignFormId, setAssignFormId] = useState('');
     const [assignDueDate, setAssignDueDate] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
+
+    // Calculate stats
+    const stats = useMemo(() => {
+        const completed = customer.assignments.filter(a => a.status === 'completed').length;
+        const inProgress = customer.assignments.filter(a => a.status === 'in_progress').length;
+        const pending = customer.assignments.filter(a => a.status === 'pending').length;
+        return { completed, inProgress, pending, total: customer.assignments.length };
+    }, [customer.assignments]);
+
+    // Group assignments by urgency
+    const groupedAssignments = useMemo(() => {
+        const now = new Date();
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const dueSoon: Assignment[] = [];
+        const inProgress: Assignment[] = [];
+        const notStarted: Assignment[] = [];
+        const completed: Assignment[] = [];
+
+        for (const assignment of customer.assignments) {
+            if (assignment.status === 'completed') {
+                completed.push(assignment);
+            } else if (assignment.dueDate && new Date(assignment.dueDate) <= sevenDaysFromNow) {
+                dueSoon.push(assignment);
+            } else if (assignment.status === 'in_progress') {
+                inProgress.push(assignment);
+            } else {
+                notStarted.push(assignment);
+            }
+        }
+
+        // Sort due soon by date
+        dueSoon.sort((a, b) => {
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
+
+        return { dueSoon, inProgress, notStarted, completed };
+    }, [customer.assignments]);
 
     async function handleSendInvite() {
         if (!confirm('Send magic link invitation to this customer?')) return;
@@ -73,12 +114,10 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                 throw new Error(data.error || 'Failed to assign form');
             }
 
-            // Refresh data
             router.refresh();
             setShowAssignModal(false);
             setAssignFormId('');
             setAssignDueDate('');
-            // Reload page to get fresh server data or optimistically update (reload for MVP is fine)
             window.location.reload();
         } catch (error) {
             alert(error instanceof Error ? error.message : 'Failed to assign form');
@@ -112,12 +151,14 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
     }
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-8">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link
                         href="/admin/customers"
-                        className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -141,74 +182,136 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                     <button
                         onClick={handleSendInvite}
                         disabled={isInviteLoading}
-                        className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     >
-                        {isInviteLoading ? 'Sending...' : 'Empty Send Invite'}
+                        {isInviteLoading ? 'Sending...' : 'Send Invite'}
                     </button>
                     <button
                         onClick={() => setShowAssignModal(true)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     >
-                        Assign Form
+                        + Assign Form
                     </button>
                 </div>
             </div>
 
-            <div className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center">
-                    <h2 className="font-semibold text-white">Assigned Forms</h2>
-                </div>
+            {/* Customer Summary Card */}
+            <div
+                className="rounded-xl p-5"
+                style={{
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                }}
+                role="region"
+                aria-label="Customer form progress"
+            >
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                    {/* Donut */}
+                    <div className="flex-shrink-0">
+                        <AdminStatsDonut
+                            completed={stats.completed}
+                            inProgress={stats.inProgress}
+                            notStarted={stats.pending}
+                            size="md"
+                        />
+                    </div>
 
-                <table className="min-w-full text-left text-sm">
-                    <thead className="bg-white/5">
-                        <tr>
-                            <th className="px-6 py-3 font-medium text-slate-400">Form Name</th>
-                            <th className="px-6 py-3 font-medium text-slate-400">Status</th>
-                            <th className="px-6 py-3 font-medium text-slate-400">Due Date</th>
-                            <th className="px-6 py-3 font-medium text-slate-400">Completed</th>
-                            <th className="px-6 py-3 text-right"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {customer.assignments.map((assignment) => (
-                            <tr key={assignment.id}>
-                                <td className="px-6 py-4 text-white font-medium">{assignment.formName}</td>
-                                <td className="px-6 py-4">
-                                    <StatusBadge status={assignment.status} />
-                                </td>
-                                <td className="px-6 py-4 text-slate-400">
-                                    {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : '—'}
-                                </td>
-                                <td className="px-6 py-4 text-slate-400">
-                                    {assignment.completedAt ? new Date(assignment.completedAt).toLocaleDateString() : '—'}
-                                </td>
-                                <td className="px-6 py-4 text-right space-x-2">
-                                    {assignment.status !== 'completed' && (
-                                        <button
-                                            onClick={() => handleSendReminder(assignment.id)}
-                                            className="text-indigo-400 hover:text-indigo-300 text-sm"
-                                        >
-                                            Remind
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => handleDeleteAssignment(assignment.id)}
-                                        className="text-red-400 hover:text-red-300 text-sm"
-                                    >
-                                        Remove
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {customer.assignments.length === 0 && (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                                    No forms assigned yet. Click "Assign Form" to start.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                    {/* Stats */}
+                    <div className="flex-1 w-full">
+                        <h2 className="text-lg font-semibold text-white mb-3">Form Progress</h2>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center md:text-left">
+                                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                                <div className="text-xs text-white/60">Total Assigned</div>
+                            </div>
+
+                            <div className="text-center md:text-left">
+                                <div className="text-2xl font-bold text-green-400">{stats.completed}</div>
+                                <div className="text-xs text-white/60">Completed</div>
+                            </div>
+
+                            <div className="text-center md:text-left">
+                                <div className="text-2xl font-bold text-amber-400">{stats.inProgress}</div>
+                                <div className="text-xs text-white/60">In Progress</div>
+                            </div>
+
+                            <div className="text-center md:text-left">
+                                <div className="text-2xl font-bold text-slate-400">{stats.pending}</div>
+                                <div className="text-xs text-white/60">Not Started</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Assignments List */}
+            <div className="space-y-4">
+                {/* Due Soon */}
+                {groupedAssignments.dueSoon.length > 0 && (
+                    <AssignmentSection
+                        title="Due Soon"
+                        badge="Action required"
+                        assignments={groupedAssignments.dueSoon}
+                        onRemind={handleSendReminder}
+                        onDelete={handleDeleteAssignment}
+                    />
+                )}
+
+                {/* In Progress */}
+                {groupedAssignments.inProgress.length > 0 && (
+                    <AssignmentSection
+                        title="In Progress"
+                        assignments={groupedAssignments.inProgress}
+                        onRemind={handleSendReminder}
+                        onDelete={handleDeleteAssignment}
+                    />
+                )}
+
+                {/* Not Started */}
+                {groupedAssignments.notStarted.length > 0 && (
+                    <AssignmentSection
+                        title="Not Started"
+                        assignments={groupedAssignments.notStarted}
+                        onRemind={handleSendReminder}
+                        onDelete={handleDeleteAssignment}
+                    />
+                )}
+
+                {/* Completed */}
+                {groupedAssignments.completed.length > 0 && (
+                    <AssignmentSection
+                        title="Completed"
+                        assignments={groupedAssignments.completed}
+                        onRemind={handleSendReminder}
+                        onDelete={handleDeleteAssignment}
+                        defaultCollapsed
+                    />
+                )}
+
+                {/* Empty State */}
+                {customer.assignments.length === 0 && (
+                    <div
+                        className="rounded-xl border border-white/10 p-12 text-center"
+                        style={{ background: 'rgba(255, 255, 255, 0.02)' }}
+                    >
+                        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <p className="text-slate-500">No forms assigned yet.</p>
+                        <button
+                            onClick={() => setShowAssignModal(true)}
+                            className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                        >
+                            Assign a form →
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Assign Form Modal */}
@@ -266,17 +369,146 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
-    const styles = {
-        pending: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'Pending' },
-        in_progress: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'In Progress' },
-        completed: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Completed' },
-    };
-    const style = styles[status as keyof typeof styles] || styles.pending;
+// Assignment Section Component
+function AssignmentSection({
+    title,
+    badge,
+    assignments,
+    onRemind,
+    onDelete,
+    defaultCollapsed = false,
+}: {
+    title: string;
+    badge?: string;
+    assignments: Assignment[];
+    onRemind: (id: string) => void;
+    onDelete: (id: string) => void;
+    defaultCollapsed?: boolean;
+}) {
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
-            {style.label}
-        </span>
+        <div className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden">
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-white/5 transition-colors
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400"
+            >
+                <div className="flex items-center gap-3">
+                    <svg
+                        className={`w-4 h-4 text-slate-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <h3 className="font-semibold text-white">{title}</h3>
+                    <span className="text-sm text-slate-400">({assignments.length})</span>
+                </div>
+                {badge && (
+                    <span className="text-xs font-medium px-2 py-1 bg-red-500/20 text-red-300 rounded-full">
+                        {badge}
+                    </span>
+                )}
+            </button>
+
+            {!isCollapsed && (
+                <div className="divide-y divide-white/5">
+                    {assignments.map((a) => (
+                        <AssignmentRow
+                            key={a.id}
+                            assignment={a}
+                            onRemind={onRemind}
+                            onDelete={onDelete}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Assignment Row Component
+function AssignmentRow({
+    assignment,
+    onRemind,
+    onDelete,
+}: {
+    assignment: Assignment;
+    onRemind: (id: string) => void;
+    onDelete: (id: string) => void;
+}) {
+    const isCompleted = assignment.status === 'completed';
+
+    // Calculate urgency
+    const getUrgency = () => {
+        if (!assignment.dueDate || isCompleted) return null;
+        const due = new Date(assignment.dueDate);
+        const now = new Date();
+        const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysUntilDue < 0) return { text: 'Overdue', class: 'bg-red-500/20 text-red-300' };
+        if (daysUntilDue <= 3) return { text: 'Due soon', class: 'bg-red-500/20 text-red-300' };
+        return null;
+    };
+
+    const urgency = getUrgency();
+
+    const statusConfig = {
+        pending: { label: 'Not started', icon: '○', class: 'text-slate-400' },
+        in_progress: { label: 'In progress', icon: '◐', class: 'text-amber-400' },
+        completed: { label: 'Completed', icon: '●', class: 'text-green-400' },
+    };
+    const status = statusConfig[assignment.status];
+
+    return (
+        <div className={`px-5 py-4 flex items-center justify-between gap-4 ${isCompleted ? 'opacity-60' : ''}`}>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className={status.class} aria-hidden="true">{status.icon}</span>
+                    <span className="font-medium text-white truncate">{assignment.formName}</span>
+                    {urgency && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${urgency.class}`}>
+                            {urgency.text}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <span>{status.label}</span>
+                    {assignment.dueDate && !isCompleted && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                        </>
+                    )}
+                    {assignment.completedAt && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span>Completed: {new Date(assignment.completedAt).toLocaleDateString()}</span>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+                {!isCompleted && (
+                    <button
+                        onClick={() => onRemind(assignment.id)}
+                        className="px-3 py-1.5 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    >
+                        Remind
+                    </button>
+                )}
+                <button
+                    onClick={() => onDelete(assignment.id)}
+                    className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                >
+                    Remove
+                </button>
+            </div>
+        </div>
     );
 }
