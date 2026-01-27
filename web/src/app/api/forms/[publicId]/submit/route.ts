@@ -266,7 +266,20 @@ export async function POST(
 		userAgent: request.headers.get('user-agent') || undefined,
 	};
 
-	// Build base payload
+	// Resolve htmlContent from the effective version
+	// Note: htmlContent is on FormVersion but types may be stale - using assertion
+	const currentVersionData = form.currentVersion as { htmlContent?: string | null } | null;
+	let htmlContent: string | null = currentVersionData?.htmlContent ?? null;
+	if (!htmlContent && !form.currentVersion) {
+		// If no currentVersion, fetch latest version for htmlContent
+		const versionWithHtml = await prisma.formVersion.findFirst({
+			where: { formId: form.id },
+			orderBy: { versionNumber: 'desc' },
+		});
+		htmlContent = (versionWithHtml as { htmlContent?: string | null } | null)?.htmlContent ?? null;
+	}
+
+	// Build base payload (htmlContent included for webhook/transforms)
 	const basePayload = {
 		tenantId: tenant.id,
 		formId: form.id,
@@ -276,6 +289,7 @@ export async function POST(
 		answers,
 		client,
 		meta,
+		htmlContent,
 	};
 
 	// Apply payload transformation if configured
