@@ -1,7 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+    DashboardSummary,
+    DashboardSkeleton,
+    FormsSection,
+    FormRow,
+} from './components';
 
 interface FormAssignment {
     assignmentId: string;
@@ -47,7 +53,6 @@ export default function PortalDashboard() {
     }
 
     function handleFormOpened(formId: string) {
-        // Update local state to show in_progress
         setForms(prev => prev.map(f =>
             f.formId === formId && f.status === 'pending'
                 ? { ...f, status: 'in_progress' as const }
@@ -55,42 +60,116 @@ export default function PortalDashboard() {
         ));
     }
 
-    const statusConfig = {
-        pending: {
-            label: 'Not started',
-            bg: 'bg-slate-500/20',
-            text: 'text-slate-300',
-            icon: '○',
-        },
-        in_progress: {
-            label: 'In progress',
-            bg: 'bg-amber-500/20',
-            text: 'text-amber-300',
-            icon: '◐',
-        },
-        completed: {
-            label: 'Completed',
-            bg: 'bg-green-500/20',
-            text: 'text-green-300',
-            icon: '●',
-        },
-    };
+    // Calculate stats
+    const stats = useMemo(() => {
+        const completed = forms.filter(f => f.status === 'completed').length;
+        const inProgress = forms.filter(f => f.status === 'in_progress').length;
+        const notStarted = forms.filter(f => f.status === 'pending').length;
+        return { completed, inProgress, notStarted, total: forms.length };
+    }, [forms]);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[40vh]">
-                <div className="animate-pulse text-white/60">Loading your forms...</div>
-            </div>
-        );
+    // Group forms by urgency
+    const groupedForms = useMemo(() => {
+        const now = new Date();
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const dueSoon: FormAssignment[] = [];
+        const inProgress: FormAssignment[] = [];
+        const notStarted: FormAssignment[] = [];
+        const completed: FormAssignment[] = [];
+
+        for (const form of forms) {
+            if (form.status === 'completed') {
+                completed.push(form);
+            } else if (form.status === 'in_progress') {
+                // Check if also due soon
+                if (form.dueDate && new Date(form.dueDate) <= sevenDaysFromNow) {
+                    dueSoon.push(form);
+                } else {
+                    inProgress.push(form);
+                }
+            } else if (form.status === 'pending') {
+                // Check if due soon
+                if (form.dueDate && new Date(form.dueDate) <= sevenDaysFromNow) {
+                    dueSoon.push(form);
+                } else {
+                    notStarted.push(form);
+                }
+            }
+        }
+
+        // Sort due soon by date ascending (most urgent first)
+        dueSoon.sort((a, b) => {
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
+
+        // Sort completed by completedAt descending
+        completed.sort((a, b) => {
+            if (!a.completedAt) return 1;
+            if (!b.completedAt) return -1;
+            return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+        });
+
+        return { dueSoon, inProgress, notStarted, completed };
+    }, [forms]);
+
+    // Determine next form (for smart CTA)
+    const nextForm = useMemo(() => {
+        // Priority: due soon in_progress > due soon pending > in_progress > pending
+        if (groupedForms.dueSoon.length > 0) {
+            const inProgressDueSoon = groupedForms.dueSoon.find(f => f.status === 'in_progress');
+            if (inProgressDueSoon) return inProgressDueSoon;
+            return groupedForms.dueSoon[0];
+        }
+        if (groupedForms.inProgress.length > 0) {
+            return groupedForms.inProgress[0];
+        }
+        if (groupedForms.notStarted.length > 0) {
+            return groupedForms.notStarted[0];
+        }
+        return null;
+    }, [groupedForms]);
+
+    // Handle smart CTA click
+    async function handleStartForm(formId: string, publicId: string) {
+        const form = forms.find(f => f.formId === formId);
+        if (form?.status === 'pending') {
+            try {
+                await fetch(`/api/portal/forms/${formId}/start`, { method: 'POST' });
+                handleFormOpened(formId);
+            } catch (error) {
+                console.error('Failed to mark form as started:', error);
+            }
+        }
+        router.push(`/f/${publicId}`);
     }
 
+    // Loading state
+    if (loading) {
+        return <DashboardSkeleton />;
+    }
+
+    // Error state
     if (error) {
         return (
-            <div className="text-center py-12">
-                <p className="text-red-400 mb-4">{error}</p>
+            <div className="text-center py-12" role="alert">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <p className="text-red-400 mb-4 text-lg">{error}</p>
                 <button
-                    onClick={() => fetchForms()}
-                    className="text-indigo-400 hover:text-indigo-300 underline"
+                    onClick={() => {
+                        setError('');
+                        setLoading(true);
+                        fetchForms();
+                    }}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
                     Try again
                 </button>
@@ -98,6 +177,7 @@ export default function PortalDashboard() {
         );
     }
 
+    // Empty state
     if (forms.length === 0) {
         return (
             <div className="text-center py-16">
@@ -108,123 +188,99 @@ export default function PortalDashboard() {
                     </svg>
                 </div>
                 <h2 className="text-xl font-semibold text-white mb-2">No forms assigned yet</h2>
-                <p className="text-white/60">When forms are assigned to you, they'll appear here.</p>
+                <p className="text-white/70">When forms are assigned to you, they'll appear here.</p>
             </div>
         );
     }
 
-    const pendingForms = forms.filter(f => f.status !== 'completed');
-    const completedForms = forms.filter(f => f.status === 'completed');
+    // Count due soon items for urgency badge
+    const dueSoonCount = groupedForms.dueSoon.length;
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Your Forms</h1>
-                <p className="text-white/60">Complete the forms below. Your progress is saved automatically.</p>
+        <div className="space-y-6">
+            {/* Dashboard Summary with Donut */}
+            <DashboardSummary
+                stats={stats}
+                nextForm={nextForm ? {
+                    id: nextForm.formId,
+                    publicId: nextForm.publicId,
+                    name: nextForm.name,
+                    status: nextForm.status as 'pending' | 'in_progress',
+                } : null}
+                onStartForm={handleStartForm}
+            />
+
+            {/* Forms List */}
+            <div className="space-y-6">
+                {/* Due Soon Section */}
+                {groupedForms.dueSoon.length > 0 && (
+                    <FormsSection
+                        title="Due Soon"
+                        count={groupedForms.dueSoon.length}
+                        defaultExpanded={true}
+                        urgencyBadge={dueSoonCount > 0 ? 'Action required' : undefined}
+                    >
+                        {groupedForms.dueSoon.map(form => (
+                            <FormRow
+                                key={form.assignmentId}
+                                form={form}
+                                onFormOpened={handleFormOpened}
+                            />
+                        ))}
+                    </FormsSection>
+                )}
+
+                {/* In Progress Section */}
+                {groupedForms.inProgress.length > 0 && (
+                    <FormsSection
+                        title="In Progress"
+                        count={groupedForms.inProgress.length}
+                        defaultExpanded={true}
+                    >
+                        {groupedForms.inProgress.map(form => (
+                            <FormRow
+                                key={form.assignmentId}
+                                form={form}
+                                onFormOpened={handleFormOpened}
+                            />
+                        ))}
+                    </FormsSection>
+                )}
+
+                {/* Not Started Section */}
+                {groupedForms.notStarted.length > 0 && (
+                    <FormsSection
+                        title="Not Started"
+                        count={groupedForms.notStarted.length}
+                        defaultExpanded={true}
+                    >
+                        {groupedForms.notStarted.map(form => (
+                            <FormRow
+                                key={form.assignmentId}
+                                form={form}
+                                onFormOpened={handleFormOpened}
+                            />
+                        ))}
+                    </FormsSection>
+                )}
+
+                {/* Completed Section - collapsed by default */}
+                {groupedForms.completed.length > 0 && (
+                    <FormsSection
+                        title="Completed"
+                        count={groupedForms.completed.length}
+                        defaultExpanded={false}
+                    >
+                        {groupedForms.completed.map(form => (
+                            <FormRow
+                                key={form.assignmentId}
+                                form={form}
+                                onFormOpened={handleFormOpened}
+                            />
+                        ))}
+                    </FormsSection>
+                )}
             </div>
-
-            {/* Pending/In Progress Forms */}
-            {pendingForms.length > 0 && (
-                <section>
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                        To Complete ({pendingForms.length})
-                    </h2>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {pendingForms.map((form) => (
-                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} onFormOpened={handleFormOpened} />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* Completed Forms */}
-            {completedForms.length > 0 && (
-                <section>
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                        Completed ({completedForms.length})
-                    </h2>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {completedForms.map((form) => (
-                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} onFormOpened={handleFormOpened} />
-                        ))}
-                    </div>
-                </section>
-            )}
         </div>
-    );
-}
-
-function FormCard({
-    form,
-    statusConfig,
-    onFormOpened,
-}: {
-    form: FormAssignment;
-    statusConfig: Record<string, { label: string; bg: string; text: string; icon: string }>;
-    onFormOpened?: (formId: string) => void;
-}) {
-    const router = useRouter();
-    const config = statusConfig[form.status];
-    const isCompleted = form.status === 'completed';
-
-    async function handleClick(e: React.MouseEvent) {
-        e.preventDefault();
-
-        // Mark as in_progress if not already completed
-        if (form.status === 'pending') {
-            try {
-                await fetch(`/api/portal/forms/${form.formId}/start`, {
-                    method: 'POST',
-                });
-                // Update local state
-                onFormOpened?.(form.formId);
-            } catch (error) {
-                console.error('Failed to mark form as started:', error);
-            }
-        }
-
-        // Navigate to form
-        router.push(`/f/${form.publicId}`);
-    }
-
-    return (
-        <button
-            onClick={handleClick}
-            className={`block w-full text-left p-5 rounded-2xl border transition-all duration-200 group cursor-pointer
-				${isCompleted
-                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
-                    : 'bg-gradient-to-br from-white/10 to-white/5 border-white/20 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10'
-                }`}
-        >
-            <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                    {form.name}
-                </h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-                    {config.icon} {config.label}
-                </span>
-            </div>
-
-            {form.dueDate && !isCompleted && (
-                <p className="text-sm text-white/50 mb-3">
-                    Due: {new Date(form.dueDate).toLocaleDateString()}
-                </p>
-            )}
-
-            {form.completedAt && (
-                <p className="text-sm text-white/50 mb-3">
-                    Completed: {new Date(form.completedAt).toLocaleDateString()}
-                </p>
-            )}
-
-            <div className="flex items-center text-sm text-indigo-400 group-hover:text-indigo-300">
-                {isCompleted ? 'View submission' : 'Open form'}
-                <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-            </div>
-        </button>
     );
 }
