@@ -75,16 +75,16 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a' }}>
                 <div className="animate-pulse text-white/60">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="min-h-screen" style={{ background: '#0f172a' }}>
             {/* Portal Header */}
-            <header className="border-b border-white/10 backdrop-blur-sm bg-white/5">
+            <header style={{ borderBottom: '1px solid #1e293b', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)' }}>
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {branding.portalLogoUrl ? (
