@@ -94,10 +94,10 @@ export const PLANS: Record<PlanId, Plan> = {
 			fileUploadMb: 25,
 		},
 		pricing: {
-			monthly: 29,
-			annual: 24, // $24/mo billed annually
-			annualTotal: 288, // $288/year
-			savings: 17, // 17% savings
+			monthly: 0,
+			annual: 0, // $0/mo billed annually
+			annualTotal: 0, // $0/year
+			savings: 0, // 0% savings
 		},
 		features: [
 			'Up to 25 forms',
@@ -135,10 +135,10 @@ export const PLANS: Record<PlanId, Plan> = {
 			fileUploadMb: 100,
 		},
 		pricing: {
-			monthly: 99,
-			annual: 82, // $82/mo billed annually
-			annualTotal: 984, // $984/year
-			savings: 17, // 17% savings
+			monthly: 0,
+			annual: 0, // $0/mo billed annually
+			annualTotal: 0, // $0/year
+			savings: 0, // 0% savings
 		},
 		features: [
 			'Unlimited forms',
@@ -193,14 +193,14 @@ export function checkUsage(
 ): UsageCheck {
 	const limit = getPlan(planId).limits[limitKey];
 	const allowed = limit === Infinity || currentUsage < limit;
-	
+
 	return {
 		allowed,
 		current: currentUsage,
 		limit: limit === Infinity ? -1 : limit,
 		upgradeRequired: !allowed,
-		message: allowed 
-			? undefined 
+		message: allowed
+			? undefined
 			: `You've reached your ${limitKey.replace(/([A-Z])/g, ' $1').toLowerCase()} limit. Upgrade to continue.`,
 	};
 }
