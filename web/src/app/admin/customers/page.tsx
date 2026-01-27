@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import prisma from "@/lib/prisma";
+import { AdminSummaryCard } from "./components";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +29,8 @@ export default async function CustomersPage() {
     });
 
     return (
-        <div className="mx-auto max-w-6xl">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="mx-auto max-w-6xl space-y-6">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Customers</h1>
                     <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
@@ -38,7 +39,8 @@ export default async function CustomersPage() {
                 </div>
                 <Link
                     href="/admin/customers/new"
-                    className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
+                    className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                     style={{
                         background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
                         color: 'white',
@@ -49,6 +51,10 @@ export default async function CustomersPage() {
                 </Link>
             </div>
 
+            {/* Summary Card with Donut */}
+            <AdminSummaryCard />
+
+            {/* Customers Table */}
             <div
                 className="overflow-hidden rounded-xl"
                 style={{
