@@ -60,20 +60,6 @@ export default function DashboardSummary({
                 <div className="flex-1 w-full">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-lg font-semibold text-white">Form Progress</h2>
-                        {/* Next Action CTA */}
-                        {nextForm && (
-                            <button
-                                onClick={() => onStartForm(nextForm.id, nextForm.publicId)}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 
-                                         text-white text-sm font-medium rounded-lg transition-all duration-200
-                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                            >
-                                {getCtaText()}
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        )}
                     </div>
 
                     {/* Stats Grid - matching admin style */}
@@ -98,6 +84,23 @@ export default function DashboardSummary({
                             <div className="text-xs text-white/60">Not Started</div>
                         </div>
                     </div>
+
+                    {/* Next Action CTA */}
+                    {nextForm && (
+                        <div className="mt-5 flex justify-end">
+                            <button
+                                onClick={() => onStartForm(nextForm.id, nextForm.publicId)}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 
+                                         text-white text-sm font-medium rounded-lg transition-all duration-200
+                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                            >
+                                {getCtaText()}
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
