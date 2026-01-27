@@ -89,7 +89,7 @@ export async function POST(
 		);
 	}
 
-	const { formId, formVersion, answers, meta, turnstileToken } = body ?? {};
+	const { formId, formVersion, answers, meta, turnstileToken, prefillData } = body ?? {};
 	if (!formId || typeof formId !== 'string' || answers == null) {
 		return NextResponse.json(
 			{
@@ -279,7 +279,7 @@ export async function POST(
 		htmlContent = (versionWithHtml as { htmlContent?: string | null } | null)?.htmlContent ?? null;
 	}
 
-	// Build base payload (htmlContent included for webhook/transforms)
+	// Build base payload (htmlContent and prefillData included for webhook/transforms)
 	const basePayload = {
 		tenantId: tenant.id,
 		formId: form.id,
@@ -290,6 +290,7 @@ export async function POST(
 		client,
 		meta,
 		htmlContent,
+		prefillData: prefillData || null,
 	};
 
 	// Apply payload transformation if configured

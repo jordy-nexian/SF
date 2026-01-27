@@ -339,6 +339,7 @@ function PublicFormContent() {
 					formId,
 					formVersion,
 					answers: values,
+					prefillData: Object.keys(prefillData).length > 0 ? prefillData : undefined,
 					turnstileToken: turnstileToken || undefined,
 					meta: {
 						userAgent: navigator.userAgent,
@@ -444,6 +445,7 @@ function PublicFormContent() {
 					formId,
 					formVersion,
 					answers,
+					prefillData: Object.keys(prefillData).length > 0 ? prefillData : undefined,
 					meta: {
 						userAgent: navigator.userAgent,
 						language: navigator.language,
