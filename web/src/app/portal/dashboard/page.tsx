@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 interface FormAssignment {
     assignmentId: string;
@@ -45,6 +44,15 @@ export default function PortalDashboard() {
         } finally {
             setLoading(false);
         }
+    }
+
+    function handleFormOpened(formId: string) {
+        // Update local state to show in_progress
+        setForms(prev => prev.map(f =>
+            f.formId === formId && f.status === 'pending'
+                ? { ...f, status: 'in_progress' as const }
+                : f
+        ));
     }
 
     const statusConfig = {
@@ -124,7 +132,7 @@ export default function PortalDashboard() {
                     </h2>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {pendingForms.map((form) => (
-                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} />
+                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} onFormOpened={handleFormOpened} />
                         ))}
                     </div>
                 </section>
@@ -139,7 +147,7 @@ export default function PortalDashboard() {
                     </h2>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {completedForms.map((form) => (
-                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} />
+                            <FormCard key={form.assignmentId} form={form} statusConfig={statusConfig} onFormOpened={handleFormOpened} />
                         ))}
                     </div>
                 </section>
@@ -150,18 +158,41 @@ export default function PortalDashboard() {
 
 function FormCard({
     form,
-    statusConfig
+    statusConfig,
+    onFormOpened,
 }: {
     form: FormAssignment;
     statusConfig: Record<string, { label: string; bg: string; text: string; icon: string }>;
+    onFormOpened?: (formId: string) => void;
 }) {
+    const router = useRouter();
     const config = statusConfig[form.status];
     const isCompleted = form.status === 'completed';
 
+    async function handleClick(e: React.MouseEvent) {
+        e.preventDefault();
+
+        // Mark as in_progress if not already completed
+        if (form.status === 'pending') {
+            try {
+                await fetch(`/api/portal/forms/${form.formId}/start`, {
+                    method: 'POST',
+                });
+                // Update local state
+                onFormOpened?.(form.formId);
+            } catch (error) {
+                console.error('Failed to mark form as started:', error);
+            }
+        }
+
+        // Navigate to form
+        router.push(`/f/${form.publicId}`);
+    }
+
     return (
-        <Link
-            href={`/f/${form.publicId}`}
-            className={`block p-5 rounded-2xl border transition-all duration-200 group
+        <button
+            onClick={handleClick}
+            className={`block w-full text-left p-5 rounded-2xl border transition-all duration-200 group cursor-pointer
 				${isCompleted
                     ? 'bg-white/5 border-white/10 hover:bg-white/10'
                     : 'bg-gradient-to-br from-white/10 to-white/5 border-white/20 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10'
@@ -194,6 +225,6 @@ function FormCard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </div>
-        </Link>
+        </button>
     );
 }
