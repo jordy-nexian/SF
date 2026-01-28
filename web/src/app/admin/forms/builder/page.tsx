@@ -85,6 +85,15 @@ function FormBuilderContent() {
 	const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
 	const [htmlContent, setHtmlContent] = useState("");
 	const [tokens, setTokens] = useState<any[]>([]);
+	// Token mappings for HTML templates
+	const [linkedTemplateId, setLinkedTemplateId] = useState<string | null>(null);
+	const [tokenMappings, setTokenMappings] = useState<Array<{
+		tokenId: string;
+		label: string;
+		payloadKey: string;
+		mode: "prefill" | "manual" | "signature";
+	}>>([]);
+	const [savingMappings, setSavingMappings] = useState(false);
 
 	// Fetch tenant theme
 	useEffect(() => {
@@ -136,6 +145,10 @@ function FormBuilderContent() {
 					setHtmlContent(data.currentVersion.htmlContent);
 					setActivePanel("template"); // Switch to template view if HTML exists
 				}
+				// Store templateId for fetching mappings
+				if (data.templateId) {
+					setLinkedTemplateId(data.templateId);
+				}
 			})
 			.catch((err) => {
 				console.error("Failed to load form:", err);
@@ -143,7 +156,72 @@ function FormBuilderContent() {
 			});
 	}, [formId]);
 
+	// Fetch token mappings when we have a linked template
+	useEffect(() => {
+		if (!linkedTemplateId) return;
+
+		fetch(`/api/admin/templates/${linkedTemplateId}/mappings`)
+			.then((r) => r.ok ? r.json() : Promise.reject(new Error("Failed to load mappings")))
+			.then((json) => {
+				const data = json.data ?? json;
+				if (data.tokens) {
+					setTokenMappings(data.tokens.map((t: any) => ({
+						tokenId: t.tokenId,
+						label: t.label,
+						payloadKey: t.payloadKey || '',
+						mode: t.mode || 'prefill',
+					})));
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to load token mappings:", err);
+			});
+	}, [linkedTemplateId]);
+
 	const selectedField = schema.fields.find((f) => f.key === selectedFieldKey);
+
+	// Token mode helpers
+	const cycleTokenMode = (tokenId: string) => {
+		setTokenMappings(prev => prev.map(m => {
+			if (m.tokenId !== tokenId) return m;
+			const nextMode = m.mode === "prefill" ? "manual" : m.mode === "manual" ? "signature" : "prefill";
+			return { ...m, mode: nextMode };
+		}));
+	};
+
+	const getModeDisplay = (mode: "prefill" | "manual" | "signature") => {
+		switch (mode) {
+			case "prefill": return { icon: "🔄", label: "Prefill", bg: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc", border: "rgba(99, 102, 241, 0.3)" };
+			case "manual": return { icon: "✏️", label: "Manual", bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", border: "rgba(34, 197, 94, 0.3)" };
+			case "signature": return { icon: "✍️", label: "Signature", bg: "rgba(251, 146, 60, 0.2)", color: "#fb923c", border: "rgba(251, 146, 60, 0.3)" };
+		}
+	};
+
+	const saveMappings = async () => {
+		if (!linkedTemplateId) return;
+		setSavingMappings(true);
+		try {
+			const res = await fetch(`/api/admin/templates/${linkedTemplateId}/mappings`, {
+				method: "PUT",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					mappings: tokenMappings.map(m => ({
+						tokenId: m.tokenId,
+						payloadKey: m.payloadKey,
+						mode: m.mode,
+					})),
+				}),
+			});
+			if (!res.ok) throw new Error("Failed to save mappings");
+			setSuccess("Mappings saved!");
+			setTimeout(() => setSuccess(null), 2000);
+		} catch (err) {
+			console.error("Failed to save mappings:", err);
+			setError("Failed to save token mappings");
+		} finally {
+			setSavingMappings(false);
+		}
+	};
 
 	const addField = useCallback(
 		(fieldType: string, index?: number) => {
@@ -317,17 +395,65 @@ function FormBuilderContent() {
 
 				<div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
 					{activePanel === "template" ? (
-						<div className="p-4 text-center space-y-4 pt-10">
-							<div className="text-4xl opacity-50">{"</>"}</div>
-							<div className="text-sm" style={{ color: '#94a3b8' }}>
-								<p className="mb-2">HTML Editing Mode</p>
-								<p className="text-xs opacity-75">
-									The code editor is now active in the main view.
-								</p>
-							</div>
+						<div className="space-y-4">
+							<h3 className="text-xs font-medium" style={{ color: '#64748b' }}>Token Mappings</h3>
+
+							{tokenMappings.length > 0 ? (
+								<div className="space-y-2">
+									{tokenMappings.map((mapping) => {
+										const display = getModeDisplay(mapping.mode);
+										return (
+											<div
+												key={mapping.tokenId}
+												className="p-2 rounded-lg"
+												style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+											>
+												<div className="text-xs text-white mb-1.5 truncate" title={mapping.label}>
+													{mapping.label}
+												</div>
+												<button
+													type="button"
+													onClick={() => cycleTokenMode(mapping.tokenId)}
+													className="w-full px-2 py-1.5 rounded text-xs font-medium transition-all flex items-center justify-center gap-1.5"
+													style={{
+														background: display.bg,
+														color: display.color,
+														border: `1px solid ${display.border}`,
+													}}
+													title="Click to cycle: Prefill → Manual → Signature"
+												>
+													{display.icon} {display.label}
+												</button>
+											</div>
+										);
+									})}
+
+									<button
+										onClick={saveMappings}
+										disabled={savingMappings}
+										className="w-full mt-3 px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-all"
+										style={{
+											background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+										}}
+									>
+										{savingMappings ? "Saving..." : "Save Mappings"}
+									</button>
+								</div>
+							) : (
+								<div className="text-center space-y-4 pt-6">
+									<div className="text-4xl opacity-50">{"</>"}</div>
+									<div className="text-sm" style={{ color: '#94a3b8' }}>
+										<p className="mb-2">HTML Editing Mode</p>
+										<p className="text-xs opacity-75">
+											No token mappings found.
+										</p>
+									</div>
+								</div>
+							)}
+
 							<button
 								onClick={() => setActivePanel("fields")}
-								className="text-xs underline hover:no-underline"
+								className="text-xs underline hover:no-underline mt-4 block"
 								style={{ color: '#818cf8' }}
 							>
 								← Back to visual builder
