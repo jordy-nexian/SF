@@ -55,9 +55,17 @@ export async function GET(
             return api.badRequest('Form is not published');
         }
 
-        // If no prefill webhook configured, return empty
+        // Build tokenModes from template mappings (needed regardless of webhook)
+        const tokenModes: Record<string, string> = {};
+        if (form.template?.mappings) {
+            for (const mapping of form.template.mappings) {
+                tokenModes[mapping.tokenId] = mapping.mode || 'prefill';
+            }
+        }
+
+        // If no prefill webhook configured, return empty prefill but still return tokenModes
         if (!form.prefillWebhookUrl) {
-            return api.success({ prefillData: {} });
+            return api.success({ prefillData: {}, tokenModes });
         }
 
         // Forward query parameters to webhook (e.g., ?id=XYZ)
@@ -106,12 +114,9 @@ export async function GET(
         // Build mappings from TokenMappings
         // Priority: payloadKey -> tokenId (user-configured), then tokenLabel -> tokenId (original label)
         const templateMappings: Record<string, string> = {};
-        const tokenModes: Record<string, string> = {}; // tokenId -> mode
+        // tokenModes was already built earlier, now just build payload mappings
         if (form.template?.mappings) {
             for (const mapping of form.template.mappings) {
-                // Store mode per tokenId
-                tokenModes[mapping.tokenId] = mapping.mode || 'prefill';
-
                 // First, map tokenLabel (original label from HTML) to tokenId
                 // This handles webhooks that return the same labels as the template
                 templateMappings[mapping.tokenLabel] = mapping.tokenId;
