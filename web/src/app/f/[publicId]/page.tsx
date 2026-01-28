@@ -268,19 +268,27 @@ function PublicFormContent() {
 	useEffect(() => {
 		if (!formContainerRef.current || !processedHtmlContent) return;
 
-		// Find all signature placeholder divs
-		const placeholders = formContainerRef.current.querySelectorAll('.signature-token-placeholder');
-		const tokens: Array<{ tokenId: string; label: string; element: HTMLElement }> = [];
+		// Use setTimeout to ensure DOM has been updated after dangerouslySetInnerHTML
+		const timeoutId = setTimeout(() => {
+			if (!formContainerRef.current) return;
 
-		placeholders.forEach((el) => {
-			const tokenId = el.getAttribute('data-token-id');
-			const label = el.getAttribute('data-token-label');
-			if (tokenId && label) {
-				tokens.push({ tokenId, label, element: el as HTMLElement });
-			}
-		});
+			// Find all signature placeholder divs
+			const placeholders = formContainerRef.current.querySelectorAll('.signature-token-placeholder');
+			const tokens: Array<{ tokenId: string; label: string; element: HTMLElement }> = [];
 
-		setSignatureTokens(tokens);
+			placeholders.forEach((el) => {
+				const tokenId = el.getAttribute('data-token-id');
+				const label = el.getAttribute('data-token-label');
+				if (tokenId && label) {
+					tokens.push({ tokenId, label, element: el as HTMLElement });
+				}
+			});
+
+			console.log('[SignaturePad] Found placeholders:', tokens.length, tokens.map(t => t.tokenId));
+			setSignatureTokens(tokens);
+		}, 100);
+
+		return () => clearTimeout(timeoutId);
 	}, [processedHtmlContent]);
 
 	// Store signature pad ref for form submission
