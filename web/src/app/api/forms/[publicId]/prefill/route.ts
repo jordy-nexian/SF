@@ -38,6 +38,7 @@ export async function GET(
                                 tokenId: true,
                                 tokenLabel: true,
                                 payloadKey: true,
+                                mode: true,
                             },
                         },
                     },
@@ -105,8 +106,12 @@ export async function GET(
         // Build mappings from TokenMappings
         // Priority: payloadKey -> tokenId (user-configured), then tokenLabel -> tokenId (original label)
         const templateMappings: Record<string, string> = {};
+        const tokenModes: Record<string, string> = {}; // tokenId -> mode
         if (form.template?.mappings) {
             for (const mapping of form.template.mappings) {
+                // Store mode per tokenId
+                tokenModes[mapping.tokenId] = mapping.mode || 'prefill';
+
                 // First, map tokenLabel (original label from HTML) to tokenId
                 // This handles webhooks that return the same labels as the template
                 templateMappings[mapping.tokenLabel] = mapping.tokenId;
@@ -150,7 +155,7 @@ export async function GET(
             }
         }
 
-        return api.success({ prefillData });
+        return api.success({ prefillData, tokenModes });
     } catch (err) {
         console.error('Prefill API error:', err);
         // Graceful fallback

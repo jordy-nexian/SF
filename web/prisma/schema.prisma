@@ -245,6 +245,7 @@ model TokenMapping {
   tokenId     String       // data-token-id UUID from HTML
   tokenLabel  String       // Human-readable label
   payloadKey  String       // Key in incoming JSON payload
+  mode        String       @default("prefill") // "prefill" or "manual"
 
   template    HtmlTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 

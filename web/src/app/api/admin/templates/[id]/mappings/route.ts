@@ -14,6 +14,7 @@ interface RouteParams {
 const mappingSchema = z.object({
     tokenId: z.string().min(1),
     payloadKey: z.string().min(1),
+    mode: z.enum(["prefill", "manual"]).optional().default("prefill"),
 });
 
 const updateMappingsSchema = z.object({
@@ -52,6 +53,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
                 tokenId: token.tokenId,
                 label: token.label,
                 payloadKey: mapping?.payloadKey || null,
+                mode: (mapping as any)?.mode || "prefill",
                 isMapped: !!mapping,
             };
         });
@@ -129,6 +131,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
                             tokenId: m.tokenId,
                             tokenLabel: token?.label || "",
                             payloadKey: m.payloadKey,
+                            mode: m.mode || "prefill",
                         };
                     }),
                 });

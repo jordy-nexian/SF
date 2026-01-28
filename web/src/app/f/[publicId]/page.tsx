@@ -10,7 +10,7 @@ import type {
 import { evaluateVisibility, validateField, getByPath } from "@/types/form-schema";
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 import TurnstileWidget from "@/components/TurnstileWidget";
-import { replaceTokensWithValues } from "@/lib/html-template-parser";
+import { replaceTokensWithModes } from "@/lib/html-template-parser";
 
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
@@ -40,6 +40,7 @@ function PublicFormContent() {
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
+	const [tokenModes, setTokenModes] = useState<Record<string, string>>({});
 	// Authentication state
 	const [requiresAuth, setRequiresAuth] = useState(false);
 	const [authEmail, setAuthEmail] = useState('');
@@ -209,9 +210,13 @@ function PublicFormContent() {
 					.then(prefillResponse => {
 						if (prefillResponse.success && prefillResponse.data?.prefillData) {
 							const fetchedPrefillData = prefillResponse.data.prefillData;
+							const fetchedTokenModes = prefillResponse.data.tokenModes || {};
 							if (Object.keys(fetchedPrefillData).length > 0) {
 								setPrefillData(fetchedPrefillData);
 								setValues(prev => ({ ...prev, ...fetchedPrefillData }));
+							}
+							if (Object.keys(fetchedTokenModes).length > 0) {
+								setTokenModes(fetchedTokenModes);
 							}
 						}
 					})
@@ -245,14 +250,13 @@ function PublicFormContent() {
 		return schema.fields;
 	}, [schema]);
 
-	// Process HTML content with prefill values
-	// This replaces fe-token spans with actual values from the webhook
+	// Process HTML content with prefill values and mode-based rendering
+	// Prefill tokens display as text, manual tokens render as input fields
 	const processedHtmlContent = useMemo(() => {
 		if (!htmlContent) return null;
-		if (Object.keys(prefillData).length === 0) return htmlContent;
-		// prefillData is keyed by tokenId, which matches data-token-id in HTML
-		return replaceTokensWithValues(htmlContent, prefillData);
-	}, [htmlContent, prefillData]);
+		// Use replaceTokensWithModes to handle both prefill and manual tokens
+		return replaceTokensWithModes(htmlContent, prefillData, tokenModes);
+	}, [htmlContent, prefillData, tokenModes]);
 
 	function onChange(key: string, value: any) {
 		setValues((prev) => {

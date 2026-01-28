@@ -25,6 +25,8 @@ interface TokenMapping {
     tokenId: string;
     label: string;
     payloadKey: string;
+    mode: "prefill" | "manual";
+    required?: boolean;
 }
 
 const cardStyle = {
@@ -91,6 +93,8 @@ export default function UploadHtmlTemplatePage() {
                 tokenId: t.tokenId,
                 label: t.label,
                 payloadKey: t.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+                mode: "prefill" as const,
+                required: false,
             })));
             setError(null);
             setStep("mapping");
@@ -104,6 +108,12 @@ export default function UploadHtmlTemplatePage() {
     const updateMapping = (tokenId: string, payloadKey: string) => {
         setMappings(prev =>
             prev.map(m => m.tokenId === tokenId ? { ...m, payloadKey } : m)
+        );
+    };
+
+    const updateMappingMode = (tokenId: string, mode: "prefill" | "manual") => {
+        setMappings(prev =>
+            prev.map(m => m.tokenId === tokenId ? { ...m, mode, required: mode === "manual" } : m)
         );
     };
 
@@ -139,7 +149,7 @@ export default function UploadHtmlTemplatePage() {
             }
             const templateId = templateJson.data?.templateId;
 
-            // 2. Save the mappings
+            // 2. Save the mappings (include mode for each token)
             const validMappings = mappings.filter(m => m.payloadKey.trim());
             if (validMappings.length > 0) {
                 const mappingsRes = await fetch(`/api/admin/templates/${templateId}/mappings`, {
@@ -149,6 +159,7 @@ export default function UploadHtmlTemplatePage() {
                         mappings: validMappings.map(m => ({
                             tokenId: m.tokenId,
                             payloadKey: m.payloadKey,
+                            mode: m.mode,
                         })),
                     }),
                 });
@@ -158,6 +169,7 @@ export default function UploadHtmlTemplatePage() {
             }
 
             // 3. Generate a form schema from the token mappings
+            // Manual fields become actual form inputs; prefill fields are display-only
             const schema = {
                 id: publicId,
                 version: 1,
@@ -167,7 +179,8 @@ export default function UploadHtmlTemplatePage() {
                     key: m.payloadKey,
                     type: inferFieldType(m.label),
                     label: m.label,
-                    required: false,
+                    required: m.mode === "manual" && m.required,
+                    mode: m.mode, // prefill or manual
                 })),
                 steps: [],
             };
@@ -274,6 +287,8 @@ export default function UploadHtmlTemplatePage() {
                                                 tokenId: t.tokenId,
                                                 label: t.label,
                                                 payloadKey: t.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+                                                mode: "prefill" as const,
+                                                required: false,
                                             }
                                         );
                                     });
@@ -385,13 +400,30 @@ export default function UploadHtmlTemplatePage() {
 
                                         {/* Payload key input */}
                                         <input
-                                            className="w-48 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            className="w-40 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                             style={inputStyle}
                                             value={mapping.payloadKey}
                                             onChange={(e) => updateMapping(mapping.tokenId, e.target.value)}
                                             onClick={(e) => e.stopPropagation()}
                                             placeholder="payload_key"
                                         />
+
+                                        {/* Mode toggle */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateMappingMode(mapping.tokenId, mapping.mode === "prefill" ? "manual" : "prefill");
+                                            }}
+                                            className="px-3 py-2 rounded text-xs font-medium transition-all flex items-center gap-1.5"
+                                            style={{
+                                                background: mapping.mode === "manual" ? 'rgba(34, 197, 94, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                                                color: mapping.mode === "manual" ? '#4ade80' : '#a5b4fc',
+                                                border: `1px solid ${mapping.mode === "manual" ? 'rgba(34, 197, 94, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+                                            }}
+                                        >
+                                            {mapping.mode === "manual" ? '✏️ Manual' : '🔄 Prefill'}
+                                        </button>
 
                                         {/* Order number */}
                                         <span className="text-xs w-6 text-center" style={{ color: '#64748b' }}>

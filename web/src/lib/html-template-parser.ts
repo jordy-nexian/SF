@@ -76,6 +76,56 @@ export function replaceTokensWithValues(
 }
 
 /**
+ * Replace fe-token spans with values or input fields based on mode
+ * 
+ * @param html - The original HTML template
+ * @param tokenValues - Map of tokenId -> value to insert (for prefill tokens)
+ * @param tokenModes - Map of tokenId -> mode ("prefill" or "manual")
+ * @returns HTML with prefill tokens as text and manual tokens as input fields
+ */
+export function replaceTokensWithModes(
+    html: string,
+    tokenValues: Record<string, string>,
+    tokenModes: Record<string, string>
+): string {
+    return html.replace(
+        /<span([^>]*class=["'][^"']*fe-token[^"']*["'][^>]*data-token-id=["']([^"']+)["'][^>]*)>([^<]*)<\/span>/gi,
+        (match, attrs, tokenId, label) => {
+            const mode = tokenModes[tokenId] || 'prefill';
+            const value = tokenValues[tokenId];
+
+            if (mode === 'manual') {
+                // Render as an input field for user entry
+                const fieldType = inferFieldType(label);
+                const inputType = fieldType === 'email' ? 'email' :
+                    fieldType === 'number' ? 'number' : 'text';
+                const placeholder = escapeHtml(label);
+                const existingValue = value ? escapeHtml(value) : '';
+
+                // Mark with special class and data attributes for form submission
+                // The name attribute uses tokenId so FormData can collect it
+                return `<input type="${inputType}" 
+                    name="${tokenId}"
+                    class="manual-token-input" 
+                    data-token-id="${tokenId}" 
+                    data-token-label="${placeholder}"
+                    placeholder="${placeholder}"
+                    value="${existingValue}"
+                    required
+                    style="border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px; min-width: 150px; font-size: inherit; font-family: inherit;"
+                />`;
+            } else {
+                // Prefill mode: display as text
+                if (value !== undefined) {
+                    return `<span${attrs} class="prefill-token-value" style="background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
+                }
+                return match; // Keep original if no value provided
+            }
+        }
+    );
+}
+
+/**
  * Generate a form schema from extracted tokens
  * Converts tokens into form fields for the stateless forms renderer
  */
