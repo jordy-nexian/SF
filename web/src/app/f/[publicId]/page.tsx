@@ -345,6 +345,7 @@ function PublicFormContent() {
 						userAgent: navigator.userAgent,
 						language: navigator.language,
 						stepReached: activeStepIdx + 1,
+						tenantToken: searchParams.get("tenantToken") || undefined,
 					},
 				}),
 			});
@@ -450,6 +451,7 @@ function PublicFormContent() {
 						userAgent: navigator.userAgent,
 						language: navigator.language,
 						htmlTemplate: true,
+						tenantToken: searchParams.get("tenantToken") || undefined,
 					},
 				}),
 			});

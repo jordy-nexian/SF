@@ -10,6 +10,7 @@ import { transformPayload, type TransformTemplate } from '@/lib/payload-transfor
 import { canReceiveSubmission } from '@/lib/usage';
 import { verifyTurnstileToken, isTurnstileEnabled } from '@/lib/captcha';
 import { createRequestLogger, generateRequestId, logSubmissionEvent, logWebhookEvent, logRateLimitEvent } from '@/lib/logger';
+import { verifyTenantToken } from '@/lib/tenant-token';
 import type { PlanId } from '@/lib/plans';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
@@ -164,7 +165,7 @@ export async function POST(
 	const tenant = form.tenant;
 
 	// Check IP allowlist/blocklist
-	const formSettings = form.settings as { ipAllowlist?: IpAllowlistConfig } | null;
+	const formSettings = form.settings as { ipAllowlist?: IpAllowlistConfig; requireTenantToken?: boolean } | null;
 	const ipAllowlistConfig = formSettings?.ipAllowlist;
 	const ipCheck = isIpAllowed(clientIp, ipAllowlistConfig);
 	if (!ipCheck.allowed) {
@@ -175,6 +176,48 @@ export async function POST(
 				message: 'Submission not allowed from this location',
 			},
 			{ status: 403 }
+		);
+	}
+
+	// Tenant token validation for Quickbase customer identification
+	// Token contains: { publicId, customerId, exp } signed with tenant.sharedSecret
+	let customerId: string | undefined;
+	const tenantToken = (meta as Record<string, unknown>)?.tenantToken as string | undefined;
+	const requireTenantToken = formSettings?.requireTenantToken === true;
+
+	if (tenantToken) {
+		// Validate the token
+		const tokenResult = verifyTenantToken(tenantToken, tenant.sharedSecret, publicId);
+		if (!tokenResult.valid) {
+			const errorMessages: Record<string, string> = {
+				'INVALID_FORMAT': 'Invalid token format',
+				'INVALID_SIGNATURE': 'Token signature verification failed',
+				'EXPIRED': 'Token has expired',
+				'PUBLIC_ID_MISMATCH': 'Token is not valid for this form',
+			};
+			logger.warn({ error: tokenResult.error }, 'Tenant token validation failed');
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: errorMessages[tokenResult.error || ''] || 'Token validation failed',
+					code: 'TOKEN_INVALID',
+				},
+				{ status: 403 }
+			);
+		}
+		customerId = tokenResult.payload?.customerId;
+		logger.debug({ customerId }, 'Tenant token validated');
+	} else if (requireTenantToken) {
+		// Token is required but not provided
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'This form requires a valid access token',
+				code: 'TOKEN_REQUIRED',
+			},
+			{ status: 400 }
 		);
 	}
 
@@ -280,6 +323,12 @@ export async function POST(
 	}
 
 	// Build base payload (htmlContent and prefillData included for webhook/transforms)
+	// Inject customerId into meta if validated from tenant token
+	const enrichedMeta = {
+		...(meta as Record<string, unknown> || {}),
+		...(customerId ? { customerId } : {}),
+	};
+
 	const basePayload = {
 		tenantId: tenant.id,
 		formId: form.id,
@@ -288,7 +337,7 @@ export async function POST(
 		submittedAt,
 		answers,
 		client,
-		meta,
+		meta: enrichedMeta,
 		htmlContent,
 		prefillData: prefillData || null,
 	};
