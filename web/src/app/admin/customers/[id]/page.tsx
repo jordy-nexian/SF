@@ -47,7 +47,31 @@ export default async function CustomerDetailsPage({ params }: PageProps) {
         select: { customerWebhookUrl: true },
     });
 
-    let serializedCustomer;
+    // Customer shape for the client component
+    interface CustomerData {
+        id: string;
+        email: string;
+        name: string | null;
+        externalId: string | null;
+        assignments: Array<{
+            id: string;
+            formId: string;
+            formName: string;
+            status: 'pending' | 'in_progress' | 'completed';
+            dueDate: string | null;
+            completedAt: string | null;
+            publicId?: string;
+        }>;
+    }
+
+    // Initialize with default (will be populated below)
+    let serializedCustomer: CustomerData = {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+        externalId: customer.externalId,
+        assignments: [],
+    };
     let useWebhook = false;
     let webhookError: string | null = null;
 
@@ -113,7 +137,14 @@ export default async function CustomerDetailsPage({ params }: PageProps) {
             email: customer.email,
             name: customer.name,
             externalId: customer.externalId,
-            assignments: (customerWithAssignments?.assignments || []).map(a => ({
+            assignments: (customerWithAssignments?.assignments || []).map((a: {
+                id: string;
+                formId: string;
+                form: { name: string; publicId: string };
+                status: 'pending' | 'in_progress' | 'completed';
+                dueDate: Date | null;
+                completedAt: Date | null;
+            }) => ({
                 id: a.id,
                 formId: a.formId,
                 formName: a.form.name,
