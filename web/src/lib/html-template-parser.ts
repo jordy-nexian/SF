@@ -127,7 +127,7 @@ export function replaceTokensWithModes(
             } else {
                 // Prefill mode: display as text
                 if (value !== undefined) {
-                    return `<span${attrs} class="prefill-token-value" style="background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
+                    return `<span${attrs} class="prefill-token-value" style="color: black; background: transparent; padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
                 }
                 return match; // Keep original if no value provided
             }
