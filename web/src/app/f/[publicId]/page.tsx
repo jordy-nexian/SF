@@ -40,6 +40,12 @@ function PublicFormContent() {
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
+	// Authentication state
+	const [requiresAuth, setRequiresAuth] = useState(false);
+	const [authEmail, setAuthEmail] = useState('');
+	const [authLoading, setAuthLoading] = useState(false);
+	const [authSent, setAuthSent] = useState(false);
+	const [authError, setAuthError] = useState<string | null>(null);
 
 	// Extract pre-fill values from URL parameters
 	// Supports both individual field params and ?data=base64(JSON)
@@ -143,7 +149,7 @@ function PublicFormContent() {
 				// Handle standardized success response format: { success: true, data: {...} }
 				return json.data ?? json;
 			})
-			.then((data) => {
+			.then(async (data) => {
 				if (!active) return;
 				setFormId(data.formId);
 				setFormVersion(data.formVersion);
@@ -153,6 +159,27 @@ function PublicFormContent() {
 				setThankYouUrl(data.thankYouUrl);
 				setThankYouMessage(data.thankYouMessage);
 				setTurnstileSiteKey(data.turnstileSiteKey || null);
+
+				// Check if form requires authentication
+				const isPublic = data.isPublic ?? true;
+				if (!isPublic) {
+					// Check for tenant token (grants access without session)
+					const tenantToken = searchParams.get('tenantToken');
+					if (!tenantToken) {
+						// Check for portal session
+						try {
+							const sessionRes = await fetch('/api/portal/auth/session');
+							if (!sessionRes.ok) {
+								// No valid session - require authentication
+								setRequiresAuth(true);
+								return; // Don't continue loading form
+							}
+						} catch {
+							setRequiresAuth(true);
+							return;
+						}
+					}
+				}
 
 				// Initialize values: URL params > localStorage > empty
 				const fieldKeys = data.schema.fields.map((f: Field) => f.key);
@@ -413,6 +440,102 @@ function PublicFormContent() {
 			</div>
 		);
 	}
+
+	// Handle magic link request for authentication
+	async function handleAuthSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		setAuthLoading(true);
+		setAuthError(null);
+
+		try {
+			const res = await fetch('/api/portal/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					email: authEmail,
+					redirectUrl: `/f/${publicId}`,
+				}),
+			});
+
+			const data = await res.json();
+			if (!res.ok) {
+				throw new Error(data.error || 'Failed to send magic link');
+			}
+
+			setAuthSent(true);
+		} catch (err: any) {
+			setAuthError(err.message || 'Failed to send magic link');
+		} finally {
+			setAuthLoading(false);
+		}
+	}
+
+	// Show login form if authentication is required
+	if (requiresAuth) {
+		return (
+			<div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+				<div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+					{authSent ? (
+						<div className="text-center">
+							<div className="text-6xl mb-4">📧</div>
+							<h1 className="text-2xl font-bold text-gray-800 mb-2">Check Your Email</h1>
+							<p className="text-gray-600 mb-4">
+								We&apos;ve sent a magic link to <strong>{authEmail}</strong>
+							</p>
+							<p className="text-sm text-gray-500">
+								Click the link in your email to access this form.
+							</p>
+							<button
+								onClick={() => { setAuthSent(false); setAuthEmail(''); }}
+								className="mt-6 text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+							>
+								Use a different email
+							</button>
+						</div>
+					) : (
+						<>
+							<div className="text-center mb-6">
+								<div className="text-5xl mb-3">🔐</div>
+								<h1 className="text-2xl font-bold text-gray-800">Sign In Required</h1>
+								<p className="text-gray-600 mt-2">
+									Enter your email to receive a magic link
+								</p>
+							</div>
+							<form onSubmit={handleAuthSubmit} className="space-y-4">
+								<div>
+									<label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">
+										Email Address
+									</label>
+									<input
+										id="auth-email"
+										type="email"
+										value={authEmail}
+										onChange={(e) => setAuthEmail(e.target.value)}
+										required
+										placeholder="you@example.com"
+										className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+									/>
+								</div>
+								{authError && (
+									<div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+										{authError}
+									</div>
+								)}
+								<button
+									type="submit"
+									disabled={authLoading || !authEmail}
+									className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								>
+									{authLoading ? 'Sending...' : 'Send Magic Link'}
+								</button>
+							</form>
+						</>
+					)}
+				</div>
+			</div>
+		);
+	}
+
 	if (!schema) {
 		return <div className="p-6">Form unavailable</div>;
 	}

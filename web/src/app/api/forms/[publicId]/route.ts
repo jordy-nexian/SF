@@ -103,6 +103,10 @@ export async function GET(
 			? { ...defaultTheme, ...tenantSettings.theme }
 			: defaultTheme;
 
+		// Check if form is public (defaults to true for backwards compatibility)
+		const formSettings = form.settings as { isPublic?: boolean } | null;
+		const isPublic = formSettings?.isPublic ?? true;
+
 		const settings = {
 			showProgressBar: true,
 			showStepNumbers: true,
@@ -121,6 +125,7 @@ export async function GET(
 			thankYouUrl: form.thankYouUrl,
 			thankYouMessage: form.thankYouMessage,
 			turnstileSiteKey,
+			isPublic,
 		});
 	} catch (err) {
 		console.error('Error fetching form:', err);

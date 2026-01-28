@@ -59,6 +59,7 @@ const updateSchema = z.object({
 	prefillWebhookUrl: z.string().url().nullable().optional(),
 	prefillFieldMappings: z.any().nullable().optional(),
 	settings: z.any().optional(),
+	isPublic: z.boolean().optional(),
 	schema: z.any().optional(),
 	htmlContent: z.string().optional(),
 });
@@ -105,6 +106,20 @@ export async function PUT(
 	if (parsed.data.prefillWebhookUrl !== undefined) updateData.prefillWebhookUrl = parsed.data.prefillWebhookUrl;
 	if (parsed.data.prefillFieldMappings !== undefined) updateData.prefillFieldMappings = parsed.data.prefillFieldMappings;
 	if (parsed.data.settings !== undefined) updateData.settings = parsed.data.settings;
+
+	// Handle isPublic by merging into settings JSON
+	if (parsed.data.isPublic !== undefined) {
+		// Fetch current settings to merge
+		const currentForm = await prisma.form.findUnique({
+			where: { id },
+			select: { settings: true },
+		});
+		const currentSettings = (currentForm?.settings as Record<string, unknown>) || {};
+		updateData.settings = {
+			...currentSettings,
+			isPublic: parsed.data.isPublic,
+		};
+	}
 
 	const updated = await prisma.form.update({
 		where: { id },

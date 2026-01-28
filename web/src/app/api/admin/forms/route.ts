@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
 					publicId,
 					status: "draft",
 					templateId: templateId || null,
+					// New forms default to requiring authentication
+					settings: { isPublic: false },
 				},
 			});
 			if (schema) {

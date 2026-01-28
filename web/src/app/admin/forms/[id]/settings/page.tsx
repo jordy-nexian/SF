@@ -44,6 +44,7 @@ export default function FormSettingsPage() {
 	const [thankYouMessage, setThankYouMessage] = useState("");
 	const [prefillWebhookUrl, setPrefillWebhookUrl] = useState("");
 	const [prefillFieldMappings, setPrefillFieldMappings] = useState("");
+	const [isPublic, setIsPublic] = useState(true);
 	const [features, setFeatures] = useState<Features>({ webhookFailover: false, abTesting: false });
 
 	useEffect(() => {
@@ -68,6 +69,9 @@ export default function FormSettingsPage() {
 							? JSON.stringify(formData.prefillFieldMappings, null, 2)
 							: ""
 					);
+					// Load isPublic from settings (defaults to true for existing forms)
+					const formSettings = formData.settings as { isPublic?: boolean } | null;
+					setIsPublic(formSettings?.isPublic ?? true);
 				}
 				if (usageData?.features) {
 					setFeatures({
@@ -97,6 +101,7 @@ export default function FormSettingsPage() {
 					thankYouMessage: thankYouMessage || null,
 					prefillWebhookUrl: prefillWebhookUrl || null,
 					prefillFieldMappings: prefillFieldMappings ? JSON.parse(prefillFieldMappings) : null,
+					isPublic,
 				}),
 			});
 
@@ -148,6 +153,37 @@ export default function FormSettingsPage() {
 								required
 							/>
 						</div>
+					</div>
+				</div>
+
+				{/* Access Control */}
+				<div className="rounded-xl p-6" style={cardStyle}>
+					<h2 className="mb-4 font-semibold text-white">Access Control</h2>
+					<div className="flex items-center justify-between">
+						<div>
+							<label className="block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								Public Access
+							</label>
+							<p className="text-xs mt-1" style={{ color: '#64748b' }}>
+								{isPublic
+									? 'Anyone with the link can access this form'
+									: 'Users must authenticate via magic link to access'
+								}
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={() => setIsPublic(!isPublic)}
+							className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${isPublic ? 'bg-indigo-600' : 'bg-slate-600'
+								}`}
+							role="switch"
+							aria-checked={isPublic}
+						>
+							<span
+								className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublic ? 'translate-x-6' : 'translate-x-1'
+									}`}
+							/>
+						</button>
 					</div>
 				</div>
 
