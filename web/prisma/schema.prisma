@@ -72,6 +72,9 @@ model Tenant {
   portalLogoUrl          String?  // URL to logo image
   portalPrimaryColor     String?  // Hex color code e.g. #6366f1
   
+  // Customer data integration
+  customerWebhookUrl     String?  // Webhook URL for fetching customer forms from Quickbase
+  
   // Subscription fields
   stripeCustomerId       String?  @unique
   stripeSubscriptionId   String?

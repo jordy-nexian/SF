@@ -12,6 +12,7 @@ interface Assignment {
     status: 'pending' | 'in_progress' | 'completed';
     dueDate: string | null;
     completedAt: string | null;
+    publicId?: string; // For linking to form in webhook mode
 }
 
 interface Customer {
@@ -25,9 +26,10 @@ interface Customer {
 interface CustomerClientProps {
     initialCustomer: Customer;
     tenantForms: Array<{ id: string; name: string }>;
+    isWebhookMode?: boolean; // True when data comes from external webhook
 }
 
-export default function CustomerClient({ initialCustomer, tenantForms }: CustomerClientProps) {
+export default function CustomerClient({ initialCustomer, tenantForms, isWebhookMode = false }: CustomerClientProps) {
     const router = useRouter();
     const [customer] = useState(initialCustomer);
     const [isInviteLoading, setIsInviteLoading] = useState(false);
@@ -179,21 +181,30 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                 </div>
 
                 <div className="flex gap-3">
-                    <button
-                        onClick={handleSendInvite}
-                        disabled={isInviteLoading}
-                        className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50
-                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    >
-                        {isInviteLoading ? 'Sending...' : 'Send Invite'}
-                    </button>
-                    <button
-                        onClick={() => setShowAssignModal(true)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors
-                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    >
-                        + Assign Form
-                    </button>
+                    {!isWebhookMode && (
+                        <>
+                            <button
+                                onClick={handleSendInvite}
+                                disabled={isInviteLoading}
+                                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50
+                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            >
+                                {isInviteLoading ? 'Sending...' : 'Send Invite'}
+                            </button>
+                            <button
+                                onClick={() => setShowAssignModal(true)}
+                                className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors
+                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            >
+                                + Assign Form
+                            </button>
+                        </>
+                    )}
+                    {isWebhookMode && (
+                        <span className="px-3 py-1.5 text-xs font-medium bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">
+                            Synced from Quickbase
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -257,6 +268,7 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                         assignments={groupedAssignments.dueSoon}
                         onRemind={handleSendReminder}
                         onDelete={handleDeleteAssignment}
+                        isWebhookMode={isWebhookMode}
                     />
                 )}
 
@@ -267,6 +279,7 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                         assignments={groupedAssignments.inProgress}
                         onRemind={handleSendReminder}
                         onDelete={handleDeleteAssignment}
+                        isWebhookMode={isWebhookMode}
                     />
                 )}
 
@@ -277,6 +290,7 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                         assignments={groupedAssignments.notStarted}
                         onRemind={handleSendReminder}
                         onDelete={handleDeleteAssignment}
+                        isWebhookMode={isWebhookMode}
                     />
                 )}
 
@@ -288,6 +302,7 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                         onRemind={handleSendReminder}
                         onDelete={handleDeleteAssignment}
                         defaultCollapsed
+                        isWebhookMode={isWebhookMode}
                     />
                 )}
 
@@ -303,13 +318,17 @@ export default function CustomerClient({ initialCustomer, tenantForms }: Custome
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </div>
-                        <p className="text-slate-500">No forms assigned yet.</p>
-                        <button
-                            onClick={() => setShowAssignModal(true)}
-                            className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
-                        >
-                            Assign a form →
-                        </button>
+                        <p className="text-slate-500">
+                            {isWebhookMode ? 'No forms found in Quickbase.' : 'No forms assigned yet.'}
+                        </p>
+                        {!isWebhookMode && (
+                            <button
+                                onClick={() => setShowAssignModal(true)}
+                                className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                            >
+                                Assign a form →
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -377,6 +396,7 @@ function AssignmentSection({
     onRemind,
     onDelete,
     defaultCollapsed = false,
+    isWebhookMode = false,
 }: {
     title: string;
     badge?: string;
@@ -384,6 +404,7 @@ function AssignmentSection({
     onRemind: (id: string) => void;
     onDelete: (id: string) => void;
     defaultCollapsed?: boolean;
+    isWebhookMode?: boolean;
 }) {
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
@@ -421,6 +442,7 @@ function AssignmentSection({
                             assignment={a}
                             onRemind={onRemind}
                             onDelete={onDelete}
+                            isWebhookMode={isWebhookMode}
                         />
                     ))}
                 </div>
@@ -434,10 +456,12 @@ function AssignmentRow({
     assignment,
     onRemind,
     onDelete,
+    isWebhookMode = false,
 }: {
     assignment: Assignment;
     onRemind: (id: string) => void;
     onDelete: (id: string) => void;
+    isWebhookMode?: boolean;
 }) {
     const isCompleted = assignment.status === 'completed';
 
@@ -461,6 +485,9 @@ function AssignmentRow({
         completed: { label: 'Completed', icon: '●', class: 'text-green-400' },
     };
     const status = statusConfig[assignment.status];
+
+    // Get publicId for form link (uses publicId if available, otherwise formId)
+    const formPublicId = assignment.publicId || assignment.formId;
 
     return (
         <div className={`px-5 py-4 flex items-center justify-between gap-4 ${isCompleted ? 'opacity-60' : ''}`}>
@@ -492,22 +519,37 @@ function AssignmentRow({
             </div>
 
             <div className="flex items-center gap-2">
-                {!isCompleted && (
-                    <button
-                        onClick={() => onRemind(assignment.id)}
+                {isWebhookMode ? (
+                    // Webhook mode: show Open Form link
+                    <Link
+                        href={`/f/${formPublicId}`}
+                        target="_blank"
                         className="px-3 py-1.5 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors
                                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     >
-                        Remind
-                    </button>
+                        Open Form →
+                    </Link>
+                ) : (
+                    // Database mode: show CRUD buttons
+                    <>
+                        {!isCompleted && (
+                            <button
+                                onClick={() => onRemind(assignment.id)}
+                                className="px-3 py-1.5 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors
+                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            >
+                                Remind
+                            </button>
+                        )}
+                        <button
+                            onClick={() => onDelete(assignment.id)}
+                            className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors
+                                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                        >
+                            Remove
+                        </button>
+                    </>
                 )}
-                <button
-                    onClick={() => onDelete(assignment.id)}
-                    className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors
-                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                >
-                    Remove
-                </button>
             </div>
         </div>
     );

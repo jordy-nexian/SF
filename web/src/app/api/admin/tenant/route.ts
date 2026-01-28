@@ -20,6 +20,7 @@ export async function GET() {
 			sharedSecret: true,
 			customDomain: true,
 			customDomainVerified: true,
+			customerWebhookUrl: true,
 		},
 	});
 
@@ -45,6 +46,7 @@ export async function GET() {
 const updateSchema = z.object({
 	name: z.string().min(1).optional(),
 	defaultN8nWebhookUrl: z.string().url().nullable().optional(),
+	customerWebhookUrl: z.string().url().nullable().optional(),
 });
 
 // PUT update tenant settings
@@ -77,6 +79,10 @@ export async function PUT(req: NextRequest) {
 		updateData.defaultN8nWebhookUrl = parsed.data.defaultN8nWebhookUrl;
 	}
 
+	if (parsed.data.customerWebhookUrl !== undefined) {
+		updateData.customerWebhookUrl = parsed.data.customerWebhookUrl;
+	}
+
 	const updated = await prisma.tenant.update({
 		where: { id: session.tenantId },
 		data: updateData,
@@ -84,6 +90,7 @@ export async function PUT(req: NextRequest) {
 			id: true,
 			name: true,
 			defaultN8nWebhookUrl: true,
+			customerWebhookUrl: true,
 		},
 	});
 

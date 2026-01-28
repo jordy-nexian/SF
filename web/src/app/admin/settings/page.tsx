@@ -22,6 +22,7 @@ export default function TenantSettingsPage() {
 
 	const [tenantName, setTenantName] = useState("");
 	const [defaultWebhookUrl, setDefaultWebhookUrl] = useState("");
+	const [customerWebhookUrl, setCustomerWebhookUrl] = useState("");
 	const [sharedSecret, setSharedSecret] = useState("");
 
 	useEffect(() => {
@@ -31,6 +32,7 @@ export default function TenantSettingsPage() {
 				if (data) {
 					setTenantName(data.name || "");
 					setDefaultWebhookUrl(data.defaultN8nWebhookUrl || "");
+					setCustomerWebhookUrl(data.customerWebhookUrl || "");
 					setSharedSecret(data.sharedSecret || "");
 				}
 			})
@@ -50,6 +52,7 @@ export default function TenantSettingsPage() {
 				body: JSON.stringify({
 					name: tenantName,
 					defaultN8nWebhookUrl: defaultWebhookUrl || null,
+					customerWebhookUrl: customerWebhookUrl || null,
 				}),
 			});
 
@@ -143,7 +146,7 @@ export default function TenantSettingsPage() {
 							</p>
 						</div>
 
-						<div 
+						<div
 							className="rounded-lg p-4"
 							style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
 						>
@@ -157,6 +160,46 @@ export default function TenantSettingsPage() {
 								<li>4. Copy the <strong>Production URL</strong> and paste it above</li>
 								<li>5. Activate the workflow</li>
 							</ol>
+						</div>
+					</div>
+				</div>
+
+				{/* Customer Data Integration */}
+				<div className="rounded-xl p-6" style={cardStyle}>
+					<h2 className="mb-4 font-semibold text-white">Customer Data Integration</h2>
+					<div className="space-y-4">
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								Customer Webhook URL
+							</label>
+							<input
+								type="url"
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={inputStyle}
+								value={customerWebhookUrl}
+								onChange={(e) => setCustomerWebhookUrl(e.target.value)}
+								placeholder="https://hooks.example.com/webhook/customer-data"
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								Fetch customer form data from an external source (e.g., Quickbase).
+								If set, the customer detail page will POST with the customer&apos;s email and display data from the response.
+							</p>
+						</div>
+
+						<div
+							className="rounded-lg p-4"
+							style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)' }}
+						>
+							<h3 className="text-sm font-medium mb-2" style={{ color: '#60a5fa' }}>
+								Expected Response Format:
+							</h3>
+							<pre className="text-xs overflow-x-auto" style={{ color: '#94a3b8' }}>
+								{`[{
+  "formName": "Application Form",
+  "status": "completed" | "in_progress" | "not started",
+  "publicId": "form-public-id"
+}]`}
+							</pre>
 						</div>
 					</div>
 				</div>
@@ -187,7 +230,7 @@ export default function TenantSettingsPage() {
 								</button>
 							</div>
 							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
-								Use this secret to verify webhook signatures in n8n. 
+								Use this secret to verify webhook signatures in n8n.
 								<Link href="/admin/docs/webhook-verification" className="ml-1" style={{ color: '#818cf8' }}>
 									Learn how →
 								</Link>
