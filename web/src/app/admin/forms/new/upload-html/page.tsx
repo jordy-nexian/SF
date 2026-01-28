@@ -25,7 +25,7 @@ interface TokenMapping {
     tokenId: string;
     label: string;
     payloadKey: string;
-    mode: "prefill" | "manual";
+    mode: "prefill" | "manual" | "signature";
     required?: boolean;
 }
 
@@ -111,10 +111,29 @@ export default function UploadHtmlTemplatePage() {
         );
     };
 
-    const updateMappingMode = (tokenId: string, mode: "prefill" | "manual") => {
+    const updateMappingMode = (tokenId: string, mode: "prefill" | "manual" | "signature") => {
         setMappings(prev =>
             prev.map(m => m.tokenId === tokenId ? { ...m, mode, required: mode === "manual" } : m)
         );
+    };
+
+    // Cycle through modes: prefill -> manual -> signature -> prefill
+    const cycleMode = (currentMode: "prefill" | "manual" | "signature") => {
+        if (currentMode === "prefill") return "manual";
+        if (currentMode === "manual") return "signature";
+        return "prefill";
+    };
+
+    // Get mode display info
+    const getModeDisplay = (mode: "prefill" | "manual" | "signature") => {
+        switch (mode) {
+            case "prefill":
+                return { icon: "🔄", label: "Prefill", bg: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc", border: "rgba(99, 102, 241, 0.3)" };
+            case "manual":
+                return { icon: "✏️", label: "Manual", bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", border: "rgba(34, 197, 94, 0.3)" };
+            case "signature":
+                return { icon: "✍️", label: "Signature", bg: "rgba(251, 146, 60, 0.2)", color: "#fb923c", border: "rgba(251, 146, 60, 0.3)" };
+        }
     };
 
     // Helper function to infer field type from label
@@ -409,21 +428,27 @@ export default function UploadHtmlTemplatePage() {
                                         />
 
                                         {/* Mode toggle */}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                updateMappingMode(mapping.tokenId, mapping.mode === "prefill" ? "manual" : "prefill");
-                                            }}
-                                            className="px-3 py-2 rounded text-xs font-medium transition-all flex items-center gap-1.5"
-                                            style={{
-                                                background: mapping.mode === "manual" ? 'rgba(34, 197, 94, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                                                color: mapping.mode === "manual" ? '#4ade80' : '#a5b4fc',
-                                                border: `1px solid ${mapping.mode === "manual" ? 'rgba(34, 197, 94, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
-                                            }}
-                                        >
-                                            {mapping.mode === "manual" ? '✏️ Manual' : '🔄 Prefill'}
-                                        </button>
+                                        {(() => {
+                                            const display = getModeDisplay(mapping.mode);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateMappingMode(mapping.tokenId, cycleMode(mapping.mode));
+                                                    }}
+                                                    className="px-3 py-2 rounded text-xs font-medium transition-all flex items-center gap-1.5"
+                                                    style={{
+                                                        background: display.bg,
+                                                        color: display.color,
+                                                        border: `1px solid ${display.border}`,
+                                                    }}
+                                                    title="Click to cycle: Prefill → Manual → Signature"
+                                                >
+                                                    {display.icon} {display.label}
+                                                </button>
+                                            );
+                                        })()}
 
                                         {/* Order number */}
                                         <span className="text-xs w-6 text-center" style={{ color: '#64748b' }}>

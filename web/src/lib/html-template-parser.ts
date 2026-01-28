@@ -94,7 +94,17 @@ export function replaceTokensWithModes(
             const mode = tokenModes[tokenId] || 'prefill';
             const value = tokenValues[tokenId];
 
-            if (mode === 'manual') {
+            if (mode === 'signature') {
+                // Render a placeholder div that React will hydrate with SignaturePad
+                const placeholder = escapeHtml(label);
+                return `<div 
+                    class="signature-token-placeholder" 
+                    data-token-id="${tokenId}" 
+                    data-token-label="${placeholder}"
+                    data-token-mode="signature"
+                    style="display: inline-block; min-width: 320px; min-height: 200px;"
+                ></div>`;
+            } else if (mode === 'manual') {
                 // Render as an input field for user entry
                 const fieldType = inferFieldType(label);
                 const inputType = fieldType === 'email' ? 'email' :

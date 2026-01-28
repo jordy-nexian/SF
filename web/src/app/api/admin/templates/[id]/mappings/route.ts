@@ -14,7 +14,7 @@ interface RouteParams {
 const mappingSchema = z.object({
     tokenId: z.string().min(1),
     payloadKey: z.string().min(1),
-    mode: z.enum(["prefill", "manual"]).optional().default("prefill"),
+    mode: z.enum(["prefill", "manual", "signature"]).optional().default("prefill"),
 });
 
 const updateMappingsSchema = z.object({

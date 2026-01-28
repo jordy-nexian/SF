@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
+import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams, useParams } from "next/navigation";
+import { createPortal } from "react-dom";
 import type {
 	FormSchema,
 	Field,
@@ -11,6 +12,7 @@ import { evaluateVisibility, validateField, getByPath } from "@/types/form-schem
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { replaceTokensWithModes } from "@/lib/html-template-parser";
+import SignaturePad, { SignaturePadHandle } from "@/components/SignaturePad";
 
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
@@ -41,6 +43,10 @@ function PublicFormContent() {
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
 	const [tokenModes, setTokenModes] = useState<Record<string, string>>({});
+	// Signature pad state
+	const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string; element: HTMLElement }>>([]);
+	const signaturePadRefs = useRef<Map<string, SignaturePadHandle>>(new Map());
+	const formContainerRef = useRef<HTMLDivElement>(null);
 	// Authentication state
 	const [requiresAuth, setRequiresAuth] = useState(false);
 	const [authEmail, setAuthEmail] = useState('');
@@ -257,6 +263,34 @@ function PublicFormContent() {
 		// Use replaceTokensWithModes to handle both prefill and manual tokens
 		return replaceTokensWithModes(htmlContent, prefillData, tokenModes);
 	}, [htmlContent, prefillData, tokenModes]);
+
+	// Find and mount SignaturePad components after HTML renders
+	useEffect(() => {
+		if (!formContainerRef.current || !processedHtmlContent) return;
+
+		// Find all signature placeholder divs
+		const placeholders = formContainerRef.current.querySelectorAll('.signature-token-placeholder');
+		const tokens: Array<{ tokenId: string; label: string; element: HTMLElement }> = [];
+
+		placeholders.forEach((el) => {
+			const tokenId = el.getAttribute('data-token-id');
+			const label = el.getAttribute('data-token-label');
+			if (tokenId && label) {
+				tokens.push({ tokenId, label, element: el as HTMLElement });
+			}
+		});
+
+		setSignatureTokens(tokens);
+	}, [processedHtmlContent]);
+
+	// Store signature pad ref for form submission
+	const setSignatureRef = useCallback((tokenId: string, ref: SignaturePadHandle | null) => {
+		if (ref) {
+			signaturePadRefs.current.set(tokenId, ref);
+		} else {
+			signaturePadRefs.current.delete(tokenId);
+		}
+	}, []);
 
 	function onChange(key: string, value: any) {
 		setValues((prev) => {
@@ -570,6 +604,25 @@ function PublicFormContent() {
 			}
 		});
 
+		// Collect signature data from SignaturePad components
+		const missingSignatures: string[] = [];
+		signaturePadRefs.current.forEach((pad, tokenId) => {
+			const signatureData = pad.toDataURL();
+			if (signatureData) {
+				answers[tokenId] = signatureData;
+			} else {
+				// Find the label for this signature
+				const token = signatureTokens.find(t => t.tokenId === tokenId);
+				missingSignatures.push(token?.label || tokenId);
+			}
+		});
+
+		// Validate all signatures are complete (signatures are always required)
+		if (missingSignatures.length > 0) {
+			setSubmitError(`Please complete the following signature(s): ${missingSignatures.join(', ')}`);
+			return;
+		}
+
 		try {
 			const res = await fetch(`/api/forms/${publicId}/submit`, {
 				method: "POST",
@@ -646,6 +699,7 @@ function PublicFormContent() {
 					<form id="html-template-form" onSubmit={handleHtmlFormSubmit}>
 						{/* A4-like paper container */}
 						<div
+							ref={formContainerRef}
 							className="html-template-form"
 							dangerouslySetInnerHTML={{ __html: processedHtmlContent || '' }}
 							style={{
@@ -661,6 +715,21 @@ function PublicFormContent() {
 						/>
 					</form>
 				</div>
+
+				{/* Render SignaturePad components into placeholder elements via portals */}
+				{signatureTokens.map(({ tokenId, label, element }) =>
+					createPortal(
+						<SignaturePad
+							key={tokenId}
+							tokenId={tokenId}
+							label={label}
+							ref={(ref) => setSignatureRef(tokenId, ref)}
+							width={300}
+							height={150}
+						/>,
+						element
+					)
+				)}
 
 				{/* Fixed Bottom Bar */}
 				<div
