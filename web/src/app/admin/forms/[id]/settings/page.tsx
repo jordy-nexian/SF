@@ -305,7 +305,7 @@ export default function FormSettingsPage() {
 								rows={6}
 								value={prefillFieldMappings}
 								onChange={(e) => setPrefillFieldMappings(e.target.value)}
-								placeholder={`{\n  "Organisation - Company Name": "company_name",\n  "Record ID#": "record_id"\n}`}
+								placeholder={`{\n  "Organisation - Company Name": "company_name",\n  "Token ID": "token_id"\n}`}
 							/>
 							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
 								Maps webhook labels to form field names. Format: {'{"Webhook Label": "formFieldName"}'}
