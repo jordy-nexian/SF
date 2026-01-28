@@ -264,8 +264,10 @@ function PublicFormContent() {
 		return replaceTokensWithModes(htmlContent, prefillData, tokenModes);
 	}, [htmlContent, prefillData, tokenModes]);
 
-	// Find and mount SignaturePad components after HTML renders
+	// Find and mount SignaturePad components after HTML renders and prefill completes
 	useEffect(() => {
+		// Wait for prefill to complete so tokenModes are available
+		if (prefilling) return;
 		if (!formContainerRef.current || !processedHtmlContent) return;
 
 		// Use setTimeout to ensure DOM has been updated after dangerouslySetInnerHTML
@@ -286,10 +288,10 @@ function PublicFormContent() {
 
 			console.log('[SignaturePad] Found placeholders:', tokens.length, tokens.map(t => t.tokenId));
 			setSignatureTokens(tokens);
-		}, 100);
+		}, 150);
 
 		return () => clearTimeout(timeoutId);
-	}, [processedHtmlContent]);
+	}, [processedHtmlContent, prefilling]);
 
 	// Store signature pad ref for form submission
 	const setSignatureRef = useCallback((tokenId: string, ref: SignaturePadHandle | null) => {
