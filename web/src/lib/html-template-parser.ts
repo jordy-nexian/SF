@@ -88,8 +88,7 @@ export function replaceTokensWithModes(
     tokenValues: Record<string, string>,
     tokenModes: Record<string, string>
 ): string {
-    // First pass: Handle fe-token spans
-    let result = html.replace(
+    return html.replace(
         /<span([^>]*class=["'][^"']*fe-token[^"']*["'][^>]*data-token-id=["']([^"']+)["'][^>]*)>([^<]*)<\/span>/gi,
         (match, attrs, tokenId, label) => {
             const mode = tokenModes[tokenId] || 'prefill';
@@ -134,53 +133,6 @@ export function replaceTokensWithModes(
             }
         }
     );
-
-    // Second pass: Handle bracket format [Token Label] tokens
-    // This handles HTML templates that haven't been converted to fe-token spans
-    result = result.replace(
-        /\[([^\]]+)\]/g,
-        (match, label) => {
-            const tokenId = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const mode = tokenModes[tokenId] || 'prefill';
-            const value = tokenValues[tokenId];
-
-            if (mode === 'signature') {
-                const placeholder = escapeHtml(label);
-                return `<div 
-                    class="signature-token-placeholder" 
-                    data-token-id="${tokenId}" 
-                    data-token-label="${placeholder}"
-                    data-token-mode="signature"
-                    style="display: inline-block; min-width: 320px; min-height: 200px;"
-                ></div>`;
-            } else if (mode === 'manual') {
-                const fieldType = inferFieldType(label);
-                const inputType = fieldType === 'email' ? 'email' :
-                    fieldType === 'number' ? 'number' : 'text';
-                const placeholder = escapeHtml(label);
-                const existingValue = value ? escapeHtml(value) : '';
-
-                return `<input type="${inputType}" 
-                    name="${tokenId}"
-                    class="manual-token-input" 
-                    data-token-id="${tokenId}" 
-                    data-token-label="${placeholder}"
-                    placeholder="${placeholder}"
-                    value="${existingValue}"
-                    required
-                    style="border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px; min-width: 150px; font-size: inherit; font-family: inherit;"
-                />`;
-            } else {
-                // Prefill mode: display value or keep original token
-                if (value !== undefined) {
-                    return `<span class="prefill-token-value" style="color: black; background: transparent; padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
-                }
-                return match; // Keep original [Token] if no value
-            }
-        }
-    );
-
-    return result;
 }
 
 /**
