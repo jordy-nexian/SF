@@ -472,21 +472,22 @@ function PublicFormContent() {
 	// Show login form if authentication is required
 	if (requiresAuth) {
 		return (
-			<div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-				<div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+			<div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#0f172a' }}>
+				<div className="rounded-2xl p-8 w-full max-w-md" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
 					{authSent ? (
 						<div className="text-center">
 							<div className="text-6xl mb-4">📧</div>
-							<h1 className="text-2xl font-bold text-gray-800 mb-2">Check Your Email</h1>
-							<p className="text-gray-600 mb-4">
-								We&apos;ve sent a magic link to <strong>{authEmail}</strong>
+							<h1 className="text-2xl font-bold text-white mb-2">Check Your Email</h1>
+							<p className="mb-4" style={{ color: '#94a3b8' }}>
+								We&apos;ve sent a magic link to <strong className="text-white">{authEmail}</strong>
 							</p>
-							<p className="text-sm text-gray-500">
+							<p className="text-sm" style={{ color: '#64748b' }}>
 								Click the link in your email to access this form.
 							</p>
 							<button
 								onClick={() => { setAuthSent(false); setAuthEmail(''); }}
-								className="mt-6 text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+								className="mt-6 text-sm font-medium transition-colors"
+								style={{ color: '#818cf8' }}
 							>
 								Use a different email
 							</button>
@@ -495,14 +496,14 @@ function PublicFormContent() {
 						<>
 							<div className="text-center mb-6">
 								<div className="text-5xl mb-3">🔐</div>
-								<h1 className="text-2xl font-bold text-gray-800">Sign In Required</h1>
-								<p className="text-gray-600 mt-2">
+								<h1 className="text-2xl font-bold text-white">Sign In Required</h1>
+								<p className="mt-2" style={{ color: '#94a3b8' }}>
 									Enter your email to receive a magic link
 								</p>
 							</div>
 							<form onSubmit={handleAuthSubmit} className="space-y-4">
 								<div>
-									<label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">
+									<label htmlFor="auth-email" className="block text-sm font-medium mb-1.5" style={{ color: '#94a3b8' }}>
 										Email Address
 									</label>
 									<input
@@ -512,18 +513,23 @@ function PublicFormContent() {
 										onChange={(e) => setAuthEmail(e.target.value)}
 										required
 										placeholder="you@example.com"
-										className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+										className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+										style={{ background: '#1e293b', border: '1px solid #334155', color: 'white' }}
 									/>
 								</div>
 								{authError && (
-									<div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+									<div className="text-sm p-3 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171' }}>
 										{authError}
 									</div>
 								)}
 								<button
 									type="submit"
 									disabled={authLoading || !authEmail}
-									className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+									className="w-full py-3 px-4 text-white font-medium rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+									style={{
+										background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+										boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+									}}
 								>
 									{authLoading ? 'Sending...' : 'Send Magic Link'}
 								</button>
