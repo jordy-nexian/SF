@@ -158,7 +158,30 @@ function FormBuilderContent() {
 
 	// Fetch token mappings when we have a linked template
 	useEffect(() => {
-		if (!linkedTemplateId) return;
+		if (!linkedTemplateId) {
+			// Fallback: Extract tokens directly from HTML content if no template linked
+			if (htmlContent) {
+				const tokenRegex = /\[([^\]]+)\]/g;
+				const foundTokens: Array<{ tokenId: string; label: string; payloadKey: string; mode: "prefill" | "manual" | "signature" }> = [];
+				const seen = new Set<string>();
+				let match;
+				while ((match = tokenRegex.exec(htmlContent)) !== null) {
+					const label = match[1];
+					const tokenId = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+					if (!seen.has(tokenId)) {
+						seen.add(tokenId);
+						foundTokens.push({
+							tokenId,
+							label,
+							payloadKey: tokenId,
+							mode: 'prefill',
+						});
+					}
+				}
+				setTokenMappings(foundTokens);
+			}
+			return;
+		}
 
 		fetch(`/api/admin/templates/${linkedTemplateId}/mappings`)
 			.then((r) => r.ok ? r.json() : Promise.reject(new Error("Failed to load mappings")))
@@ -176,7 +199,7 @@ function FormBuilderContent() {
 			.catch((err) => {
 				console.error("Failed to load token mappings:", err);
 			});
-	}, [linkedTemplateId]);
+	}, [linkedTemplateId, htmlContent]);
 
 	const selectedField = schema.fields.find((f) => f.key === selectedFieldKey);
 
@@ -428,16 +451,22 @@ function FormBuilderContent() {
 										);
 									})}
 
-									<button
-										onClick={saveMappings}
-										disabled={savingMappings}
-										className="w-full mt-3 px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-all"
-										style={{
-											background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
-										}}
-									>
-										{savingMappings ? "Saving..." : "Save Mappings"}
-									</button>
+									{linkedTemplateId ? (
+										<button
+											onClick={saveMappings}
+											disabled={savingMappings}
+											className="w-full mt-3 px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-all"
+											style={{
+												background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
+											}}
+										>
+											{savingMappings ? "Saving..." : "Save Mappings"}
+										</button>
+									) : (
+										<p className="mt-3 text-xs text-center" style={{ color: '#64748b' }}>
+											Tokens extracted from HTML (read-only)
+										</p>
+									)}
 								</div>
 							) : (
 								<div className="text-center space-y-4 pt-6">

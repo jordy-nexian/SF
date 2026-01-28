@@ -33,6 +33,7 @@ export async function GET(
 			schema: form.currentVersion.schema,
 			htmlContent: form.currentVersion.htmlContent,
 		} : null,
+		templateId: form.templateId,
 		primaryN8nWebhookUrl: form.primaryN8nWebhookUrl,
 		backupWebhookUrl: form.backupWebhookUrl,
 		thankYouUrl: form.thankYouUrl,
