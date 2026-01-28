@@ -448,12 +448,11 @@ function PublicFormContent() {
 		setAuthError(null);
 
 		try {
-			const res = await fetch('/api/portal/auth/login', {
+			const res = await fetch('/api/portal/auth/request-link', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					email: authEmail,
-					redirectUrl: `/f/${publicId}`,
 				}),
 			});
 
