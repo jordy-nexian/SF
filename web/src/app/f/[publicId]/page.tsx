@@ -43,8 +43,8 @@ function PublicFormContent() {
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
 	const [tokenModes, setTokenModes] = useState<Record<string, string>>({});
-	// Signature pad state
-	const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string; element: HTMLElement }>>([]);
+	// Signature pad state - only store tokenId/label, not element refs which become stale
+	const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string }>>([]);;
 	const signaturePadRefs = useRef<Map<string, SignaturePadHandle>>(new Map());
 	const formContainerRef = useRef<HTMLDivElement>(null);
 	// Authentication state
@@ -282,7 +282,7 @@ function PublicFormContent() {
 				const tokenId = el.getAttribute('data-token-id');
 				const label = el.getAttribute('data-token-label');
 				if (tokenId && label) {
-					tokens.push({ tokenId, label, element: el as HTMLElement });
+					tokens.push({ tokenId, label });
 				}
 			});
 
@@ -727,8 +727,11 @@ function PublicFormContent() {
 				</div>
 
 				{/* Render SignaturePad components into placeholder elements via portals */}
-				{signatureTokens.map(({ tokenId, label, element }) =>
-					createPortal(
+				{signatureTokens.map(({ tokenId, label }) => {
+					// Query for the placeholder element fresh each render
+					const element = formContainerRef.current?.querySelector(`[data-token-id="${tokenId}"].signature-token-placeholder`) as HTMLElement | null;
+					if (!element) return null;
+					return createPortal(
 						<SignaturePad
 							key={tokenId}
 							tokenId={tokenId}
@@ -738,8 +741,8 @@ function PublicFormContent() {
 							height={150}
 						/>,
 						element
-					)
-				)}
+					);
+				})}
 
 				{/* Fixed Bottom Bar */}
 				<div
