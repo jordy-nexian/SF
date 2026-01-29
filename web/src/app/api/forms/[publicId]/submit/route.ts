@@ -285,15 +285,18 @@ export async function POST(
 		schema = latest?.schema as FormSchema | null;
 	}
 
-	// Server-side schema validation
-	if (schema && answers && typeof answers === 'object') {
+	// Server-side schema validation (skip for HTML template forms which use token IDs not in schema)
+	const isHtmlTemplate = (meta as Record<string, unknown>)?.htmlTemplate === true;
+	if (schema && answers && typeof answers === 'object' && !isHtmlTemplate) {
 		const validation = validateSubmission(schema, answers as Record<string, unknown>);
 		if (!validation.valid) {
+			// Build detailed error message
+			const errorDetails = validation.errors.map(e => `${e.field}: ${e.message}`).join('; ');
 			return NextResponse.json(
 				{
 					status: 'error',
 					submissionId,
-					message: 'Validation failed',
+					message: `Validation failed: ${errorDetails}`,
 					errors: validation.errors,
 				},
 				{ status: 400 }
