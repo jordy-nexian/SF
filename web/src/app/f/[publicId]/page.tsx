@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams, useParams } from "next/navigation";
-import { createPortal } from "react-dom";
+
 import type {
 	FormSchema,
 	Field,
@@ -12,7 +12,7 @@ import { evaluateVisibility, validateField, getByPath } from "@/types/form-schem
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { replaceTokensWithModes } from "@/lib/html-template-parser";
-import SignaturePad, { SignaturePadHandle } from "@/components/SignaturePad";
+import { SignaturePadHandle } from "@/components/SignaturePad";
 
 // Storage key for partial submission recovery
 const STORAGE_PREFIX = "stateless-form:";
@@ -43,8 +43,7 @@ function PublicFormContent() {
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
 	const [tokenModes, setTokenModes] = useState<Record<string, string>>({});
-	// Signature pad state - only store tokenId/label, not element refs which become stale
-	const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string }>>([]);;
+	// Signature pad refs for form submission
 	const signaturePadRefs = useRef<Map<string, SignaturePadHandle>>(new Map());
 	const formContainerRef = useRef<HTMLDivElement>(null);
 	// Authentication state
@@ -264,31 +263,120 @@ function PublicFormContent() {
 		return replaceTokensWithModes(htmlContent, prefillData, tokenModes);
 	}, [htmlContent, prefillData, tokenModes]);
 
-	// Find and mount SignaturePad components after HTML renders and prefill completes
+	// Initialize SignaturePad directly in DOM placeholders (bypass React portals)
 	useEffect(() => {
 		// Wait for prefill to complete so tokenModes are available
 		if (prefilling) return;
 		if (!formContainerRef.current || !processedHtmlContent) return;
 
 		// Use setTimeout to ensure DOM has been updated after dangerouslySetInnerHTML
-		const timeoutId = setTimeout(() => {
+		const timeoutId = setTimeout(async () => {
 			if (!formContainerRef.current) return;
 
 			// Find all signature placeholder divs
 			const placeholders = formContainerRef.current.querySelectorAll('.signature-token-placeholder');
-			const tokens: Array<{ tokenId: string; label: string }> = [];
+			console.log('[SignaturePad] Found placeholders:', placeholders.length);
 
-			placeholders.forEach((el) => {
-				const tokenId = el.getAttribute('data-token-id');
-				const label = el.getAttribute('data-token-label');
-				if (tokenId && label) {
-					tokens.push({ tokenId, label });
-				}
+			// Dynamically import SignaturePadLib
+			const SignaturePadLib = (await import('signature_pad')).default;
+
+			placeholders.forEach((placeholder) => {
+				const tokenId = placeholder.getAttribute('data-token-id');
+				const label = placeholder.getAttribute('data-token-label') || 'Sign here';
+				if (!tokenId) return;
+
+				// Skip if already initialized
+				if (placeholder.querySelector('canvas')) return;
+
+				// Create container
+				const container = document.createElement('div');
+				container.className = 'signature-pad-container';
+				container.style.cssText = 'display: inline-flex; flex-direction: column; gap: 8px; max-width: 100%;';
+
+				// Create label
+				const labelEl = document.createElement('div');
+				labelEl.style.cssText = 'font-size: 12px; color: #6b7280; font-weight: 500;';
+				labelEl.innerHTML = `${label} <span style="color: #ef4444;">*</span>`;
+				container.appendChild(labelEl);
+
+				// Create canvas wrapper
+				const canvasWrapper = document.createElement('div');
+				canvasWrapper.style.cssText = 'border: 2px dashed #d1d5db; border-radius: 8px; overflow: hidden; background: #ffffff; transition: border-color 0.2s;';
+
+				// Create canvas
+				const canvas = document.createElement('canvas');
+				canvas.width = 300;
+				canvas.height = 150;
+				canvas.style.cssText = 'display: block; cursor: crosshair; touch-action: none;';
+				canvasWrapper.appendChild(canvas);
+				container.appendChild(canvasWrapper);
+
+				// Create controls
+				const controls = document.createElement('div');
+				controls.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+
+				const clearBtn = document.createElement('button');
+				clearBtn.type = 'button';
+				clearBtn.textContent = 'Clear';
+				clearBtn.style.cssText = 'padding: 6px 12px; font-size: 12px; color: #6b7280; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;';
+
+				const statusSpan = document.createElement('span');
+				statusSpan.style.cssText = 'font-size: 12px; color: #9ca3af;';
+				statusSpan.textContent = 'Draw your signature above';
+
+				controls.appendChild(clearBtn);
+				controls.appendChild(statusSpan);
+				container.appendChild(controls);
+
+				// Hidden input for form data
+				const hiddenInput = document.createElement('input');
+				hiddenInput.type = 'hidden';
+				hiddenInput.name = tokenId;
+				hiddenInput.dataset.signatureInput = 'true';
+				container.appendChild(hiddenInput);
+
+				// Append to placeholder
+				placeholder.appendChild(container);
+
+				// Initialize SignaturePad
+				const pad = new SignaturePadLib(canvas, {
+					backgroundColor: 'rgb(255, 255, 255)',
+					penColor: 'rgb(0, 0, 0)',
+				});
+
+				// Handle signature changes
+				pad.addEventListener('endStroke', () => {
+					const isEmpty = pad.isEmpty();
+					canvasWrapper.style.borderColor = isEmpty ? '#d1d5db' : '#10b981';
+					canvasWrapper.style.borderStyle = isEmpty ? 'dashed' : 'solid';
+					statusSpan.textContent = isEmpty ? 'Draw your signature above' : '✓ Signature captured';
+					statusSpan.style.color = isEmpty ? '#9ca3af' : '#10b981';
+					hiddenInput.value = isEmpty ? '' : pad.toDataURL('image/jpeg', 0.8);
+				});
+
+				// Clear button handler
+				clearBtn.addEventListener('click', () => {
+					pad.clear();
+					canvasWrapper.style.borderColor = '#d1d5db';
+					canvasWrapper.style.borderStyle = 'dashed';
+					statusSpan.textContent = 'Draw your signature above';
+					statusSpan.style.color = '#9ca3af';
+					hiddenInput.value = '';
+				});
+
+				// Store ref for form submission
+				signaturePadRefs.current.set(tokenId, {
+					toDataURL: () => pad.isEmpty() ? null : pad.toDataURL('image/jpeg', 0.8),
+					isEmpty: () => pad.isEmpty(),
+					clear: () => {
+						pad.clear();
+						hiddenInput.value = '';
+					},
+				});
+
+				console.log('[SignaturePad] Initialized:', tokenId);
 			});
-
-			console.log('[SignaturePad] Found placeholders:', tokens.length, tokens.map(t => t.tokenId));
-			setSignatureTokens(tokens);
-		}, 150);
+		}, 200);
 
 		return () => clearTimeout(timeoutId);
 	}, [processedHtmlContent, prefilling]);
@@ -621,9 +709,10 @@ function PublicFormContent() {
 			if (signatureData) {
 				answers[tokenId] = signatureData;
 			} else {
-				// Find the label for this signature
-				const token = signatureTokens.find(t => t.tokenId === tokenId);
-				missingSignatures.push(token?.label || tokenId);
+				// Find the label for this signature from the DOM placeholder
+				const placeholder = formContainerRef.current?.querySelector(`[data-token-id="${tokenId}"].signature-token-placeholder`);
+				const label = placeholder?.getAttribute('data-token-label') || tokenId;
+				missingSignatures.push(label);
 			}
 		});
 
@@ -726,23 +815,6 @@ function PublicFormContent() {
 					</form>
 				</div>
 
-				{/* Render SignaturePad components into placeholder elements via portals */}
-				{signatureTokens.map(({ tokenId, label }) => {
-					// Query for the placeholder element fresh each render
-					const element = formContainerRef.current?.querySelector(`[data-token-id="${tokenId}"].signature-token-placeholder`) as HTMLElement | null;
-					if (!element) return null;
-					return createPortal(
-						<SignaturePad
-							key={tokenId}
-							tokenId={tokenId}
-							label={label}
-							ref={(ref) => setSignatureRef(tokenId, ref)}
-							width={300}
-							height={150}
-						/>,
-						element
-					);
-				})}
 
 				{/* Fixed Bottom Bar */}
 				<div
