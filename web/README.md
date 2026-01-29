@@ -1,23 +1,48 @@
-Stateless Forms → n8n SaaS (MVP)
-=================================
+# Stateless Forms → n8n SaaS
 
 This project provides a multi-tenant stateless form builder/runtime that relays submissions to tenant-configured n8n webhooks. It stores only metadata (no answers) and signs forwarded payloads using HMAC.
 
-Quick start
------------
+## 🌟 Key Features
 
-1) Requirements
+### 📄 HTML Template Forms
+Upload existing HTML documents (contracts, intake forms) and turn them into dynamic forms.
+- **Token Support**: Use `[Token Name]` or `<span class="fe-token">` placeholders in your HTML.
+- **Smart Mapping**: Map tokens to **Prefill** (read-only text), **Manual Input** (user entry), or **Signature** (interactive pad).
+- **No-Code Builder**: Admin interface to upload HTML, preview parsing, and configure token modes visually.
 
+### ✍️ Signature Integration
+Native support for capturing signatures on documents.
+- **Interactive Pad**: Smooth, canvas-based signature drawing.
+- **Validation**: Ensures signatures are captured before submission.
+- **Optimized Rendering**: Uses vanilla DOM injection for maximum performance and compatibility.
+- **Mobile Friendly**: Touch-enabled signature canvas.
+
+### 🔌 Webhook Prefill
+Dynamically populate forms with data from external systems.
+- **Prefill Webhook**: Configure a webhook URL to fetch data when the form loads.
+- **Field Mapping**: Map JSON response fields to form tokens.
+  - Example: Map `data.client_name` → `[Client Name]`.
+- **Secure**: Server-side fetching with SSRF protection.
+- **Fallback**: Supports URL query parameters for simple prefill needs.
+
+### 🛡️ Security & Reliability
+- **Stateless Architecture**: Zero data persistence for sensitive form answers.
+- **HMAC Signatures**: Verifiable payloads using `X-Form-Signature` headers.
+- **Anti-Abuse**: Integrated Rate Limiting and Cloudflare Turnstile support.
+- **Middleware**: HSTS (prod) and CORS protection.
+- **Submission Limits**: Enforced payload size and field count limits.
+
+## 🚀 Quick Start
+
+### 1. Requirements
 - Node.js LTS
 - PostgreSQL database (Neon/Supabase/RDS/etc.)
 
-2) Setup
+### 2. Setup
 
 ```bash
 cd web
 cp env.example .env # On Windows: copy env.example .env
-
-# Edit .env to set your DATABASE_URL
 
 npm install
 npx prisma generate
@@ -27,73 +52,36 @@ npm run dev
 
 Open http://localhost:3000
 
-What’s included (MVP)
----------------------
+## 📚 Documentation
 
-- App Router (Next.js), Tailwind, TypeScript
-- Prisma models for Tenant, User, Form, FormVersion, Theme, SubmissionEvent
-- Public APIs:
-  - GET `/api/forms/:publicId`
-  - POST `/api/forms/:publicId/submit` (forwards to n8n with HMAC; logs metadata only)
-- Public runtime page: `/f/:publicId` (basic schema renderer for text/email/number/boolean/textarea)
-- Middleware: HSTS (prod only) and CORS for public APIs
-- Submission limits: payload size and field count
+### Public Runtime (`/f/:publicId`)
+- Renders **JSON-schema** based forms OR **HTML Template** forms.
+- Auto-detects `[Token]` placeholders in HTML content.
+- Handles form validation and submission forwarding.
+- **Signature Handling**: Dynamically injects signature pads for mapped tokens of type `signature`.
 
-Security & Privacy (hard requirements)
---------------------------------------
+### Admin API
+- `GET /api/forms/:publicId`: Fetch form metadata and HTML content.
+- `POST /api/forms/:publicId/submit`: Forward submission to n8n.
+  - **Dynamic Validation**: Skips rigid schema validation for HTML template forms to support dynamic token fields (like `[Signature]`).
 
-- No answers stored in the DB or logs
-- HMAC signature headers to n8n: `X-Form-Signature`, `X-Form-Signature-Alg`, `X-Form-Signature-Ts`
-- Admin APIs are reserved for future authenticated endpoints
+### Token Modes
+When using the Form Builder (`/admin/forms/builder`), you can set tokens to:
+1. **Prefill**: Shows value from URL params or Prefill Webhook.
+2. **Manual**: Renders an input field `required`.
+3. **Signature**: Renders the interactive signature pad.
 
-Development notes
------------------
+## 🛠️ Development Details
 
-- Prisma client is generated to `src/generated/prisma`. Import via `@/generated/prisma`.
-- Public API responses exclude any sensitive data.
-- The relay reads the raw body to enforce size limits before parsing JSON.
+- **Stack**: Next.js 16 (Turbopack), Tailwind CSS, Prisma, TypeScript.
+- **Database**: PostgreSQL.
+- **Deployment**: Vercel-ready.
 
-Next steps
-----------
+### Recent Updates
+- **Signature Fix**: Replaced React Portals with direct DOM rendering to resolve mounting issues.
+- **Token Parser**: Added support for generic `[Bracket]` tokens in HTML templates (`html-template-parser.ts`).
+- **Validation**: Updated submission handler to support dynamic token fields without schema errors.
+- **Settings UI**: Added "Prefill Webhook" configuration to Form Settings.
 
-- Admin CRUD for forms, versions, tenants
-- Conditional logic, steps, repeatable sections in renderer
-- Anti-bot (hCaptcha/Turnstile), rate limiting
-- Usage dashboard based on `SubmissionEvent`
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+This is a [Next.js](https://nextjs.org) project.
