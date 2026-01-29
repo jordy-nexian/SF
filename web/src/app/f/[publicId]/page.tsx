@@ -276,7 +276,7 @@ function PublicFormContent() {
 
 			// Find all signature placeholder divs
 			const placeholders = formContainerRef.current.querySelectorAll('.signature-token-placeholder');
-			const tokens: Array<{ tokenId: string; label: string; element: HTMLElement }> = [];
+			const tokens: Array<{ tokenId: string; label: string }> = [];
 
 			placeholders.forEach((el) => {
 				const tokenId = el.getAttribute('data-token-id');
