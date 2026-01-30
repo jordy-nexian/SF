@@ -1,94 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type {
+	FormSchema as BaseFormSchema,
+	Field,
+	Step,
+	VisibilityCondition,
+} from "@/types/form-schema";
+import { getByPath, evaluateVisibility } from "@/types/form-schema";
 
-type FieldType =
-	| "text"
-	| "textarea"
-	| "email"
-	| "number"
-	| "boolean"
-	| "select"
-	| "radio"
-	| "checkboxGroup"
-	| "date"
-	| "repeatable";
-
-type ValidationRule = {
-	minLength?: number;
-	maxLength?: number;
-	pattern?: string;
-	min?: number;
-	max?: number;
-	required?: boolean;
-};
-
-type VisibilityCondition = {
-	field: string;
-	operator: "equals" | "not_equals" | "greater_than" | "less_than" | "in";
-	value: any;
-};
-
-type Field = {
-	key: string;
-	type: FieldType;
-	label: string;
-	helpText?: string;
-	required?: boolean;
-	validation?: ValidationRule;
-	options?: { value: string; label: string }[];
-	visibilityCondition?: VisibilityCondition;
-	itemFields?: Field[]; // repeatable
-};
-
-type Step = {
-	id: string;
-	title: string;
-	description?: string;
-	fields: string[];
-	visibilityCondition?: VisibilityCondition;
-};
-
-export type FormSchema = {
-	id: string;
-	version: number;
-	title: string;
-	description?: string;
-	steps?: Step[];
-	fields: Field[];
-	// Layout options
-	layout?: "single" | "two-column" | "card";
-	fieldStyle?: "outline" | "filled" | "underline";
-};
-
-function getByPath(obj: any, path: string) {
-	if (!path) return undefined;
-	const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-	return parts.reduce((acc, p) => (acc == null ? acc : acc[p]), obj);
-}
-
-function evaluateVisibility(
-	cond: VisibilityCondition | undefined,
-	values: Record<string, any>
-) {
-	if (!cond) return true;
-	const left = getByPath(values, cond.field);
-	const right = cond.value;
-	switch (cond.operator) {
-		case "equals":
-			return left === right;
-		case "not_equals":
-			return left !== right;
-		case "greater_than":
-			return Number(left) > Number(right);
-		case "less_than":
-			return Number(left) < Number(right);
-		case "in":
-			return Array.isArray(right) ? right.includes(left) : false;
-		default:
-			return true;
-	}
-}
+// Re-export FormSchema for backward compatibility with existing imports
+export type FormSchema = BaseFormSchema;
 
 // Styles that use CSS variables for theming
 const themedStyles = {
@@ -243,7 +165,7 @@ export default function FormRenderer({
 				try {
 					const re = new RegExp(rules.pattern);
 					if (!re.test(value)) return "Invalid format.";
-				} catch {}
+				} catch { }
 			}
 		}
 		if (typeof value === "number" && !Number.isNaN(value)) {
@@ -284,21 +206,21 @@ export default function FormRenderer({
 			: 0;
 
 	// Layout class based on schema setting
-	const layoutClass = layout === "two-column" 
-		? "grid grid-cols-1 md:grid-cols-2 gap-4" 
+	const layoutClass = layout === "two-column"
+		? "grid grid-cols-1 md:grid-cols-2 gap-4"
 		: layout === "card"
-		? "space-y-4"
-		: "space-y-3";
+			? "space-y-4"
+			: "space-y-3";
 
 	const renderField = (field: Field) => {
-		const wrapperStyle = layout === "card" 
+		const wrapperStyle = layout === "card"
 			? {
-					...themedStyles.fieldWrapper,
-					padding: "1rem",
-					backgroundColor: "var(--form-bg, #fff)",
-					border: "1px solid var(--form-border, #d1d5db)",
-					borderRadius: "var(--form-radius, 0.375rem)",
-				}
+				...themedStyles.fieldWrapper,
+				padding: "1rem",
+				backgroundColor: "var(--form-bg, #fff)",
+				border: "1px solid var(--form-border, #d1d5db)",
+				borderRadius: "var(--form-radius, 0.375rem)",
+			}
 			: themedStyles.fieldWrapper;
 
 		return (
@@ -307,79 +229,79 @@ export default function FormRenderer({
 					{field.label}
 					{field.required && <span style={{ color: "var(--form-error, #dc2626)" }}> *</span>}
 				</label>
-				
+
 				{field.type === "text" && (
-					<input 
+					<input
 						id={field.key}
 						type="text"
 						style={inputStyle}
-						value={values[field.key] ?? ""} 
+						value={values[field.key] ?? ""}
 						onChange={(e) => onChange(field.key, e.target.value)}
 						aria-invalid={!!errors[field.key]}
 						aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
 					/>
 				)}
-				
+
 				{field.type === "email" && (
-					<input 
+					<input
 						id={field.key}
 						type="email"
 						style={inputStyle}
-						value={values[field.key] ?? ""} 
+						value={values[field.key] ?? ""}
 						onChange={(e) => onChange(field.key, e.target.value)}
 						aria-invalid={!!errors[field.key]}
 						aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
 					/>
 				)}
-				
+
 				{field.type === "number" && (
-					<input 
+					<input
 						id={field.key}
 						type="number"
 						style={inputStyle}
-						value={values[field.key] ?? ""} 
+						value={values[field.key] ?? ""}
 						onChange={(e) => onChange(field.key, e.target.valueAsNumber)}
 						aria-invalid={!!errors[field.key]}
 						aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
 					/>
 				)}
-				
+
 				{field.type === "boolean" && (
 					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-						<input 
-							type="checkbox" 
+						<input
+							type="checkbox"
 							id={field.key}
-							style={{ 
-								width: "1.25rem", 
+							style={{
+								width: "1.25rem",
 								height: "1.25rem",
 								accentColor: "var(--form-primary, #000)",
-							}} 
-							checked={!!values[field.key]} 
-							onChange={(e) => onChange(field.key, e.target.checked)} 
+							}}
+							checked={!!values[field.key]}
+							onChange={(e) => onChange(field.key, e.target.checked)}
 						/>
 						{field.helpText && (
 							<span style={{ ...themedStyles.helpText, marginTop: 0 }}>{field.helpText}</span>
 						)}
 					</div>
 				)}
-				
+
 				{field.type === "textarea" && (
-					<textarea 
+					<textarea
 						id={field.key}
 						style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
-						rows={4} 
-						value={values[field.key] ?? ""} 
+						rows={4}
+						value={values[field.key] ?? ""}
 						onChange={(e) => onChange(field.key, e.target.value)}
 						aria-invalid={!!errors[field.key]}
 						aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
 					/>
 				)}
-				
+
 				{field.type === "select" && (
-					<select 
+					<select
 						id={field.key}
 						style={inputStyle}
-						value={values[field.key] ?? ""} 
+						value={values[field.key] ?? ""}
 						onChange={(e) => onChange(field.key, e.target.value)}
 						aria-invalid={!!errors[field.key]}
 						aria-describedby={errors[field.key] ? `${field.key}-error` : field.helpText ? `${field.key}-help` : undefined}
@@ -388,16 +310,16 @@ export default function FormRenderer({
 						{field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 					</select>
 				)}
-				
+
 				{field.type === "radio" && (
 					<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 						{field.options?.map((o) => (
 							<label key={o.value} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-								<input 
-									type="radio" 
-									name={field.key} 
-									value={o.value} 
-									checked={values[field.key] === o.value} 
+								<input
+									type="radio"
+									name={field.key}
+									value={o.value}
+									checked={values[field.key] === o.value}
 									onChange={(e) => onChange(field.key, e.target.value)}
 									style={{ accentColor: "var(--form-primary, #000)" }}
 								/>
@@ -406,7 +328,7 @@ export default function FormRenderer({
 						))}
 					</div>
 				)}
-				
+
 				{field.type === "checkboxGroup" && (
 					<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 						{field.options?.map((o) => {
@@ -414,16 +336,16 @@ export default function FormRenderer({
 							const checked = selected.includes(o.value);
 							return (
 								<label key={o.value} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-									<input 
-										type="checkbox" 
-										checked={checked} 
+									<input
+										type="checkbox"
+										checked={checked}
 										onChange={(e) => {
 											const next = new Set(selected);
 											if (e.target.checked) next.add(o.value); else next.delete(o.value);
 											onChange(field.key, Array.from(next));
 										}}
-										style={{ 
-											width: "1rem", 
+										style={{
+											width: "1rem",
 											height: "1rem",
 											accentColor: "var(--form-primary, #000)",
 										}}
@@ -434,19 +356,19 @@ export default function FormRenderer({
 						})}
 					</div>
 				)}
-				
+
 				{field.type === "date" && (
-					<input 
-						type="date" 
+					<input
+						type="date"
 						id={field.key}
 						style={inputStyle}
-						value={values[field.key] ?? ""} 
-						onChange={(e) => onChange(field.key, e.target.value)} 
+						value={values[field.key] ?? ""}
+						onChange={(e) => onChange(field.key, e.target.value)}
 					/>
 				)}
-				
+
 				{errors[field.key] && (
-					<p 
+					<p
 						style={themedStyles.error}
 						role="alert"
 						aria-live="polite"
@@ -455,7 +377,7 @@ export default function FormRenderer({
 						{errors[field.key]}
 					</p>
 				)}
-				
+
 				{field.helpText && field.type !== "boolean" && (
 					<p style={themedStyles.helpText} id={`${field.key}-help`}>
 						{field.helpText}
@@ -469,9 +391,9 @@ export default function FormRenderer({
 		<div style={{ fontFamily: "var(--form-font, system-ui)", color: "var(--form-text, #1f2937)" }}>
 			{usingSteps && visibleSteps.length > 0 && (
 				<div style={{ marginBottom: "1.5rem" }}>
-					<div style={{ 
-						display: "flex", 
-						justifyContent: "space-between", 
+					<div style={{
+						display: "flex",
+						justifyContent: "space-between",
 						fontSize: "0.875rem",
 						marginBottom: "0.5rem",
 						color: "var(--form-text, #1f2937)",
@@ -484,8 +406,8 @@ export default function FormRenderer({
 						<div style={{ ...themedStyles.progressBar.fill, width: `${progressPct}%` }} />
 					</div>
 					{visibleSteps[activeStepIdx]?.title && (
-						<h3 style={{ 
-							marginTop: "1rem", 
+						<h3 style={{
+							marginTop: "1rem",
 							fontSize: "var(--form-heading-size, 1.25rem)",
 							fontWeight: 600,
 						}}>
@@ -494,34 +416,34 @@ export default function FormRenderer({
 					)}
 				</div>
 			)}
-			
+
 			<form onSubmit={onSubmit}>
 				<div className={layoutClass}>
 					{currentFields.map(renderField)}
 				</div>
-				
+
 				{usingSteps ? (
-					<div style={{ 
-						display: "flex", 
-						justifyContent: "space-between", 
+					<div style={{
+						display: "flex",
+						justifyContent: "space-between",
 						marginTop: "1.5rem",
 						paddingTop: "1rem",
 						borderTop: "1px solid var(--form-border, #d1d5db)",
 					}}>
-						<button 
-							type="button" 
+						<button
+							type="button"
 							style={{
 								...themedStyles.button.secondary,
 								opacity: activeStepIdx === 0 ? 0.5 : 1,
 							}}
-							onClick={prevStep} 
+							onClick={prevStep}
 							disabled={activeStepIdx === 0}
 						>
 							Back
 						</button>
 						{activeStepIdx < visibleSteps.length - 1 ? (
-							<button 
-								type="button" 
+							<button
+								type="button"
 								style={themedStyles.button.primary}
 								onClick={nextStep}
 							>
@@ -541,10 +463,10 @@ export default function FormRenderer({
 					</div>
 				)}
 			</form>
-			
+
 			{submitMsg && (
-				<pre style={{ 
-					marginTop: "1rem", 
+				<pre style={{
+					marginTop: "1rem",
 					padding: "1rem",
 					backgroundColor: "var(--form-border, #f3f4f6)",
 					borderRadius: "var(--form-radius, 0.375rem)",
