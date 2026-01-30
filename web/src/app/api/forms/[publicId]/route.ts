@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { defaultTheme, type ThemeConfig } from '@/types/theme';
 import { selectVersion, type VersionWeight } from '@/lib/ab-testing';
+import { validateFormAccessToken } from '@/lib/form-access-token';
 import * as api from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,30 @@ export async function GET(
 
 		if (form.status === 'archived') {
 			return api.formArchived();
+		}
+
+		// Check if form is public (defaults to true for backwards compatibility)
+		const formSettings = form.settings as { isPublic?: boolean } | null;
+		const isPublic = formSettings?.isPublic ?? true;
+
+		// Security: Block access to private forms without valid token
+		if (!isPublic) {
+			const token = request.nextUrl.searchParams.get('token');
+
+			if (!token) {
+				return api.forbidden('This form requires an access token');
+			}
+
+			const tokenPayload = await validateFormAccessToken(token, publicId);
+
+			if (!tokenPayload) {
+				return api.forbidden('Invalid or expired access token');
+			}
+
+			// Verify token is for this tenant's form
+			if (tokenPayload.tenantId !== form.tenantId) {
+				return api.forbidden('Access token is not valid for this form');
+			}
 		}
 
 		// Check for A/B test
@@ -102,10 +127,6 @@ export async function GET(
 		const theme = tenantSettings?.theme
 			? { ...defaultTheme, ...tenantSettings.theme }
 			: defaultTheme;
-
-		// Check if form is public (defaults to true for backwards compatibility)
-		const formSettings = form.settings as { isPublic?: boolean } | null;
-		const isPublic = formSettings?.isPublic ?? true;
 
 		const settings = {
 			showProgressBar: true,
