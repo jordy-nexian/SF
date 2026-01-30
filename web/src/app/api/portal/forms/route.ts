@@ -1,6 +1,7 @@
 /**
  * GET /api/portal/forms
  * List all forms assigned to the current portal user.
+ * Supports both database mode and webhook mode (e.g., Quickbase integration).
  */
 
 import { NextResponse } from 'next/server';
@@ -10,6 +11,23 @@ import {
     verifyPortalSession,
     PORTAL_SESSION_COOKIE
 } from '@/lib/portal-auth';
+
+// Webhook response shape (same as admin customer page)
+interface WebhookFormData {
+    formName: string;
+    status: string;
+    publicId: string;
+    dueDate?: string | null;
+    completedAt?: string | null;
+}
+
+// Map webhook status strings to our enum format
+function mapWebhookStatus(status: string): 'pending' | 'in_progress' | 'completed' {
+    const normalized = status.toLowerCase().replace(/\s+/g, '_');
+    if (normalized === 'completed') return 'completed';
+    if (normalized === 'in_progress') return 'in_progress';
+    return 'pending'; // "not started" → pending
+}
 
 export async function GET() {
     try {
@@ -32,7 +50,65 @@ export async function GET() {
             );
         }
 
-        // Get all form assignments for this end customer
+        // Get tenant configuration to check for webhook
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: session.tenantId },
+            select: { customerWebhookUrl: true },
+        });
+
+        // Get customer email for webhook lookup
+        const customer = await prisma.endCustomer.findUnique({
+            where: { id: session.endCustomerId },
+            select: { email: true },
+        });
+
+        if (!customer) {
+            return NextResponse.json(
+                { error: 'Customer not found' },
+                { status: 404 }
+            );
+        }
+
+        // If tenant has webhook configured, fetch from external source
+        if (tenant?.customerWebhookUrl) {
+            try {
+                const response = await fetch(tenant.customerWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: customer.email }),
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Webhook returned ${response.status}`);
+                }
+
+                const webhookData: WebhookFormData[] = await response.json();
+
+                // Transform webhook data to match expected format
+                const forms = webhookData.map((wf, index) => ({
+                    assignmentId: `webhook-${index}`,
+                    formId: wf.publicId,
+                    publicId: wf.publicId,
+                    name: wf.formName,
+                    status: mapWebhookStatus(wf.status),
+                    dueDate: wf.dueDate || null,
+                    completedAt: wf.completedAt || null,
+                    createdAt: new Date().toISOString(),
+                }));
+
+                return NextResponse.json({
+                    forms,
+                    total: forms.length,
+                    source: 'webhook', // Indicate data source for debugging
+                });
+            } catch (error) {
+                console.error('[Portal Forms] Webhook fetch failed:', error);
+                // Fall through to database fallback
+            }
+        }
+
+        // Database fallback: Get all form assignments for this end customer
         const assignments = await prisma.formAssignment.findMany({
             where: {
                 endCustomerId: session.endCustomerId,
@@ -71,6 +147,7 @@ export async function GET() {
         return NextResponse.json({
             forms: activeForms,
             total: activeForms.length,
+            source: 'database', // Indicate data source for debugging
         });
     } catch (error) {
         console.error('[Portal Forms] List error:', error);
