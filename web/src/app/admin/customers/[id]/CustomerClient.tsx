@@ -181,24 +181,24 @@ export default function CustomerClient({ initialCustomer, tenantForms, isWebhook
                 </div>
 
                 <div className="flex gap-3">
+                    {/* Send Invite always available - works regardless of data source */}
+                    <button
+                        onClick={handleSendInvite}
+                        disabled={isInviteLoading}
+                        className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    >
+                        {isInviteLoading ? 'Sending...' : 'Send Invite'}
+                    </button>
+
                     {!isWebhookMode && (
-                        <>
-                            <button
-                                onClick={handleSendInvite}
-                                disabled={isInviteLoading}
-                                className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:bg-white/5 transition-colors disabled:opacity-50
-                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                            >
-                                {isInviteLoading ? 'Sending...' : 'Send Invite'}
-                            </button>
-                            <button
-                                onClick={() => setShowAssignModal(true)}
-                                className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors
-                                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                            >
-                                + Assign Form
-                            </button>
-                        </>
+                        <button
+                            onClick={() => setShowAssignModal(true)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors
+                                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        >
+                            + Assign Form
+                        </button>
                     )}
                     {isWebhookMode && (
                         <span className="px-3 py-1.5 text-xs font-medium bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">
