@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { defaultTheme, type ThemeConfig } from '@/types/theme';
 import { selectVersion, type VersionWeight } from '@/lib/ab-testing';
 import { validateFormAccessToken } from '@/lib/form-access-token';
+import { getPortalSessionFromCookies } from '@/lib/portal-auth';
 import * as api from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
@@ -52,23 +53,47 @@ export async function GET(
 		const formSettings = form.settings as { isPublic?: boolean } | null;
 		const isPublic = formSettings?.isPublic ?? true;
 
-		// Security: Block access to private forms without valid token
+		// Security: Block access to private forms without valid token or portal session
 		if (!isPublic) {
 			const token = request.nextUrl.searchParams.get('token');
 
-			if (!token) {
-				return api.forbidden('This form requires an access token');
-			}
+			if (token) {
+				// Validate access token
+				const tokenPayload = await validateFormAccessToken(token, publicId);
 
-			const tokenPayload = await validateFormAccessToken(token, publicId);
+				if (!tokenPayload) {
+					return api.forbidden('Invalid or expired access token');
+				}
 
-			if (!tokenPayload) {
-				return api.forbidden('Invalid or expired access token');
-			}
+				// Verify token is for this tenant's form
+				if (tokenPayload.tenantId !== form.tenantId) {
+					return api.forbidden('Access token is not valid for this form');
+				}
+			} else {
+				// No token - check for portal session as fallback
+				const portalSession = await getPortalSessionFromCookies(request.cookies);
 
-			// Verify token is for this tenant's form
-			if (tokenPayload.tenantId !== form.tenantId) {
-				return api.forbidden('Access token is not valid for this form');
+				if (!portalSession) {
+					// Return 401 so frontend can show magic link request flow
+					return api.unauthorized('Authentication required to access this form');
+				}
+
+				// Verify portal session is for this tenant
+				if (portalSession.tenantId !== form.tenantId) {
+					return api.forbidden('You do not have access to this form');
+				}
+
+				// Verify user is assigned to this form
+				const assignment = await prisma.formAssignment.findFirst({
+					where: {
+						formId: form.id,
+						endCustomerId: portalSession.endCustomerId,
+					},
+				});
+
+				if (!assignment) {
+					return api.forbidden('This form has not been assigned to you');
+				}
 			}
 		}
 

@@ -11,6 +11,7 @@ import { canReceiveSubmission } from '@/lib/usage';
 import { verifyTurnstileToken, isTurnstileEnabled } from '@/lib/captcha';
 import { createRequestLogger, generateRequestId, logSubmissionEvent, logWebhookEvent, logRateLimitEvent } from '@/lib/logger';
 import { verifyTenantToken } from '@/lib/tenant-token';
+import { getPortalSessionFromCookies } from '@/lib/portal-auth';
 import type { PlanId } from '@/lib/plans';
 import type { FormSchema } from '@/types/form-schema';
 import crypto from 'node:crypto';
@@ -165,7 +166,7 @@ export async function POST(
 	const tenant = form.tenant;
 
 	// Check IP allowlist/blocklist
-	const formSettings = form.settings as { ipAllowlist?: IpAllowlistConfig; requireTenantToken?: boolean } | null;
+	const formSettings = form.settings as { ipAllowlist?: IpAllowlistConfig; requireTenantToken?: boolean; isPublic?: boolean } | null;
 	const ipAllowlistConfig = formSettings?.ipAllowlist;
 	const ipCheck = isIpAllowed(clientIp, ipAllowlistConfig);
 	if (!ipCheck.allowed) {
@@ -179,14 +180,16 @@ export async function POST(
 		);
 	}
 
-	// Tenant token validation for Quickbase customer identification
+	// Authorization: Tenant token OR Portal session for private forms
 	// Token contains: { publicId, customerId, exp } signed with tenant.sharedSecret
 	let customerId: string | undefined;
+	let endCustomerId: string | undefined;
 	const tenantToken = (meta as Record<string, unknown>)?.tenantToken as string | undefined;
 	const requireTenantToken = formSettings?.requireTenantToken === true;
+	const isPublic = formSettings?.isPublic ?? true;
 
 	if (tenantToken) {
-		// Validate the token
+		// Validate the tenant token
 		const tokenResult = verifyTenantToken(tenantToken, tenant.sharedSecret, publicId);
 		if (!tokenResult.valid) {
 			const errorMessages: Record<string, string> = {
@@ -208,8 +211,68 @@ export async function POST(
 		}
 		customerId = tokenResult.payload?.customerId;
 		logger.debug({ customerId }, 'Tenant token validated');
+	} else if (!isPublic) {
+		// Private form without token - check portal session
+		const portalSession = await getPortalSessionFromCookies(request.cookies);
+
+		if (!portalSession) {
+			if (requireTenantToken) {
+				return NextResponse.json(
+					{
+						status: 'error',
+						submissionId,
+						message: 'This form requires a valid access token',
+						code: 'TOKEN_REQUIRED',
+					},
+					{ status: 401 }
+				);
+			}
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: 'Authentication required',
+					code: 'AUTH_REQUIRED',
+				},
+				{ status: 401 }
+			);
+		}
+
+		// Verify portal session is for this tenant
+		if (portalSession.tenantId !== form.tenantId) {
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: 'You do not have access to this form',
+				},
+				{ status: 403 }
+			);
+		}
+
+		// Verify user is assigned to this form
+		const assignment = await prisma.formAssignment.findFirst({
+			where: {
+				formId: form.id,
+				endCustomerId: portalSession.endCustomerId,
+			},
+		});
+
+		if (!assignment) {
+			return NextResponse.json(
+				{
+					status: 'error',
+					submissionId,
+					message: 'This form has not been assigned to you',
+				},
+				{ status: 403 }
+			);
+		}
+
+		endCustomerId = portalSession.endCustomerId;
+		logger.debug({ endCustomerId }, 'Portal session validated');
 	} else if (requireTenantToken) {
-		// Token is required but not provided
+		// Public form but token is explicitly required
 		return NextResponse.json(
 			{
 				status: 'error',
@@ -326,10 +389,11 @@ export async function POST(
 	}
 
 	// Build base payload (htmlContent and prefillData included for webhook/transforms)
-	// Inject customerId into meta if validated from tenant token
+	// Inject customerId and/or endCustomerId into meta if validated
 	const enrichedMeta = {
 		...(meta as Record<string, unknown> || {}),
 		...(customerId ? { customerId } : {}),
+		...(endCustomerId ? { endCustomerId } : {}),
 	};
 
 	const basePayload = {

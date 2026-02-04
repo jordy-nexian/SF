@@ -32,6 +32,52 @@ Dynamically populate forms with data from external systems.
 - **Middleware**: HSTS (prod) and CORS protection.
 - **Submission Limits**: Enforced payload size and field count limits.
 
+### 🔐 Webhook Signature Verification
+
+Submissions are forwarded to your n8n webhook with HMAC signatures for authenticity verification.
+
+#### Headers Sent
+| Header | Description |
+|--------|-------------|
+| `X-Form-Signature` | HMAC-SHA256 hex digest |
+| `X-Form-Signature-Alg` | Always `sha256` |
+| `X-Form-Signature-Ts` | **ISO 8601** timestamp (e.g., `2026-02-03T12:00:00.000Z`) |
+
+#### Verification Steps
+1. Extract the `X-Form-Signature-Ts` header (ISO 8601 string).
+2. **Replay Protection**: Reject if timestamp is older than 5 minutes.
+3. Compute: `HMAC-SHA256(timestamp + '.' + request_body, sharedSecret)`.
+4. Compare the result to `X-Form-Signature`.
+
+#### Example (Node.js)
+```javascript
+const crypto = require('crypto');
+
+function verifySignature(body, headers, sharedSecret) {
+  const timestamp = headers['x-form-signature-ts'];
+  const signature = headers['x-form-signature'];
+  
+  // Replay protection (5 minute window)
+  const ts = new Date(timestamp).getTime();
+  if (Date.now() - ts > 5 * 60 * 1000) {
+    return { valid: false, error: 'Timestamp too old' };
+  }
+  
+  // Verify signature
+  const expected = crypto
+    .createHmac('sha256', sharedSecret)
+    .update(timestamp + '.' + body, 'utf8')
+    .digest('hex');
+  
+  const valid = crypto.timingSafeEqual(
+    Buffer.from(signature, 'hex'),
+    Buffer.from(expected, 'hex')
+  );
+  
+  return { valid };
+}
+```
+
 ## 🚀 Quick Start
 
 ### 1. Requirements

@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         const customerId = searchParams.get('customerId');
         const formId = searchParams.get('formId');
         const status = searchParams.get('status');
+        const createdBy = searchParams.get('createdBy');
         const page = parseInt(searchParams.get('page') || '1');
         const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
         if (customerId) where.endCustomerId = customerId;
         if (formId) where.formId = formId;
         if (status) where.status = status;
+        if (createdBy) where.createdByUserId = createdBy;
 
         const [assignments, total] = await Promise.all([
             prisma.formAssignment.findMany({
@@ -55,6 +57,12 @@ export async function GET(request: NextRequest) {
                             status: true,
                         },
                     },
+                    createdByUser: {
+                        select: {
+                            id: true,
+                            email: true,
+                        },
+                    },
                 },
                 orderBy: { createdAt: 'desc' },
                 skip: (page - 1) * limit,
@@ -72,6 +80,9 @@ export async function GET(request: NextRequest) {
                 dueDate: a.dueDate?.toISOString() || null,
                 completedAt: a.completedAt?.toISOString() || null,
                 createdAt: a.createdAt.toISOString(),
+                createdByUser: (a as any).createdByUser || null,
+                approvalStep: (a as any).approvalStep || null,
+                totalSteps: (a as any).totalSteps || null,
             })),
             pagination: {
                 page,
@@ -151,13 +162,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create assignment
+        // Create assignment with creator tracking
         const assignment = await prisma.formAssignment.create({
             data: {
                 endCustomerId: body.endCustomerId,
                 formId: body.formId,
                 dueDate: body.dueDate ? new Date(body.dueDate) : null,
                 prefillData: body.prefillData || null,
+                createdByUserId: session.user.id,
+                approvalStep: body.approvalStep || null,
+                totalSteps: body.totalSteps || null,
             },
             include: {
                 endCustomer: {

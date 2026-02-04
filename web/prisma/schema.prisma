@@ -107,6 +107,7 @@ model User {
 
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   passwordResetTokens PasswordResetToken[]
+  createdAssignments  FormAssignment[]     @relation("AssignmentCreator")
 }
 
 model Form {
@@ -286,12 +287,21 @@ model FormAssignment {
   updatedAt           DateTime         @updatedAt
   completedAt         DateTime?
 
+  // R9: Track which admin created the assignment for cross-admin visibility
+  createdByUserId     String?
+
+  // R12: Multi-approver workflow support
+  approvalStep        Int?             // Current step in approval chain (1, 2, 3...)
+  totalSteps          Int?             // Total approvers needed for this form
+
   endCustomer   EndCustomer @relation(fields: [endCustomerId], references: [id], onDelete: Cascade)
   form          Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  createdByUser User?       @relation("AssignmentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@unique([endCustomerId, formId])
   @@index([endCustomerId])
   @@index([formId])
+  @@index([createdByUserId])
 }
 
 // Magic link tokens for passwordless portal auth

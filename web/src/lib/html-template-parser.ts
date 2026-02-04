@@ -80,7 +80,7 @@ export function replaceTokensWithValues(
  * 
  * @param html - The original HTML template
  * @param tokenValues - Map of tokenId -> value to insert (for prefill tokens)
- * @param tokenModes - Map of tokenId -> mode ("prefill" or "manual")
+ * @param tokenModes - Map of tokenId -> mode ("prefill", "manual", "signature", or "prefill_signature")
  * @returns HTML with prefill tokens as text and manual tokens as input fields
  */
 export function replaceTokensWithModes(
@@ -94,7 +94,37 @@ export function replaceTokensWithModes(
             const mode = tokenModes[tokenId] || 'prefill';
             const value = tokenValues[tokenId];
 
-            if (mode === 'signature') {
+            if (mode === 'prefill_signature') {
+                // R12: Display a previously captured signature as a read-only image
+                // Value should be a base64 data URL (e.g., "data:image/jpeg;base64,...")
+                if (value && value.startsWith('data:image')) {
+                    const placeholder = escapeHtml(label);
+                    return `<div 
+                        class="prefill-signature-display" 
+                        data-token-id="${tokenId}" 
+                        data-token-label="${placeholder}"
+                        data-token-mode="prefill_signature"
+                        style="display: inline-block; min-width: 320px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;"
+                    >
+                        <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">
+                            ${placeholder} (Signed)
+                        </div>
+                        <img 
+                            src="${value}" 
+                            alt="${placeholder}" 
+                            style="max-width: 300px; max-height: 150px; border: 1px solid #e2e8f0; border-radius: 4px; background: white;"
+                        />
+                    </div>`;
+                }
+                // If no value, fall back to showing an empty placeholder
+                return `<div 
+                    class="prefill-signature-display prefill-signature-empty" 
+                    data-token-id="${tokenId}"
+                    style="display: inline-block; min-width: 320px; min-height: 100px; padding: 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; color: #94a3b8; text-align: center; line-height: 80px;"
+                >
+                    Awaiting signature
+                </div>`;
+            } else if (mode === 'signature') {
                 // Render a placeholder div that React will hydrate with SignaturePad
                 const placeholder = escapeHtml(label);
                 return `<div 
