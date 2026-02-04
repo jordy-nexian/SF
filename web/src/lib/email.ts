@@ -227,3 +227,92 @@ ${portalUrl}
 		text,
 	});
 }
+
+/**
+ * Send a team invitation email
+ */
+export async function sendTeamInviteEmail(
+	email: string,
+	tempPassword: string,
+	tenantName: string,
+	inviterName?: string
+): Promise<SendEmailResult> {
+	const displayName = tenantName || 'Stateless Forms';
+	const inviterText = inviterName ? `${inviterName} has invited you` : 'You have been invited';
+
+	// Ensure absolute URL (default to localhost if not set)
+	const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+	const loginUrl = `${baseUrl}/signin`;
+
+	const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Join ${displayName}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(to right, #6366f1, #8b5cf6); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">${displayName}</h1>
+  </div>
+  
+  <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 12px 12px;">
+    <h2 style="color: #1e293b; margin-top: 0;">Welcome to the Team!</h2>
+    
+    <p>${inviterText} to join <strong>${displayName}</strong> on Stateless Forms.</p>
+    
+    <div style="background: #white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 25px 0;">
+      <p style="margin-top: 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Your Temporary Credentials</p>
+      
+      <p style="margin-bottom: 5px;"><strong>Email:</strong> ${email}</p>
+      <p style="margin-top: 0;"><strong>Password:</strong> <code style="font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; color: #0f172a;">${tempPassword}</code></p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(to right, #6366f1, #8b5cf6); color: white; text-decoration: none; padding: 14px 32px; border-radius: 9999px; font-weight: 600;">
+        Log In Now
+      </a>
+    </div>
+    
+    <p style="color: #64748b; font-size: 14px;">
+      Please log in and change your password immediately.
+    </p>
+    
+    <p style="color: #64748b; font-size: 14px;">
+      If the button doesn't work, copy and paste this URL into your browser:<br>
+      <a href="${loginUrl}" style="color: #6366f1; word-break: break-all;">${loginUrl}</a>
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+    
+    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+      © ${new Date().getFullYear()} ${displayName}.
+    </p>
+  </div>
+</body>
+</html>
+`;
+
+	const text = `
+Welcome to ${displayName}!
+
+${inviterText} to join the team.
+
+Here are your temporary credentials:
+Email: ${email}
+Password: ${tempPassword}
+
+Log in here:
+${loginUrl}
+
+Please log in and change your password immediately.
+`;
+
+	return sendEmail({
+		to: email,
+		subject: `You've been invited to join ${displayName}`,
+		html,
+		text,
+	});
+}

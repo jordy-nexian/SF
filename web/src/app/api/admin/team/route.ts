@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 		where: { id: session.userId },
 		select: { role: true },
 	});
-	
+
 	if (!currentUser || !["owner", "admin"].includes(currentUser.role)) {
 		return NextResponse.json(
 			{ error: "Only owners and admins can invite team members" },
@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
 		);
 	}
 
-	// Get tenant plan
+	// Get tenant plan and name
 	const tenant = await prisma.tenant.findUnique({
 		where: { id: session.tenantId },
-		select: { plan: true },
+		select: { plan: true, name: true },
 	});
 	const plan = (tenant?.plan || 'free') as PlanId;
 
@@ -108,8 +108,15 @@ export async function POST(req: NextRequest) {
 		},
 	});
 
-	// In a real app, you'd send an email with the temp password
-	// For now, return it (only in development)
+	// Send invitation email
+	const { sendTeamInviteEmail } = await import('@/lib/email');
+	await sendTeamInviteEmail(
+		email,
+		tempPassword,
+		tenant?.name || 'Stateless Forms'
+	);
+
+	// Return success (include temp password ONLY in dev for convenience)
 	const response: { userId: string; email: string; tempPassword?: string } = {
 		userId: user.id,
 		email: user.email,
