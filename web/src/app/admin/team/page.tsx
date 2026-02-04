@@ -64,7 +64,12 @@ export default function TeamPage() {
 				return;
 			}
 
-			setSuccess(`Invited ${email} successfully`);
+			// Display password if returned (for manual sharing until email is configured)
+			if (data.tempPassword) {
+				setSuccess(`Invited ${email} successfully. Temporary password: ${data.tempPassword}`);
+			} else {
+				setSuccess(`Invited ${email} successfully. They will receive an email with login instructions.`);
+			}
 			setEmail("");
 			setShowInvite(false);
 
@@ -115,7 +120,7 @@ export default function TeamPage() {
 					<button
 						onClick={() => setShowInvite(true)}
 						className="px-4 py-2 rounded-full text-sm font-medium text-white transition-all"
-						style={{ 
+						style={{
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 							boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
 						}}
@@ -127,10 +132,10 @@ export default function TeamPage() {
 
 			{usage && (
 				<div className="mb-6">
-					<UsageWarning 
-						current={usage.limits.teamMembers.current} 
-						limit={usage.limits.teamMembers.limit} 
-						type="team members" 
+					<UsageWarning
+						current={usage.limits.teamMembers.current}
+						limit={usage.limits.teamMembers.limit}
+						type="team members"
 					/>
 				</div>
 			)}
@@ -220,9 +225,9 @@ export default function TeamPage() {
 							<tr key={member.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
 								<td className="px-4 py-3 text-sm text-white">{member.email}</td>
 								<td className="px-4 py-3">
-									<span 
+									<span
 										className="px-2 py-0.5 rounded text-xs font-medium"
-										style={{ 
+										style={{
 											background: member.role === 'owner' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(99, 102, 241, 0.2)',
 											color: member.role === 'owner' ? '#a78bfa' : '#818cf8'
 										}}

@@ -116,16 +116,11 @@ export async function POST(req: NextRequest) {
 		tenant?.name || 'Stateless Forms'
 	);
 
-	// Return success (include temp password ONLY in dev for convenience)
-	const response: { userId: string; email: string; tempPassword?: string } = {
+	// Return success with temp password (until domain verified for email sending)
+	return NextResponse.json({
 		userId: user.id,
 		email: user.email,
-	};
-
-	if (process.env.NODE_ENV === "development") {
-		response.tempPassword = tempPassword;
-	}
-
-	return NextResponse.json(response, { status: 201 });
+		tempPassword,
+	}, { status: 201 });
 }
 
