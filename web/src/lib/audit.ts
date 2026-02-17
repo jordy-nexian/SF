@@ -16,13 +16,18 @@ export type AuditAction =
 	| "version.activated"
 	| "theme.updated"
 	| "settings.updated"
-	| "webhook.tested";
+	| "webhook.tested"
+	| "wizard.created"
+	| "wizard.template_selected"
+	| "wizard.prefilled"
+	| "wizard.assigned"
+	| "wizard.cancelled";
 
 export type AuditLogEntry = {
 	tenantId: string;
 	userId: string;
 	action: AuditAction;
-	resourceType: "form" | "version" | "theme" | "settings";
+	resourceType: "form" | "version" | "theme" | "settings" | "wizard";
 	resourceId: string;
 	metadata?: Record<string, unknown>;
 	ipAddress?: string;

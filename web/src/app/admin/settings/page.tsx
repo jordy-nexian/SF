@@ -23,6 +23,8 @@ export default function TenantSettingsPage() {
 	const [tenantName, setTenantName] = useState("");
 	const [defaultWebhookUrl, setDefaultWebhookUrl] = useState("");
 	const [customerWebhookUrl, setCustomerWebhookUrl] = useState("");
+	const [wipLookupWebhookUrl, setWipLookupWebhookUrl] = useState("");
+	const [wipPrefillWebhookUrl, setWipPrefillWebhookUrl] = useState("");
 	const [sharedSecret, setSharedSecret] = useState("");
 
 	useEffect(() => {
@@ -33,6 +35,8 @@ export default function TenantSettingsPage() {
 					setTenantName(data.name || "");
 					setDefaultWebhookUrl(data.defaultN8nWebhookUrl || "");
 					setCustomerWebhookUrl(data.customerWebhookUrl || "");
+					setWipLookupWebhookUrl(data.wipLookupWebhookUrl || "");
+					setWipPrefillWebhookUrl(data.wipPrefillWebhookUrl || "");
 					setSharedSecret(data.sharedSecret || "");
 				}
 			})
@@ -53,6 +57,8 @@ export default function TenantSettingsPage() {
 					name: tenantName,
 					defaultN8nWebhookUrl: defaultWebhookUrl || null,
 					customerWebhookUrl: customerWebhookUrl || null,
+					wipLookupWebhookUrl: wipLookupWebhookUrl || null,
+					wipPrefillWebhookUrl: wipPrefillWebhookUrl || null,
 				}),
 			});
 
@@ -200,6 +206,50 @@ export default function TenantSettingsPage() {
   "publicId": "form-public-id"
 }]`}
 							</pre>
+						</div>
+					</div>
+				</div>
+
+				{/* WIP Wizard Webhooks */}
+				<div className="rounded-xl p-6" style={cardStyle}>
+					<h2 className="mb-4 font-semibold text-white">WIP Wizard Webhooks</h2>
+					<p className="mb-4 text-xs" style={{ color: '#64748b' }}>
+						Configure n8n webhooks for the WIP-based form assignment wizard.
+						These webhooks connect to Quickbase via n8n to look up WIP data and prefill form fields.
+					</p>
+					<div className="space-y-4">
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								WIP Lookup Webhook URL
+							</label>
+							<input
+								type="url"
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={inputStyle}
+								value={wipLookupWebhookUrl}
+								onChange={(e) => setWipLookupWebhookUrl(e.target.value)}
+								placeholder="https://your-n8n.com/webhook/wip-lookup"
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								Stage 1: Receives a WIP number, queries Quickbase, returns client/project context.
+							</p>
+						</div>
+
+						<div>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
+								WIP Prefill Webhook URL
+							</label>
+							<input
+								type="url"
+								className="w-full rounded-lg px-3 py-2.5 font-mono text-sm focus:outline-none"
+								style={inputStyle}
+								value={wipPrefillWebhookUrl}
+								onChange={(e) => setWipPrefillWebhookUrl(e.target.value)}
+								placeholder="https://your-n8n.com/webhook/wip-prefill"
+							/>
+							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
+								Stage 3: Receives form field keys + WIP number, returns populated values from Quickbase.
+							</p>
 						</div>
 					</div>
 				</div>

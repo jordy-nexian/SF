@@ -57,6 +57,15 @@ enum AssignmentStatus {
   completed
 }
 
+enum WizardState {
+  wip_lookup
+  template_selected
+  prefilled
+  assigned
+  cancelled
+  error
+}
+
 model Tenant {
   id                     String   @id @default(cuid())
   name                   String
@@ -74,6 +83,10 @@ model Tenant {
   
   // Customer data integration
   customerWebhookUrl     String?  // Webhook URL for fetching customer forms from Quickbase
+
+  // WIP Wizard webhooks (n8n → Quickbase)
+  wipLookupWebhookUrl    String?  // n8n webhook for WIP lookup (Stage 1)
+  wipPrefillWebhookUrl   String?  // n8n webhook for prefill by WIP (Stage 3)
   
   // Subscription fields
   stripeCustomerId       String?  @unique
@@ -94,6 +107,7 @@ model Tenant {
   submissionEvents       SubmissionEvent[]
   htmlTemplates          HtmlTemplate[]
   endCustomers           EndCustomer[]
+  wizardRuns             WizardRun[]
 }
 
 model User {
@@ -108,6 +122,7 @@ model User {
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   passwordResetTokens PasswordResetToken[]
   createdAssignments  FormAssignment[]     @relation("AssignmentCreator")
+  wizardRuns          WizardRun[]          @relation("WizardCreator")
 }
 
 model Form {
@@ -152,6 +167,7 @@ model FormVersion {
 
   form           Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   asCurrentOf    Form[]   @relation("CurrentFormVersion")
+  wizardRuns     WizardRun[]
 
   @@unique([formId, versionNumber])
 }
@@ -235,6 +251,7 @@ model HtmlTemplate {
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   mappings        TokenMapping[]
   forms           Form[]   @relation("FormTemplate")
+  wizardRuns      WizardRun[]
 
   @@index([tenantId])
 }
@@ -268,6 +285,7 @@ model EndCustomer {
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assignments FormAssignment[]
   magicLinks  MagicLinkToken[]
+  wizardRuns  WizardRun[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -294,9 +312,13 @@ model FormAssignment {
   approvalStep        Int?             // Current step in approval chain (1, 2, 3...)
   totalSteps          Int?             // Total approvers needed for this form
 
+  // WIP Wizard link
+  wizardRunId         String?          @unique
+
   endCustomer   EndCustomer @relation(fields: [endCustomerId], references: [id], onDelete: Cascade)
   form          Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
   createdByUser User?       @relation("AssignmentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  wizardRun     WizardRun?  @relation(fields: [wizardRunId], references: [id])
 
   @@unique([endCustomerId, formId])
   @@index([endCustomerId])
@@ -317,4 +339,49 @@ model MagicLinkToken {
 
   @@index([token])
   @@index([endCustomerId])
+}
+
+// WIP Wizard runs — tracks the 4-stage form assignment wizard
+model WizardRun {
+  id                String       @id @default(cuid())
+  tenantId          String
+  createdByUserId   String
+
+  // Stage 1 — WIP Lookup
+  wipNumber         String
+  wipContext        Json?        // Raw WIP data from n8n/Quickbase
+
+  // Stage 2 — Template Selection
+  templateId        String?
+  pinnedVersionId   String?      // Snapshot of FormVersion.id at selection time
+
+  // Stage 3 — Prefill
+  prefillData       Json?        // {tokenId: {key, label, value}}
+  prefillSource     String?      // "n8n_quickbase" | "manual"
+
+  // Stage 4 — Assignment
+  assignmentId      String?      @unique
+  endCustomerId     String?
+  inviteSent        Boolean      @default(false)
+
+  // State machine
+  state             WizardState  @default(wip_lookup)
+  errorMessage      String?
+
+  // Timestamps
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy         User          @relation("WizardCreator", fields: [createdByUserId], references: [id])
+  template          HtmlTemplate? @relation(fields: [templateId], references: [id])
+  pinnedVersion     FormVersion?  @relation(fields: [pinnedVersionId], references: [id])
+  assignment        FormAssignment?
+  endCustomer       EndCustomer?  @relation(fields: [endCustomerId], references: [id])
+
+  @@index([tenantId, state])
+  @@index([tenantId, wipNumber])
+  @@index([createdByUserId])
 }

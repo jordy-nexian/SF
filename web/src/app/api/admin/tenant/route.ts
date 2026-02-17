@@ -21,6 +21,8 @@ export async function GET() {
 			customDomain: true,
 			customDomainVerified: true,
 			customerWebhookUrl: true,
+			wipLookupWebhookUrl: true,
+			wipPrefillWebhookUrl: true,
 		},
 	});
 
@@ -47,6 +49,8 @@ const updateSchema = z.object({
 	name: z.string().min(1).optional(),
 	defaultN8nWebhookUrl: z.string().url().nullable().optional(),
 	customerWebhookUrl: z.string().url().nullable().optional(),
+	wipLookupWebhookUrl: z.string().url().nullable().optional(),
+	wipPrefillWebhookUrl: z.string().url().nullable().optional(),
 });
 
 // PUT update tenant settings
@@ -83,6 +87,14 @@ export async function PUT(req: NextRequest) {
 		updateData.customerWebhookUrl = parsed.data.customerWebhookUrl;
 	}
 
+	if (parsed.data.wipLookupWebhookUrl !== undefined) {
+		updateData.wipLookupWebhookUrl = parsed.data.wipLookupWebhookUrl;
+	}
+
+	if (parsed.data.wipPrefillWebhookUrl !== undefined) {
+		updateData.wipPrefillWebhookUrl = parsed.data.wipPrefillWebhookUrl;
+	}
+
 	const updated = await prisma.tenant.update({
 		where: { id: session.tenantId },
 		data: updateData,
@@ -91,6 +103,8 @@ export async function PUT(req: NextRequest) {
 			name: true,
 			defaultN8nWebhookUrl: true,
 			customerWebhookUrl: true,
+			wipLookupWebhookUrl: true,
+			wipPrefillWebhookUrl: true,
 		},
 	});
 
