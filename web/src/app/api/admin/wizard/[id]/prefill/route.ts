@@ -2,6 +2,8 @@
  * POST /api/admin/wizard/[id]/prefill
  * Stage 3: Extract prefill-eligible tokens from the pinned template version,
  * send field descriptors + WIP number to n8n, receive populated values.
+ *
+ * DEV BYPASS: WIP "1111" returns mock values for all prefill tokens.
  */
 
 import { NextRequest } from 'next/server';
@@ -13,6 +15,8 @@ import { logAuditEvent } from '@/lib/audit';
 import * as api from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
+
+const DEV_WIP = '1111';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -79,47 +83,70 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Extract prefill-eligible fields (mode = "prefill")
         const prefillMappings = wizardRun.template.mappings.filter(
-            (m) => m.mode === 'prefill'
+            (m: { mode: string }) => m.mode === 'prefill'
         );
 
-        const fields = prefillMappings.map((m) => ({
+        const fields = prefillMappings.map((m: { payloadKey: string; tokenLabel: string; tokenId: string }) => ({
             key: m.payloadKey,
             label: m.tokenLabel,
             tokenId: m.tokenId,
         }));
 
-        // Get tenant config for n8n webhook
-        const tenant = await prisma.tenant.findUnique({
-            where: { id: session.tenantId },
-            select: {
-                wipPrefillWebhookUrl: true,
-                sharedSecret: true,
-            },
-        });
-
         let n8nValues: Record<string, string> = {};
         let unmappedTokenIds: string[] = [];
         let prefillSource = 'manual';
 
-        // If webhook is configured, try n8n prefill
-        if (tenant?.wipPrefillWebhookUrl && fields.length > 0) {
-            try {
-                const n8nResponse = await prefillFromWip(
-                    tenant.wipPrefillWebhookUrl,
-                    wizardRun.wipNumber,
-                    session.tenantId,
-                    tenant.sharedSecret,
-                    fields
-                );
+        if (wizardRun.wipNumber === DEV_WIP) {
+            // --- DEV BYPASS: generate mock values for all prefill fields ---
+            console.log('[Wizard] DEV BYPASS active for prefill (WIP "1111")');
+            const mockValues: Record<string, string> = {
+                'company_name': 'Acme Corporation',
+                'client_name': 'Sarah Chen',
+                'client_email': 'test@example.com',
+                'project_name': 'Demo Project WIP-1111',
+                'address': '123 Test Street, London',
+                'phone': '+44 7700 900000',
+                'date': new Date().toLocaleDateString('en-GB'),
+                'amount': '£25,000.00',
+                'reference': 'REF-1111-TEST',
+                'description': 'Test form prefill via dev bypass',
+            };
 
-                if (n8nResponse.success && n8nResponse.values) {
-                    n8nValues = n8nResponse.values;
-                    unmappedTokenIds = n8nResponse.unmapped || [];
-                    prefillSource = 'n8n_quickbase';
+            for (const field of fields) {
+                // Match by payloadKey first, then fill with a sensible default
+                n8nValues[field.tokenId] = mockValues[field.key]
+                    || `[Test: ${field.label}]`;
+            }
+            prefillSource = 'dev_bypass';
+        } else {
+            // --- PRODUCTION: call n8n ---
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: session.tenantId },
+                select: {
+                    wipPrefillWebhookUrl: true,
+                    sharedSecret: true,
+                },
+            });
+
+            if (tenant?.wipPrefillWebhookUrl && fields.length > 0) {
+                try {
+                    const n8nResponse = await prefillFromWip(
+                        tenant.wipPrefillWebhookUrl,
+                        wizardRun.wipNumber,
+                        session.tenantId,
+                        tenant.sharedSecret,
+                        fields
+                    );
+
+                    if (n8nResponse.success && n8nResponse.values) {
+                        n8nValues = n8nResponse.values;
+                        unmappedTokenIds = n8nResponse.unmapped || [];
+                        prefillSource = 'n8n_quickbase';
+                    }
+                } catch (error) {
+                    console.error('[Wizard] Prefill n8n call failed:', error);
+                    // Continue with empty prefill — admin can fill manually
                 }
-            } catch (error) {
-                console.error('[Wizard] Prefill n8n call failed:', error);
-                // Continue with empty prefill — admin can fill manually
             }
         }
 
@@ -141,8 +168,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Identify non-prefill tokens (manual/signature)
         const nonPrefillTokens = wizardRun.template.mappings
-            .filter((m) => m.mode !== 'prefill')
-            .map((m) => ({
+            .filter((m: { mode: string }) => m.mode !== 'prefill')
+            .map((m: { tokenId: string; tokenLabel: string; mode: string }) => ({
                 tokenId: m.tokenId,
                 label: m.tokenLabel,
                 mode: m.mode,
