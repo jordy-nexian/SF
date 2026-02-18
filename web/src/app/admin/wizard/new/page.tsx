@@ -69,6 +69,7 @@ export default function NewWizardPage() {
     const [prefillData, setPrefillData] = useState<Record<string, PrefillEntry>>({});
     const [unmappedTokens, setUnmappedTokens] = useState<Array<{ tokenId: string; label: string; mode: string }>>([]);
     const [htmlPreview, setHtmlPreview] = useState<string>("");
+    const [showPrefillFields, setShowPrefillFields] = useState(false);
 
     // Stage 4
     const [customerEmail, setCustomerEmail] = useState("");
@@ -495,37 +496,68 @@ export default function NewWizardPage() {
                             </p>
                         ) : (
                             <>
-                                {/* Editable prefill fields */}
-                                <div className="mb-4 space-y-3">
-                                    {Object.entries(prefillData).map(([tokenId, entry]) => (
-                                        <div key={tokenId}>
-                                            <label
-                                                className="mb-1 block text-xs font-medium"
-                                                style={{ color: "#94a3b8" }}
-                                            >
-                                                {entry.label}{" "}
-                                                <span className="font-mono text-xs" style={{ color: "#64748b" }}>
-                                                    ({entry.key})
-                                                </span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                                style={inputStyle}
-                                                value={entry.value}
-                                                onChange={(e) =>
-                                                    setPrefillData((prev) => ({
-                                                        ...prev,
-                                                        [tokenId]: {
-                                                            ...prev[tokenId],
-                                                            value: e.target.value,
-                                                        },
-                                                    }))
-                                                }
-                                            />
-                                        </div>
-                                    ))}
+                                {/* Prefill summary + toggle */}
+                                <div
+                                    className="mb-4 rounded-lg p-3"
+                                    style={{
+                                        background: "rgba(16, 185, 129, 0.08)",
+                                        border: "1px solid rgba(16, 185, 129, 0.2)",
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm" style={{ color: "#94a3b8" }}>
+                                            <span style={{ color: "#10b981" }}>✓</span>{" "}
+                                            {Object.values(prefillData).filter((d) => d.value).length} of{" "}
+                                            {Object.keys(prefillData).length} fields populated
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPrefillFields(!showPrefillFields)}
+                                            className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
+                                            style={{
+                                                border: "1px solid #334155",
+                                                color: showPrefillFields ? "#818cf8" : "#94a3b8",
+                                                background: showPrefillFields ? "rgba(99, 102, 241, 0.1)" : "transparent",
+                                            }}
+                                        >
+                                            {showPrefillFields ? "Hide fields ▲" : "Edit values ▼"}
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Editable prefill fields (hidden by default) */}
+                                {showPrefillFields && (
+                                    <div className="mb-4 space-y-3">
+                                        {Object.entries(prefillData).map(([tokenId, entry]) => (
+                                            <div key={tokenId}>
+                                                <label
+                                                    className="mb-1 block text-xs font-medium"
+                                                    style={{ color: "#94a3b8" }}
+                                                >
+                                                    {entry.label}{" "}
+                                                    <span className="font-mono text-xs" style={{ color: "#64748b" }}>
+                                                        ({entry.key})
+                                                    </span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                                    style={inputStyle}
+                                                    value={entry.value}
+                                                    onChange={(e) =>
+                                                        setPrefillData((prev) => ({
+                                                            ...prev,
+                                                            [tokenId]: {
+                                                                ...prev[tokenId],
+                                                                value: e.target.value,
+                                                            },
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {/* Unmapped tokens warning */}
                                 {unmappedTokens.length > 0 && (
