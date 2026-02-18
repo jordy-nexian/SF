@@ -22,7 +22,8 @@ interface CallOptions {
 /**
  * Generic n8n webhook caller with HMAC signing and timeout.
  */
-async function callN8nWebhook<T>(options: CallOptions): Promise<T> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function callN8nWebhook<T = any>(options: CallOptions): Promise<T> {
     const { webhookUrl, payload, sharedSecret } = options;
     const body = JSON.stringify(payload);
 
@@ -62,7 +63,7 @@ async function callN8nWebhook<T>(options: CallOptions): Promise<T> {
 }
 
 /**
- * Normalised WIP lookup result (after parsing the n8n array response).
+ * Normalised WIP lookup result (after parsing the n8n response).
  */
 export interface WipLookupResult {
     found: boolean;
@@ -75,10 +76,10 @@ export interface WipLookupResult {
 /**
  * Stage 1: Look up a WIP number via n8n → Quickbase.
  *
- * n8n returns a JSON array, e.g.:
- *   [{"WIPNumber": 54321, "CompanyName": "Brunel University", ...}]
- *
- * We normalise the first record into a flat WipLookupResult.
+ * Handles multiple n8n response shapes:
+ *   Array:   [{"WIPNumber": 54321, "CompanyName": "Brunel University"}]
+ *   Object:  {"WIPNumber": 54321, "CompanyName": "Brunel University"}
+ *   Wrapped: {"data": [{"WIPNumber": 54321, ...}]}
  */
 export async function lookupWip(
     webhookUrl: string,
@@ -92,16 +93,35 @@ export async function lookupWip(
         tenantId,
     };
 
-    const raw = await callN8nWebhook<N8nWipLookupRawResponse>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any = await callN8nWebhook({
         webhookUrl,
         payload,
         sharedSecret,
     });
 
-    // n8n returns an array — grab the first record
-    const records = Array.isArray(raw) ? raw : [];
+    // Debug: log the raw response shape so we can see what n8n sends
+    console.log('[Wizard] n8n raw response type:', typeof raw, Array.isArray(raw) ? `array[${raw.length}]` : '');
+    console.log('[Wizard] n8n raw response:', JSON.stringify(raw).slice(0, 500));
+
+    // Normalise: extract records from various n8n response formats
+    let records: N8nWipLookupRawResponse = [];
+
+    if (Array.isArray(raw)) {
+        // Format: [{WIPNumber: ..., CompanyName: ...}]
+        records = raw;
+    } else if (raw && typeof raw === 'object') {
+        if (Array.isArray(raw.data)) {
+            // Format: {data: [{WIPNumber: ..., CompanyName: ...}]}
+            records = raw.data;
+        } else if (raw.WIPNumber !== undefined) {
+            // Format: {WIPNumber: 54321, CompanyName: "..."} (single object)
+            records = [raw];
+        }
+    }
 
     if (records.length === 0) {
+        console.log('[Wizard] No records found in n8n response');
         return { found: false, metadata: {} };
     }
 
