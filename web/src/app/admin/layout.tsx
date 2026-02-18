@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							<NavLink href="/admin/billing">Billing</NavLink>
 							<NavLink href="/admin/settings">Settings</NavLink>
 							<Link
-								href="/admin/forms/builder"
+								href="/admin/wizard/new"
 								className="ml-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-[0.98] active:opacity-90"
 								style={{
 									background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
