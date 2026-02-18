@@ -50,7 +50,7 @@ export default async function AdminHome() {
 						Templates
 					</Link>
 					<Link
-						href="/admin/forms/builder"
+						href="/admin/new"
 						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 						style={{
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
