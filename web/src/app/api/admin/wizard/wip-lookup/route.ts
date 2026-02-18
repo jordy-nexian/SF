@@ -3,6 +3,7 @@
  * Stage 1: Look up a WIP number via n8n → Quickbase.
  * Creates a new WizardRun record.
  *
+ * n8n response format: [{WIPNumber: 54321, CompanyName: "Brunel University", ...}]
  * DEV BYPASS: WIP number "1111" returns mock data without calling n8n.
  */
 
@@ -19,9 +20,8 @@ export const dynamic = 'force-dynamic';
 // Dev bypass: when WIP = "1111", skip n8n and return mock data
 const DEV_WIP = '1111';
 const DEV_WIP_CONTEXT = {
-    clientName: 'Test Client (Dev Bypass)',
-    projectName: 'Demo Project WIP-1111',
-    clientEmail: 'test@example.com',
+    companyName: 'Test Client (Dev Bypass)',
+    wipNumber: 1111,
     metadata: {
         department: 'Engineering',
         priority: 'High',
@@ -69,22 +69,21 @@ export async function POST(request: NextRequest) {
             }
 
             try {
-                const n8nResponse = await lookupWip(
+                const result = await lookupWip(
                     tenant.wipLookupWebhookUrl,
                     wipNumber,
                     session.tenantId,
                     tenant.sharedSecret
                 );
 
-                if (!n8nResponse.found) {
+                if (!result.found) {
                     return api.notFound(`WIP "${wipNumber}" not found in Quickbase`);
                 }
 
                 wipContext = {
-                    clientName: n8nResponse.clientName,
-                    projectName: n8nResponse.projectName,
-                    clientEmail: n8nResponse.clientEmail,
-                    metadata: n8nResponse.metadata,
+                    companyName: result.companyName,
+                    wipNumber: result.wipNumber,
+                    metadata: result.metadata,
                 };
             } catch (error) {
                 console.error('[Wizard] WIP lookup failed:', error);

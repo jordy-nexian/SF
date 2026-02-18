@@ -72,14 +72,16 @@ export interface WipPrefillPayload {
     }>;
 }
 
-export interface N8nWipLookupResponse {
-    found: boolean;
-    clientName?: string;
-    projectName?: string;
-    clientEmail?: string;
-    metadata?: Record<string, unknown>;
-    error?: string;
+// n8n returns an array of Quickbase records, e.g.:
+// [{"WIPNumber": 54321, "CompanyName": "Brunel University", ...}]
+export interface N8nWipLookupRecord {
+    WIPNumber: number | string;
+    CompanyName?: string;
+    [key: string]: unknown; // any extra fields from Quickbase
 }
+
+// Raw response is an array; we normalise it in wizard-n8n.ts
+export type N8nWipLookupRawResponse = N8nWipLookupRecord[];
 
 export interface N8nPrefillResponse {
     success: boolean;

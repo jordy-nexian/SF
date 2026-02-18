@@ -5,9 +5,8 @@ import Link from "next/link";
 
 // --- Types ---
 interface WipContext {
-    clientName?: string;
-    projectName?: string;
-    clientEmail?: string;
+    companyName?: string;
+    wipNumber?: number | string;
     metadata?: Record<string, unknown>;
 }
 
@@ -99,9 +98,9 @@ export default function NewWizardPage() {
             setWizardRunId(data.data.wizardRunId);
             setWipContext(data.data.wipContext);
 
-            // Prefill email from WIP context if available
-            if (data.data.wipContext?.clientEmail) {
-                setCustomerEmail(data.data.wipContext.clientEmail);
+            // Prefill company name as customer name if available
+            if (data.data.wipContext?.companyName) {
+                setCustomerName(data.data.wipContext.companyName);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to look up WIP");
@@ -360,24 +359,12 @@ export default function NewWizardPage() {
                     >
                         <div className="flex justify-between">
                             <span style={{ color: "#94a3b8" }}>WIP Number</span>
-                            <span className="font-mono text-white">{wipNumber}</span>
+                            <span className="font-mono text-white">{wipContext.wipNumber ?? wipNumber}</span>
                         </div>
-                        {wipContext.clientName && (
+                        {wipContext.companyName && (
                             <div className="flex justify-between">
-                                <span style={{ color: "#94a3b8" }}>Client</span>
-                                <span className="text-white">{wipContext.clientName}</span>
-                            </div>
-                        )}
-                        {wipContext.projectName && (
-                            <div className="flex justify-between">
-                                <span style={{ color: "#94a3b8" }}>Project</span>
-                                <span className="text-white">{wipContext.projectName}</span>
-                            </div>
-                        )}
-                        {wipContext.clientEmail && (
-                            <div className="flex justify-between">
-                                <span style={{ color: "#94a3b8" }}>Email</span>
-                                <span className="text-white">{wipContext.clientEmail}</span>
+                                <span style={{ color: "#94a3b8" }}>Company</span>
+                                <span className="text-white">{wipContext.companyName}</span>
                             </div>
                         )}
                         {wipContext.metadata &&

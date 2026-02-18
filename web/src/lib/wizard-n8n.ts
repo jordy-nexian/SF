@@ -7,7 +7,7 @@ import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 import type {
     WipLookupPayload,
     WipPrefillPayload,
-    N8nWipLookupResponse,
+    N8nWipLookupRawResponse,
     N8nPrefillResponse,
 } from '@/lib/wizard-validation';
 
@@ -62,25 +62,60 @@ async function callN8nWebhook<T>(options: CallOptions): Promise<T> {
 }
 
 /**
+ * Normalised WIP lookup result (after parsing the n8n array response).
+ */
+export interface WipLookupResult {
+    found: boolean;
+    companyName?: string;
+    wipNumber?: string | number;
+    /** All extra fields from Quickbase are stored here */
+    metadata: Record<string, unknown>;
+}
+
+/**
  * Stage 1: Look up a WIP number via n8n → Quickbase.
+ *
+ * n8n returns a JSON array, e.g.:
+ *   [{"WIPNumber": 54321, "CompanyName": "Brunel University", ...}]
+ *
+ * We normalise the first record into a flat WipLookupResult.
  */
 export async function lookupWip(
     webhookUrl: string,
     wipNumber: string,
     tenantId: string,
     sharedSecret: string
-): Promise<N8nWipLookupResponse> {
+): Promise<WipLookupResult> {
     const payload: WipLookupPayload = {
         action: 'wip_lookup',
         wipNumber,
         tenantId,
     };
 
-    return callN8nWebhook<N8nWipLookupResponse>({
+    const raw = await callN8nWebhook<N8nWipLookupRawResponse>({
         webhookUrl,
         payload,
         sharedSecret,
     });
+
+    // n8n returns an array — grab the first record
+    const records = Array.isArray(raw) ? raw : [];
+
+    if (records.length === 0) {
+        return { found: false, metadata: {} };
+    }
+
+    const record = records[0];
+
+    // Pull out the known fields, put everything else in metadata
+    const { WIPNumber, CompanyName, ...rest } = record;
+
+    return {
+        found: true,
+        wipNumber: WIPNumber,
+        companyName: CompanyName,
+        metadata: rest,
+    };
 }
 
 /**
