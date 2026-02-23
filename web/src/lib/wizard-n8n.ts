@@ -140,6 +140,10 @@ export async function lookupWip(
 
 /**
  * Stage 3: Request prefill values for form fields via n8n → Quickbase.
+ *
+ * Handles multiple n8n response shapes (same as lookupWip):
+ *   Array:   [{ success: true, values: { ... } }]
+ *   Object:  { success: true, values: { ... } }
  */
 export async function prefillFromWip(
     webhookUrl: string,
@@ -155,9 +159,30 @@ export async function prefillFromWip(
         fields,
     };
 
-    return callN8nWebhook<N8nPrefillResponse>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any = await callN8nWebhook({
         webhookUrl,
         payload,
         sharedSecret,
     });
+
+    // Debug: log the raw response shape
+    console.log('[Wizard] prefill raw response type:', typeof raw, Array.isArray(raw) ? `array[${raw.length}]` : '');
+    console.log('[Wizard] prefill raw response:', JSON.stringify(raw).slice(0, 500));
+
+    // Normalise: n8n often wraps responses in an array
+    let result: N8nPrefillResponse;
+
+    if (Array.isArray(raw) && raw.length > 0) {
+        // Format: [{ success: true, values: { ... } }]
+        result = raw[0] as N8nPrefillResponse;
+    } else if (raw && typeof raw === 'object' && 'success' in raw) {
+        // Format: { success: true, values: { ... } }
+        result = raw as N8nPrefillResponse;
+    } else {
+        console.warn('[Wizard] Unexpected prefill response shape, returning error');
+        result = { success: false, error: 'Unexpected response format from n8n' };
+    }
+
+    return result;
 }
