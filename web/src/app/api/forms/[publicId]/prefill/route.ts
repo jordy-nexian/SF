@@ -1,12 +1,19 @@
 import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import * as api from '@/lib/api-response';
 import { validateWebhookUrl } from '@/lib/webhook-validation';
+import { verifyPortalSession, PORTAL_SESSION_COOKIE } from '@/lib/portal-auth';
+import { prefillFromWip } from '@/lib/wizard-n8n';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Prefill API - Fetches data from configured webhook and returns mapped values
+ * 
+ * Two prefill paths:
+ * 1. Portal user with wizard assignment → re-calls n8n with WIP number (no data stored)
+ * 2. Public form with prefillWebhookUrl → existing webhook-based prefill
  * 
  * Webhook returns format: [{"label": "...", "value": ...}, ...]
  * 
@@ -30,6 +37,7 @@ export async function GET(
                 status: true,
                 prefillWebhookUrl: true,
                 prefillFieldMappings: true,
+                tenantId: true,
                 template: {
                     select: {
                         id: true,
@@ -50,17 +58,110 @@ export async function GET(
             return api.notFound('Form not found');
         }
 
-        // Only live forms can be prefilled
-        if (form.status !== 'live') {
-            return api.badRequest('Form is not published');
-        }
-
-        // Build tokenModes from template mappings (needed regardless of webhook)
+        // Build tokenModes from template mappings (needed regardless of prefill path)
         const tokenModes: Record<string, string> = {};
         if (form.template?.mappings) {
             for (const mapping of form.template.mappings) {
                 tokenModes[mapping.tokenId] = mapping.mode || 'prefill';
             }
+        }
+
+        // --- Path 1: Portal user with wizard assignment → live n8n prefill ---
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get(PORTAL_SESSION_COOKIE);
+
+        if (sessionCookie?.value) {
+            const session = await verifyPortalSession(sessionCookie.value);
+
+            if (session) {
+                // Look up the FormAssignment → WizardRun chain
+                const assignment = await prisma.formAssignment.findFirst({
+                    where: {
+                        endCustomerId: session.endCustomerId,
+                        formId: form.id,
+                    },
+                    select: {
+                        wizardRun: {
+                            select: {
+                                wipNumber: true,
+                                tenantId: true,
+                                template: {
+                                    select: {
+                                        mappings: {
+                                            select: {
+                                                tokenId: true,
+                                                tokenLabel: true,
+                                                payloadKey: true,
+                                                mode: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                });
+
+                if (assignment?.wizardRun) {
+                    const { wizardRun } = assignment;
+
+                    // Get tenant's n8n webhook config
+                    const tenant = await prisma.tenant.findUnique({
+                        where: { id: wizardRun.tenantId },
+                        select: {
+                            wipPrefillWebhookUrl: true,
+                            sharedSecret: true,
+                        },
+                    });
+
+                    if (tenant?.wipPrefillWebhookUrl && wizardRun.template?.mappings) {
+                        // Build prefill fields from template mappings (same as wizard Stage 3)
+                        const prefillMappings = wizardRun.template.mappings.filter(
+                            (m: { mode: string }) => m.mode === 'prefill'
+                        );
+
+                        const fields = prefillMappings.map(
+                            (m: { payloadKey: string; tokenLabel: string; tokenId: string }) => ({
+                                key: m.payloadKey,
+                                label: m.tokenLabel,
+                                tokenId: m.tokenId,
+                            })
+                        );
+
+                        if (fields.length > 0) {
+                            try {
+                                const n8nResponse = await prefillFromWip(
+                                    tenant.wipPrefillWebhookUrl,
+                                    wizardRun.wipNumber,
+                                    wizardRun.tenantId,
+                                    tenant.sharedSecret,
+                                    fields
+                                );
+
+                                if (n8nResponse.success && n8nResponse.values) {
+                                    // n8n returns values keyed by tokenId — exactly what the frontend needs
+                                    return api.success({
+                                        prefillData: n8nResponse.values,
+                                        tokenModes,
+                                        source: 'wip_webhook',
+                                    });
+                                }
+                            } catch (error) {
+                                console.error('[Prefill] WIP webhook call failed:', error);
+                                // Fall through to other prefill methods
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Path 2: Standard webhook-based prefill (public forms) ---
+
+        // Only live forms can use the standard prefill webhook
+        if (form.status !== 'live') {
+            // For non-live forms without a wizard assignment, return tokenModes only
+            return api.success({ prefillData: {}, tokenModes });
         }
 
         // If no prefill webhook configured, return empty prefill but still return tokenModes

@@ -69,46 +69,7 @@ export async function GET() {
             );
         }
 
-        // If tenant has webhook configured, fetch from external source
-        if (tenant?.customerWebhookUrl) {
-            try {
-                const response = await fetch(tenant.customerWebhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: customer.email }),
-                    cache: 'no-store',
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Webhook returned ${response.status}`);
-                }
-
-                const webhookData: WebhookFormData[] = await response.json();
-
-                // Transform webhook data to match expected format
-                const forms = webhookData.map((wf, index) => ({
-                    assignmentId: `webhook-${index}`,
-                    formId: wf.publicId,
-                    publicId: wf.publicId,
-                    name: wf.formName,
-                    status: mapWebhookStatus(wf.status),
-                    dueDate: wf.dueDate || null,
-                    completedAt: wf.completedAt || null,
-                    createdAt: new Date().toISOString(),
-                }));
-
-                return NextResponse.json({
-                    forms,
-                    total: forms.length,
-                    source: 'webhook', // Indicate data source for debugging
-                });
-            } catch (error) {
-                console.error('[Portal Forms] Webhook fetch failed:', error);
-                // Fall through to database fallback
-            }
-        }
-
-        // Database fallback: Get all form assignments for this end customer
+        // Always query DB assignments (wizard-created assignments live here)
         const assignments = await prisma.formAssignment.findMany({
             where: {
                 endCustomerId: session.endCustomerId,
@@ -130,24 +91,65 @@ export async function GET() {
             ],
         });
 
-        // Filter to only show live forms
-        const activeForms = assignments
-            .filter(a => a.form.status === 'live')
-            .map(a => ({
-                assignmentId: a.id,
-                formId: a.form.id,
-                publicId: a.form.publicId,
-                name: a.form.name,
-                status: a.status,
-                dueDate: a.dueDate?.toISOString() || null,
-                completedAt: a.completedAt?.toISOString() || null,
-                createdAt: a.createdAt.toISOString(),
-            }));
+        // All assigned forms should be visible — the assignment itself is the access gate
+        const dbForms = assignments.map(a => ({
+            assignmentId: a.id,
+            formId: a.form.id,
+            publicId: a.form.publicId,
+            name: a.form.name,
+            status: a.status as string,
+            dueDate: a.dueDate?.toISOString() || null,
+            completedAt: a.completedAt?.toISOString() || null,
+            createdAt: a.createdAt.toISOString(),
+        }));
+
+        // If tenant has webhook configured, fetch from external source and merge
+        let webhookForms: typeof dbForms = [];
+        let source = 'database';
+
+        if (tenant?.customerWebhookUrl) {
+            try {
+                const response = await fetch(tenant.customerWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: customer.email }),
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Webhook returned ${response.status}`);
+                }
+
+                const webhookData: WebhookFormData[] = await response.json();
+
+                // Transform webhook data to match expected format
+                webhookForms = webhookData.map((wf, index) => ({
+                    assignmentId: `webhook-${index}`,
+                    formId: wf.publicId,
+                    publicId: wf.publicId,
+                    name: wf.formName,
+                    status: mapWebhookStatus(wf.status),
+                    dueDate: wf.dueDate || null,
+                    completedAt: wf.completedAt || null,
+                    createdAt: new Date().toISOString(),
+                }));
+
+                source = 'merged';
+            } catch (error) {
+                console.error('[Portal Forms] Webhook fetch failed:', error);
+                // Continue with DB-only results
+            }
+        }
+
+        // Merge: start with webhook forms, then add DB-only forms (dedup by publicId)
+        const seenPublicIds = new Set(webhookForms.map(f => f.publicId));
+        const dbOnlyForms = dbForms.filter(f => !seenPublicIds.has(f.publicId));
+        const mergedForms = [...webhookForms, ...dbOnlyForms];
 
         return NextResponse.json({
-            forms: activeForms,
-            total: activeForms.length,
-            source: 'database', // Indicate data source for debugging
+            forms: mergedForms,
+            total: mergedForms.length,
+            source,
         });
     } catch (error) {
         console.error('[Portal Forms] List error:', error);
