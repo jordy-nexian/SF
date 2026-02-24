@@ -5,6 +5,12 @@ import * as api from '@/lib/api-response';
 import { validateWebhookUrl } from '@/lib/webhook-validation';
 import { verifyPortalSession, PORTAL_SESSION_COOKIE } from '@/lib/portal-auth';
 import { prefillFromWip } from '@/lib/wizard-n8n';
+import {
+    createHmacSignature,
+    buildSignatureHeaders,
+    extractSignatureHeaders,
+    verifyHmacSignature,
+} from '@/lib/hmac';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +28,7 @@ export const dynamic = 'force-dynamic';
  * 2. TokenMappings from linked HtmlTemplate - auto from template
  * 3. Direct key match - fallback for flat objects
  */
-export async function GET(
+export async function POST(
     request: NextRequest,
     context: { params: Promise<{ publicId: string }> }
 ) {
@@ -169,12 +175,9 @@ export async function GET(
             return api.success({ prefillData: {}, tokenModes });
         }
 
-        // Forward query parameters to webhook (e.g., ?id=XYZ)
-        const searchParams = request.nextUrl.searchParams;
+        // Forward request body parameters to webhook
+        const requestBody = await request.json().catch(() => ({}));
         const webhookUrl = new URL(form.prefillWebhookUrl);
-        searchParams.forEach((value, key) => {
-            webhookUrl.searchParams.append(key, value);
-        });
 
         // SSRF protection: validate webhook URL before fetch
         const webhookValidation = validateWebhookUrl(webhookUrl.origin);
@@ -183,18 +186,34 @@ export async function GET(
             return api.badRequest('Invalid prefill webhook configuration');
         }
 
+        // Get tenant's shared secret for HMAC signing
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: form.tenantId },
+            select: { sharedSecret: true },
+        });
+
+        if (!tenant) {
+            return api.internalError('Tenant configuration not found');
+        }
+
         // Fetch from webhook with timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
         let webhookData: any;
         try {
+            const outboundBody = JSON.stringify(requestBody);
+            const hmac = createHmacSignature(outboundBody, tenant.sharedSecret);
+            const signatureHeaders = buildSignatureHeaders(hmac);
+
             const response = await fetch(webhookUrl.toString(), {
-                method: 'GET',
+                method: 'POST',
                 headers: {
-                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'User-Agent': 'StatelessForms/1.0',
+                    ...signatureHeaders,
                 },
+                body: outboundBody,
                 signal: controller.signal,
             });
             clearTimeout(timeoutId);
@@ -204,7 +223,20 @@ export async function GET(
                 return api.success({ prefillData: {}, error: 'Webhook unavailable' });
             }
 
-            webhookData = await response.json();
+            // Verify inbound HMAC signature
+            const rawBody = await response.text();
+            const sigHeaders = extractSignatureHeaders(response);
+            if (!sigHeaders) {
+                console.error(`[Prefill] HMAC mismatch: missing signature headers on webhook response for form ${form.id}`);
+                return api.success({ prefillData: {}, error: 'HMAC mismatch: missing signature headers' });
+            }
+            const verification = verifyHmacSignature(rawBody, sigHeaders, tenant.sharedSecret);
+            if (!verification.valid) {
+                console.error(`[Prefill] ${verification.error}`);
+                return api.success({ prefillData: {}, error: verification.error });
+            }
+
+            webhookData = JSON.parse(rawBody);
         } catch (fetchError: any) {
             clearTimeout(timeoutId);
             console.error('Webhook fetch error:', fetchError.message);

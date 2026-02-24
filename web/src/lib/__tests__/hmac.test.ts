@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import crypto from 'node:crypto';
-import { createHmacSignature, buildSignatureHeaders, type HmacHeader } from '../hmac';
+import { createHmacSignature, buildSignatureHeaders, verifyHmacSignature, extractSignatureHeaders, type HmacHeader } from '../hmac';
 
 describe('createHmacSignature', () => {
 	const mockDate = new Date('2024-01-15T10:30:00.000Z');
@@ -153,5 +153,145 @@ describe('HMAC integration', () => {
 		const expectedSignature = hmac.digest('hex');
 
 		expect(headers['X-Form-Signature']).toBe(expectedSignature);
+	});
+});
+
+describe('extractSignatureHeaders', () => {
+	it('extracts all three headers from a Response', () => {
+		const response = new Response('body', {
+			headers: {
+				'X-Form-Signature': 'sig123',
+				'X-Form-Signature-Alg': 'sha256',
+				'X-Form-Signature-Ts': '2024-01-15T10:30:00.000Z',
+			},
+		});
+		expect(extractSignatureHeaders(response)).toEqual({
+			signature: 'sig123',
+			algorithm: 'sha256',
+			timestamp: '2024-01-15T10:30:00.000Z',
+		});
+	});
+
+	it('returns null when signature header is missing', () => {
+		const response = new Response('body', {
+			headers: {
+				'X-Form-Signature-Alg': 'sha256',
+				'X-Form-Signature-Ts': '2024-01-15T10:30:00.000Z',
+			},
+		});
+		expect(extractSignatureHeaders(response)).toBeNull();
+	});
+
+	it('returns null when algorithm header is missing', () => {
+		const response = new Response('body', {
+			headers: {
+				'X-Form-Signature': 'sig123',
+				'X-Form-Signature-Ts': '2024-01-15T10:30:00.000Z',
+			},
+		});
+		expect(extractSignatureHeaders(response)).toBeNull();
+	});
+
+	it('returns null when timestamp header is missing', () => {
+		const response = new Response('body', {
+			headers: {
+				'X-Form-Signature': 'sig123',
+				'X-Form-Signature-Alg': 'sha256',
+			},
+		});
+		expect(extractSignatureHeaders(response)).toBeNull();
+	});
+});
+
+describe('verifyHmacSignature', () => {
+	const secret = 'test-secret-key';
+	const body = '{"data":"hello"}';
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2024-01-15T12:00:00.000Z'));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('accepts a valid round-trip signature', () => {
+		const headers = createHmacSignature(body, secret);
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(true);
+		expect(result.error).toBeUndefined();
+	});
+
+	it('rejects a wrong signature with HMAC mismatch error', () => {
+		const headers = createHmacSignature(body, secret);
+		headers.signature = 'a'.repeat(64);
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('HMAC mismatch');
+		expect(result.error).toContain('signature does not match');
+	});
+
+	it('rejects tampered body', () => {
+		const headers = createHmacSignature(body, secret);
+		const result = verifyHmacSignature('{"data":"TAMPERED"}', headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('HMAC mismatch');
+	});
+
+	it('rejects wrong secret', () => {
+		const headers = createHmacSignature(body, secret);
+		const result = verifyHmacSignature(body, headers, 'wrong-secret');
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('HMAC mismatch');
+	});
+
+	it('rejects unsupported algorithm', () => {
+		const headers = createHmacSignature(body, secret);
+		(headers as any).algorithm = 'md5';
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('unsupported algorithm');
+		expect(result.error).toContain('md5');
+	});
+
+	it('rejects invalid timestamp format', () => {
+		const headers = createHmacSignature(body, secret);
+		headers.timestamp = 'not-a-date';
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('invalid timestamp');
+	});
+
+	it('rejects expired timestamp (>5 min)', () => {
+		const headers = createHmacSignature(body, secret);
+		vi.setSystemTime(new Date('2024-01-15T12:06:00.000Z'));
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('timestamp expired');
+		expect(result.error).toContain('exceeds 300s');
+	});
+
+	it('accepts timestamp just within 5 min window', () => {
+		const headers = createHmacSignature(body, secret);
+		vi.setSystemTime(new Date('2024-01-15T12:04:59.000Z'));
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(true);
+	});
+
+	it('respects custom maxAgeSec parameter', () => {
+		const headers = createHmacSignature(body, secret);
+		vi.setSystemTime(new Date('2024-01-15T12:00:31.000Z'));
+		const result = verifyHmacSignature(body, headers, secret, 30);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('exceeds 30s');
+	});
+
+	it('rejects signature with wrong length', () => {
+		const headers = createHmacSignature(body, secret);
+		headers.signature = 'tooshort';
+		const result = verifyHmacSignature(body, headers, secret);
+		expect(result.valid).toBe(false);
+		expect(result.error).toContain('signature length mismatch');
 	});
 });

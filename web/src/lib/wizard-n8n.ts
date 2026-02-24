@@ -3,7 +3,7 @@
  * All Quickbase access goes through n8n — we never call QB directly.
  */
 
-import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
+import { createHmacSignature, buildSignatureHeaders, extractSignatureHeaders, verifyHmacSignature } from '@/lib/hmac';
 import type {
     WipLookupPayload,
     WipPrefillPayload,
@@ -51,7 +51,21 @@ async function callN8nWebhook<T = any>(options: CallOptions): Promise<T> {
             throw new Error(`n8n returned ${response.status}: ${errorText}`);
         }
 
-        return await response.json() as T;
+        // Read raw body first for HMAC verification
+        const rawBody = await response.text();
+
+        // Verify inbound HMAC signature
+        const sigHeaders = extractSignatureHeaders(response);
+        if (!sigHeaders) {
+            throw new Error('HMAC mismatch: missing signature headers on n8n response (X-Form-Signature, X-Form-Signature-Alg, X-Form-Signature-Ts)');
+        }
+
+        const verification = verifyHmacSignature(rawBody, sigHeaders, sharedSecret);
+        if (!verification.valid) {
+            throw new Error(`n8n response verification failed: ${verification.error}`);
+        }
+
+        return JSON.parse(rawBody) as T;
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
             throw new Error('n8n webhook timed out after 10 seconds');

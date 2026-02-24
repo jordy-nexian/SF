@@ -11,6 +11,12 @@ import {
     verifyPortalSession,
     PORTAL_SESSION_COOKIE
 } from '@/lib/portal-auth';
+import {
+    createHmacSignature,
+    buildSignatureHeaders,
+    extractSignatureHeaders,
+    verifyHmacSignature,
+} from '@/lib/hmac';
 
 // Webhook response shape (same as admin customer page)
 interface WebhookFormData {
@@ -53,7 +59,7 @@ export async function GET() {
         // Get tenant configuration to check for webhook
         const tenant = await prisma.tenant.findUnique({
             where: { id: session.tenantId },
-            select: { customerWebhookUrl: true },
+            select: { customerWebhookUrl: true, sharedSecret: true },
         });
 
         // Get customer email for webhook lookup
@@ -109,10 +115,17 @@ export async function GET() {
 
         if (tenant?.customerWebhookUrl) {
             try {
+                const requestBody = JSON.stringify({ email: customer.email });
+                const hmac = createHmacSignature(requestBody, tenant.sharedSecret);
+                const signatureHeaders = buildSignatureHeaders(hmac);
+
                 const response = await fetch(tenant.customerWebhookUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: customer.email }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...signatureHeaders,
+                    },
+                    body: requestBody,
                     cache: 'no-store',
                 });
 
@@ -120,7 +133,20 @@ export async function GET() {
                     throw new Error(`Webhook returned ${response.status}`);
                 }
 
-                const webhookData: WebhookFormData[] = await response.json();
+                // Verify inbound HMAC signature
+                const rawBody = await response.text();
+                const sigHeaders = extractSignatureHeaders(response);
+                if (!sigHeaders) {
+                    console.error('[Portal Forms] HMAC mismatch: missing signature headers on webhook response');
+                    throw new Error('HMAC mismatch: missing signature headers');
+                }
+                const verification = verifyHmacSignature(rawBody, sigHeaders, tenant.sharedSecret);
+                if (!verification.valid) {
+                    console.error(`[Portal Forms] ${verification.error}`);
+                    throw new Error(verification.error);
+                }
+
+                const webhookData: WebhookFormData[] = JSON.parse(rawBody);
 
                 // Transform webhook data to match expected format
                 webhookForms = webhookData.map((wf, index) => ({

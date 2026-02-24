@@ -208,9 +208,15 @@ function PublicFormContent() {
 
 				// Fetch prefill data from webhook (if configured)
 				// Always attempt prefill - query params are forwarded if present
-				const queryString = window.location.search || '';
+				const queryParams: Record<string, string> = {};
+				const urlParams = new URLSearchParams(window.location.search);
+				urlParams.forEach((value, key) => { queryParams[key] = value; });
 				setPrefilling(true);
-				fetch(`/api/forms/${publicId}/prefill${queryString}`)
+				fetch(`/api/forms/${publicId}/prefill`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(queryParams),
+				})
 					.then(res => res.json())
 					.then(prefillResponse => {
 						if (prefillResponse.success && prefillResponse.data?.prefillData) {
