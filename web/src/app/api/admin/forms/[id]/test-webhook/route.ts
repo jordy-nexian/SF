@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
-import { createHmacSignature, buildSignatureHeaders } from "@/lib/hmac";
+import { createHmacSignature, buildSignatureHeaders, extractSignatureHeaders, verifyHmacSignature } from "@/lib/hmac";
 import { validateWebhookUrl } from "@/lib/webhook-validation";
 import crypto from "node:crypto";
 
@@ -91,12 +91,29 @@ export async function POST(
 
 		const responseText = await res.text().catch(() => "");
 
+		// Verify inbound HMAC signature on response
+		let hmacVerified = false;
+		let hmacError: string | undefined;
+		const sigHeaders = extractSignatureHeaders(res);
+		if (!sigHeaders) {
+			hmacError = 'HMAC mismatch: missing signature headers on response';
+		} else {
+			const verification = verifyHmacSignature(responseText, sigHeaders, form.tenant.sharedSecret);
+			if (verification.valid) {
+				hmacVerified = true;
+			} else {
+				hmacError = verification.error;
+			}
+		}
+
 		return NextResponse.json({
-			success: res.ok,
+			success: res.ok && hmacVerified,
 			status: res.status,
 			statusText: res.statusText,
 			durationMs,
-			response: responseText.slice(0, 500), // Limit response size
+			hmacVerified,
+			...(hmacError ? { hmacError } : {}),
+			response: responseText.slice(0, 500),
 		});
 	} catch (err: unknown) {
 		const errorMessage = err instanceof Error ? err.message : "Unknown error";

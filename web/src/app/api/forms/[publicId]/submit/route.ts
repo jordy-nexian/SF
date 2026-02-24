@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
+import { createHmacSignature, buildSignatureHeaders, extractSignatureHeaders, verifyHmacSignature } from '@/lib/hmac';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import { validateWebhookUrl } from '@/lib/webhook-validation';
 import { validateSubmission } from '@/lib/schema-validation';
@@ -422,7 +422,7 @@ export async function POST(
 	const tenantIdForHeaders = tenant.id;
 
 	// Helper to send webhook
-	async function sendWebhook(url: string): Promise<{ status?: number; success: boolean }> {
+	async function sendWebhook(url: string): Promise<{ status?: number; success: boolean; hmacError?: string }> {
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), FORWARD_TIMEOUT_MS);
 		try {
@@ -438,7 +438,25 @@ export async function POST(
 				},
 				signal: controller.signal,
 			});
-			return { status: res.status, success: res.ok };
+
+			if (!res.ok) {
+				return { status: res.status, success: false };
+			}
+
+			// Verify inbound HMAC signature on response
+			const rawBody = await res.text();
+			const sigHeaders = extractSignatureHeaders(res);
+			if (!sigHeaders) {
+				logger.error({ url: '[masked]' }, 'HMAC mismatch: missing signature headers on webhook response');
+				return { status: res.status, success: false, hmacError: 'HMAC mismatch: missing signature headers' };
+			}
+			const verification = verifyHmacSignature(rawBody, sigHeaders, tenant.sharedSecret);
+			if (!verification.valid) {
+				logger.error({ url: '[masked]', error: verification.error }, 'Webhook response HMAC verification failed');
+				return { status: res.status, success: false, hmacError: verification.error };
+			}
+
+			return { status: res.status, success: true };
 		} catch {
 			return { status: undefined, success: false };
 		} finally {
