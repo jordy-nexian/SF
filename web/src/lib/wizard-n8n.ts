@@ -91,9 +91,10 @@ export interface WipLookupResult {
  * Stage 1: Look up a WIP number via n8n → Quickbase.
  *
  * Handles multiple n8n response shapes:
- *   Array:   [{"WIPNumber": 54321, "CompanyName": "Brunel University"}]
- *   Object:  {"WIPNumber": 54321, "CompanyName": "Brunel University"}
- *   Wrapped: {"data": [{"WIPNumber": 54321, ...}]}
+ *   Values:  [{"values": {"WIPNumber": 54321, "CompanyName": "..."}}]   ← preferred
+ *   Array:   [{"WIPNumber": 54321, "CompanyName": "..."}]               ← legacy
+ *   Object:  {"WIPNumber": 54321, "CompanyName": "..."}                 ← legacy
+ *   Wrapped: {"data": [{"WIPNumber": 54321, ...}]}                      ← legacy
  */
 export async function lookupWip(
     webhookUrl: string,
@@ -122,10 +123,18 @@ export async function lookupWip(
     let records: N8nWipLookupRawResponse = [];
 
     if (Array.isArray(raw)) {
-        // Format: [{WIPNumber: ..., CompanyName: ...}]
-        records = raw;
+        // Check if first element uses `values` wrapper: [{ values: { ... } }]
+        if (raw.length > 0 && raw[0]?.values && typeof raw[0].values === 'object') {
+            records = [raw[0].values];
+        } else {
+            // Legacy format: [{WIPNumber: ..., CompanyName: ...}]
+            records = raw;
+        }
     } else if (raw && typeof raw === 'object') {
-        if (Array.isArray(raw.data)) {
+        if (raw.values && typeof raw.values === 'object') {
+            // Format: { values: { WIPNumber: 54321, ... } }
+            records = [raw.values];
+        } else if (Array.isArray(raw.data)) {
             // Format: {data: [{WIPNumber: ..., CompanyName: ...}]}
             records = raw.data;
         } else if (raw.WIPNumber !== undefined) {
