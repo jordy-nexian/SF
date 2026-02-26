@@ -54,11 +54,31 @@ async function callN8nWebhook<T = any>(options: CallOptions): Promise<T> {
         // Read raw body first for HMAC verification
         const rawBody = await response.text();
 
+        // Debug: log all response headers related to HMAC
+        console.log('[Wizard HMAC] === Response Headers ===');
+        console.log('[Wizard HMAC] X-Form-Signature:', response.headers.get('X-Form-Signature') || '(missing)');
+        console.log('[Wizard HMAC] X-Form-Signature-Alg:', response.headers.get('X-Form-Signature-Alg') || '(missing)');
+        console.log('[Wizard HMAC] X-Form-Signature-Ts:', response.headers.get('X-Form-Signature-Ts') || '(missing)');
+        console.log('[Wizard HMAC] Response body (first 200 chars):', rawBody.slice(0, 200));
+        console.log('[Wizard HMAC] Response body length:', rawBody.length);
+
         // Verify inbound HMAC signature
         const sigHeaders = extractSignatureHeaders(response);
         if (!sigHeaders) {
+            console.error('[Wizard HMAC] All response headers:', Object.fromEntries(response.headers.entries()));
             throw new Error('HMAC mismatch: missing signature headers on n8n response (X-Form-Signature, X-Form-Signature-Alg, X-Form-Signature-Ts)');
         }
+
+        // Debug: log what we're computing vs what we received
+        const crypto = await import('node:crypto');
+        const debugHmac = crypto.createHmac('sha256', sharedSecret);
+        debugHmac.update(sigHeaders.timestamp + '.' + rawBody, 'utf8');
+        const expectedSig = debugHmac.digest('hex');
+        console.log('[Wizard HMAC] === Verification Details ===');
+        console.log('[Wizard HMAC] Received sig:', sigHeaders.signature);
+        console.log('[Wizard HMAC] Expected sig:', expectedSig);
+        console.log('[Wizard HMAC] Timestamp:', sigHeaders.timestamp);
+        console.log('[Wizard HMAC] Match:', sigHeaders.signature === expectedSig);
 
         const verification = verifyHmacSignature(rawBody, sigHeaders, sharedSecret);
         if (!verification.valid) {
