@@ -89,10 +89,10 @@ export function verifyTenantToken(
     const expectedSignature = hmac.digest('hex');
 
     // Timing-safe comparison to prevent timing attacks
-    if (!crypto.timingSafeEqual(
-        Buffer.from(providedSignature, 'hex'),
-        Buffer.from(expectedSignature, 'hex')
-    )) {
+    // Timing-safe comparison — guard length mismatch (timingSafeEqual throws otherwise)
+    const sigBuf = Buffer.from(providedSignature, 'hex');
+    const expBuf = Buffer.from(expectedSignature, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
         return { valid: false, error: 'INVALID_SIGNATURE' };
     }
 

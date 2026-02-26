@@ -545,12 +545,12 @@ export async function POST(
 			error: success ? undefined : 'Webhook delivery failed',
 		});
 
-		// Mark form assignment as completed if endCustomerId is provided
-		if (success && meta?.endCustomerId && typeof meta.endCustomerId === 'string') {
+		// Mark form assignment as completed if endCustomerId was server-validated
+		if (success && endCustomerId) {
 			try {
 				await prisma.formAssignment.updateMany({
 					where: {
-						endCustomerId: meta.endCustomerId,
+						endCustomerId: endCustomerId,
 						formId: form.id,
 						status: { not: 'completed' },
 					},

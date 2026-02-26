@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { verifyImpersonationToken } from "@/lib/impersonation-token";
 
 // Validate NEXTAUTH_SECRET at module load time (fail-fast security check)
 if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
@@ -98,25 +99,35 @@ export const authOptions: NextAuthOptions = {
 				}
 			}
 
-			// Handle impersonation update from client
+			// Handle impersonation update — only accept signed tokens, never raw data
 			if (trigger === "update" && sessionData) {
-				if (sessionData.impersonate) {
-					const { userId, tenantId, role, email, impersonatingFrom, originalAdmin } = sessionData.impersonate as any;
-					// Store original admin info for restoration
-					if (originalAdmin) {
-						(token as any).originalAdminId = originalAdmin.userId;
-						(token as any).originalAdminEmail = originalAdmin.email;
-						(token as any).originalAdminTenantId = originalAdmin.tenantId;
-						(token as any).originalAdminRole = originalAdmin.role;
+				if (sessionData.impersonationToken && typeof sessionData.impersonationToken === 'string') {
+					const impersonationSecret = process.env.NEXTAUTH_SECRET;
+					if (!impersonationSecret) {
+						console.error('[Auth] Cannot verify impersonation token: NEXTAUTH_SECRET not set');
+						return token;
 					}
-					// Set impersonated user
-					token.id = userId;
-					token.tenantId = tenantId;
-					token.role = role;
-					token.email = email;
-					(token as any).impersonatingFrom = impersonatingFrom;
+
+					const verified = verifyImpersonationToken(sessionData.impersonationToken, impersonationSecret);
+					if (!verified) {
+						console.warn('[Auth] Impersonation token verification failed — rejecting session update');
+						return token;
+					}
+
+					// Store original admin info for restoration (from verified token)
+					(token as any).originalAdminId = verified.adminUserId;
+					(token as any).originalAdminEmail = verified.adminEmail;
+					(token as any).originalAdminTenantId = verified.adminTenantId;
+					(token as any).originalAdminRole = verified.adminRole;
+
+					// Set impersonated user from verified token
+					token.id = verified.targetUserId;
+					token.tenantId = verified.targetTenantId;
+					token.role = verified.targetRole as "owner" | "admin" | "viewer";
+					token.email = verified.targetEmail;
+					(token as any).impersonatingFrom = verified.impersonatingFrom;
 					(token as any).isImpersonating = true;
-					(token as any).impersonationStartedAt = Date.now(); // Track start time for expiry
+					(token as any).impersonationStartedAt = Date.now();
 				} else if (sessionData.impersonate === null) {
 					// Restore original admin session
 					if (token.originalAdminId) {
@@ -124,7 +135,6 @@ export const authOptions: NextAuthOptions = {
 						token.email = token.originalAdminEmail as string;
 						token.tenantId = token.originalAdminTenantId as string;
 						token.role = token.originalAdminRole as "owner" | "admin" | "viewer";
-						// Clear impersonation fields
 						delete (token as any).impersonatingFrom;
 						delete (token as any).isImpersonating;
 						delete (token as any).impersonationStartedAt;

@@ -12,6 +12,7 @@ import { evaluateVisibility, validateField, getByPath } from "@/types/form-schem
 import { themeToCssVars, type ThemeConfig } from "@/types/theme";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { replaceTokensWithModes } from "@/lib/html-template-parser";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import { SignaturePadHandle } from "@/components/SignaturePad";
 
 // Storage key for partial submission recovery
@@ -806,7 +807,7 @@ function PublicFormContent() {
 						<div
 							ref={formContainerRef}
 							className="html-template-form"
-							dangerouslySetInnerHTML={{ __html: processedHtmlContent || '' }}
+							dangerouslySetInnerHTML={{ __html: sanitizeHtml(processedHtmlContent || '') }}
 							style={{
 								maxWidth: "850px",
 								margin: "0 auto",

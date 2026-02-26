@@ -23,7 +23,7 @@ export default function ImpersonateButton({ userId, userEmail, tenantName }: Imp
 		setError("");
 
 		try {
-			// Get user data from API
+			// Get signed impersonation token from API (platform admin verified server-side)
 			const res = await fetch("/api/platform/impersonate", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -36,24 +36,10 @@ export default function ImpersonateButton({ userId, userEmail, tenantName }: Imp
 				throw new Error(data.error || "Failed to start impersonation");
 			}
 
-			// Store original admin session before impersonating
-			const originalAdmin = {
-				userId: session?.user?.id || "",
-				email: session?.user?.email || "",
-				tenantId: session?.user?.tenantId || "",
-				role: session?.user?.role || "",
-			};
-
-			// Update NextAuth session with impersonation data
+			// Update NextAuth session with the signed impersonation token
+			// The JWT callback will verify the token before applying session changes
 			await update({
-				impersonate: {
-					userId: data.user.id,
-					tenantId: data.user.tenantId,
-					role: data.user.role,
-					email: data.user.email,
-					impersonatingFrom: data.impersonatingFrom,
-					originalAdmin, // Store original admin info to restore later
-				},
+				impersonationToken: data.impersonationToken,
 			});
 
 			// Redirect to admin dashboard
@@ -72,7 +58,7 @@ export default function ImpersonateButton({ userId, userEmail, tenantName }: Imp
 				onClick={handleImpersonate}
 				disabled={impersonating}
 				className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 active:scale-95 active:opacity-80"
-				style={{ 
+				style={{
 					background: 'rgba(139, 92, 246, 0.2)',
 					border: '1px solid rgba(139, 92, 246, 0.3)',
 					color: '#a78bfa'

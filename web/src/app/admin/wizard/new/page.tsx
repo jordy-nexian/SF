@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 // --- Types ---
 interface WipContext {
@@ -616,7 +617,7 @@ export default function NewWizardPage() {
                             </h3>
                             <div
                                 className="rounded-lg bg-white p-4 text-sm text-black"
-                                dangerouslySetInnerHTML={{ __html: htmlPreview }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPreview) }}
                             />
                         </div>
                     )}

@@ -8,9 +8,13 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 
-// Form access token settings
+// Form access token settings — fail-closed: no default secret in production
+const rawFormAccessSecret = process.env.FORM_ACCESS_SECRET || process.env.NEXTAUTH_SECRET;
+if (!rawFormAccessSecret && process.env.NODE_ENV === 'production') {
+    throw new Error('[FormAccess] CRITICAL: FORM_ACCESS_SECRET or NEXTAUTH_SECRET is required in production');
+}
 const FORM_ACCESS_SECRET = new TextEncoder().encode(
-    process.env.FORM_ACCESS_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret-change-me'
+    rawFormAccessSecret || 'dev-only-not-for-production'
 );
 const FORM_ACCESS_ISSUER = 'stateless-forms-access';
 const DEFAULT_TOKEN_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds

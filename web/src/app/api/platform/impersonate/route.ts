@@ -4,6 +4,7 @@ import { requirePlatformAdmin } from "@/lib/platform-auth";
 import { logPlatformAudit } from "@/lib/platform-audit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
+import { createImpersonationToken } from "@/lib/impersonation-token";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ function getRequestContext(req: NextRequest) {
 	return { ipAddress, userAgent };
 }
 
-// POST start impersonation - returns user data for client to update session
+// POST start impersonation - returns a signed impersonation token
 export async function POST(req: NextRequest) {
 	const session = await getServerSession(authOptions);
 
@@ -65,17 +66,28 @@ export async function POST(req: NextRequest) {
 		userAgent,
 	});
 
-	// Return user data - client will use NextAuth's update() to set impersonation
+	// Create a signed impersonation token (valid for 30 seconds)
+	const impersonationSecret = process.env.NEXTAUTH_SECRET;
+	if (!impersonationSecret) {
+		return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+	}
+
+	const impersonationToken = createImpersonationToken({
+		targetUserId: targetUser.id,
+		targetTenantId: targetUser.tenantId,
+		targetRole: targetUser.role,
+		targetEmail: targetUser.email,
+		adminUserId: session?.user?.id || "",
+		adminEmail: session?.user?.email || "",
+		adminTenantId: (session?.user as any)?.tenantId || "",
+		adminRole: (session?.user as any)?.role || "",
+		impersonatingFrom: session?.user?.email || "",
+	}, impersonationSecret);
+
 	return NextResponse.json({
 		success: true,
-		user: {
-			id: targetUser.id,
-			email: targetUser.email,
-			tenantId: targetUser.tenantId,
-			role: targetUser.role,
-		},
+		impersonationToken,
 		tenantName: targetUser.tenant.name,
-		impersonatingFrom: session?.user?.email || "",
 	});
 }
 

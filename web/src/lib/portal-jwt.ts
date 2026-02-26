@@ -5,9 +5,13 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 
-// Portal JWT settings
+// Portal JWT settings — fail-closed: no default secret in production
+const rawPortalSecret = process.env.PORTAL_JWT_SECRET || process.env.NEXTAUTH_SECRET;
+if (!rawPortalSecret && process.env.NODE_ENV === 'production') {
+    throw new Error('[PortalAuth] CRITICAL: PORTAL_JWT_SECRET or NEXTAUTH_SECRET is required in production');
+}
 const PORTAL_JWT_SECRET = new TextEncoder().encode(
-    process.env.PORTAL_JWT_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret-change-me'
+    rawPortalSecret || 'dev-only-not-for-production'
 );
 const PORTAL_JWT_ISSUER = 'stateless-forms-portal';
 const PORTAL_SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds

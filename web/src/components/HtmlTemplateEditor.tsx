@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Editor from "@monaco-editor/react";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ExtractedToken {
     tokenId: string;
@@ -180,7 +181,7 @@ export default function HtmlTemplateEditor({
                     >
                         {htmlContent ? (
                             <div
-                                dangerouslySetInnerHTML={{ __html: highlightTokens(htmlContent) }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(highlightTokens(htmlContent)) }}
                                 style={{
                                     fontFamily: 'system-ui, sans-serif',
                                     fontSize: '14px',
