@@ -71,13 +71,17 @@ async function callN8nWebhook<T = any>(options: CallOptions): Promise<T> {
 
         // Debug: log what we're computing vs what we received
         const crypto = await import('node:crypto');
+        const signingInput = sigHeaders.timestamp + '.' + rawBody;
         const debugHmac = crypto.createHmac('sha256', sharedSecret);
-        debugHmac.update(sigHeaders.timestamp + '.' + rawBody, 'utf8');
+        debugHmac.update(signingInput, 'utf8');
         const expectedSig = debugHmac.digest('hex');
         console.log('[Wizard HMAC] === Verification Details ===');
         console.log('[Wizard HMAC] Received sig:', sigHeaders.signature);
         console.log('[Wizard HMAC] Expected sig:', expectedSig);
         console.log('[Wizard HMAC] Timestamp:', sigHeaders.timestamp);
+        console.log('[Wizard HMAC] Signing input:', signingInput);
+        console.log('[Wizard HMAC] Signing input length:', signingInput.length);
+        console.log('[Wizard HMAC] Secret starts with:', sharedSecret.slice(0, 4) + '...');
         console.log('[Wizard HMAC] Match:', sigHeaders.signature === expectedSig);
 
         const verification = verifyHmacSignature(rawBody, sigHeaders, sharedSecret);
