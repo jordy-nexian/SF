@@ -70,6 +70,7 @@ export default function NewWizardPage() {
     const [unmappedTokens, setUnmappedTokens] = useState<Array<{ tokenId: string; label: string; mode: string }>>([]);
     const [htmlPreview, setHtmlPreview] = useState<string>("");
     const [showPrefillFields, setShowPrefillFields] = useState(false);
+    const [prefillWarning, setPrefillWarning] = useState<string | null>(null);
 
     // Stage 4
     const [customerEmail, setCustomerEmail] = useState("");
@@ -186,8 +187,10 @@ export default function NewWizardPage() {
             setPrefillData(data.data.prefillData || {});
             setUnmappedTokens(data.data.unmappedTokens || []);
             setHtmlPreview(data.data.htmlPreview || "");
+            setPrefillWarning(data.data.prefillWarning || null);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to prefill form");
+            setPrefillWarning(null);
         } finally {
             setLoading(false);
         }
@@ -484,6 +487,27 @@ export default function NewWizardPage() {
                             </p>
                         ) : (
                             <>
+                                {/* Prefill warning banner */}
+                                {prefillWarning && (
+                                    <div
+                                        className="mb-4 rounded-lg p-3"
+                                        style={{
+                                            background: "rgba(234, 179, 8, 0.1)",
+                                            border: "1px solid rgba(234, 179, 8, 0.3)",
+                                        }}
+                                    >
+                                        <p className="text-sm font-medium mb-1" style={{ color: "#eab308" }}>
+                                            ⚠ Prefill Warning
+                                        </p>
+                                        <p className="text-xs" style={{ color: "#94a3b8" }}>
+                                            {prefillWarning}
+                                        </p>
+                                        <p className="text-xs mt-1" style={{ color: "#64748b" }}>
+                                            You can still fill in values manually below.
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Prefill summary + toggle */}
                                 <div
                                     className="mb-4 rounded-lg p-3"

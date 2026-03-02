@@ -95,6 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         let n8nValues: Record<string, string> = {};
         let unmappedTokenIds: string[] = [];
         let prefillSource = 'manual';
+        let prefillWarning: string | null = null;
 
         if (wizardRun.wipNumber === DEV_WIP) {
             // --- DEV BYPASS: generate mock values for all prefill fields ---
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 },
             });
 
+
             if (tenant?.wipPrefillWebhookUrl && fields.length > 0) {
                 try {
                     const n8nResponse = await prefillFromWip(
@@ -142,11 +144,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                         n8nValues = n8nResponse.values;
                         unmappedTokenIds = n8nResponse.unmapped || [];
                         prefillSource = 'n8n_quickbase';
+                    } else {
+                        const reason = n8nResponse.error || 'n8n returned success=false with no values';
+                        console.warn('[Wizard] Prefill n8n response unsuccessful:', reason);
+                        prefillWarning = `n8n prefill returned no data: ${reason}`;
+                        prefillSource = 'n8n_failed';
                     }
                 } catch (error) {
-                    console.error('[Wizard] Prefill n8n call failed:', error);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    console.error('[Wizard] Prefill n8n call failed:', errorMessage);
+                    console.error('[Wizard] Prefill error details:', {
+                        webhookUrl: tenant.wipPrefillWebhookUrl,
+                        wipNumber: wizardRun.wipNumber,
+                        tenantId: session.tenantId,
+                        fieldsCount: fields.length,
+                        errorType: error instanceof Error ? error.constructor.name : typeof error,
+                        stack: error instanceof Error ? error.stack : undefined,
+                    });
+                    prefillWarning = `n8n prefill failed: ${errorMessage}`;
+                    prefillSource = 'n8n_failed';
                     // Continue with empty prefill — admin can fill manually
                 }
+            } else if (!tenant?.wipPrefillWebhookUrl) {
+                prefillWarning = 'No prefill webhook URL configured for this tenant';
+                console.warn('[Wizard] No wipPrefillWebhookUrl set for tenant:', session.tenantId);
+            } else if (fields.length === 0) {
+                prefillWarning = 'No prefill-eligible fields found in template mappings';
+                console.warn('[Wizard] No prefill fields for wizard run:', id);
             }
         }
 
@@ -224,6 +248,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             prefillData,
             unmappedTokens: nonPrefillTokens,
             prefillSource,
+            prefillWarning,
             htmlPreview,
         });
     } catch (error) {
