@@ -4,6 +4,7 @@ import { authOptions } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import SignOutButton from "@/components/SignOutButton";
+import { isPlatformAdminEmail } from "@/lib/platform-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 		redirect(`/signin?callbackUrl=/admin`);
 	}
 	const userEmail = session.user?.email ?? "user";
+	const showBilling = isPlatformAdminEmail(userEmail);
 
 	return (
 		<div className="min-h-screen" style={{ background: '#0f172a' }}>
@@ -35,10 +37,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							<NavLink href="/admin/usage">Usage</NavLink>
 							<NavLink href="/admin/customers">Customers</NavLink>
 							<NavLink href="/admin/assignments">Assignments</NavLink>
-							<NavLink href="/admin/wizard">Wizard</NavLink>
 							<NavLink href="/admin/team">Team</NavLink>
 							<NavLink href="/admin/themes">Themes</NavLink>
-							<NavLink href="/admin/billing">Billing</NavLink>
+							{showBilling && <NavLink href="/admin/billing">Billing</NavLink>}
 							<NavLink href="/admin/settings">Settings</NavLink>
 						</nav>
 					</div>
