@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
+import { requireTenantSession, forbidden, isAdministrator } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,11 @@ export async function GET(_req: NextRequest) {
 	const session = await requireTenantSession();
 	if (!session) return forbidden();
 
+	// E2.3: Only administrators can access settings
+	if (!isAdministrator(session.role)) {
+		return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+	}
+
 	const tenant = await prisma.tenant.findUnique({
 		where: { id: session.tenantId },
 		select: {
@@ -48,8 +53,8 @@ export async function PUT(req: NextRequest) {
 	const session = await requireTenantSession();
 	if (!session) return forbidden();
 
-	// Only owners and admins can update settings
-	if (session.role === "viewer") {
+	// E2.3: Only administrators can update settings
+	if (!isAdministrator(session.role)) {
 		return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
 	}
 

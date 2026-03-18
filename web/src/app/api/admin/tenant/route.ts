@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireTenantSession, forbidden } from "@/lib/auth-helpers";
+import { requireTenantSession, forbidden, isAdministrator } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +30,8 @@ export async function GET() {
 		return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 	}
 
-	// Hide sensitive data from viewers
-	if (session.role === "viewer") {
+	// E2.3: Hide sensitive data from non-administrators
+	if (!isAdministrator(session.role)) {
 		return NextResponse.json({
 			id: tenant.id,
 			name: tenant.name,
@@ -58,10 +58,10 @@ export async function PUT(req: NextRequest) {
 	const session = await requireTenantSession();
 	if (!session) return forbidden();
 
-	// Only owners and admins can update tenant settings
-	if (session.role === "viewer") {
+	// E2.3: Only administrators can update tenant settings
+	if (!isAdministrator(session.role)) {
 		return NextResponse.json(
-			{ error: "Only owners and admins can update settings" },
+			{ error: "Only administrators can update settings" },
 			{ status: 403 }
 		);
 	}

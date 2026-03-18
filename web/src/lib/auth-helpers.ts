@@ -32,4 +32,10 @@ export function forbidden() {
 	return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
-
+/**
+ * Two-tier role check: Administrator = owner | admin, User = viewer.
+ * Use this for UI visibility and API guards that should be admin-only.
+ */
+export function isAdministrator(role: TenantSession["role"]): boolean {
+	return role === "owner" || role === "admin";
+}

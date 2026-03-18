@@ -182,8 +182,8 @@ export default function TeamPage() {
 									className="w-full px-3 py-2 rounded-lg text-white"
 									style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
 								>
-									<option value="viewer">Viewer - Can view and submit</option>
-									<option value="admin">Admin - Can manage forms</option>
+									<option value="viewer">User - Can view and submit</option>
+									<option value="admin">Administrator - Full access to all features</option>
 								</select>
 							</div>
 							<div className="flex gap-3 pt-2">
@@ -232,7 +232,7 @@ export default function TeamPage() {
 											color: member.role === 'owner' ? '#a78bfa' : '#818cf8'
 										}}
 									>
-										{member.role}
+										{member.role === 'owner' ? 'Administrator (Owner)' : member.role === 'admin' ? 'Administrator' : 'User'}
 									</span>
 								</td>
 								<td className="px-4 py-3 text-sm" style={{ color: '#64748b' }}>
