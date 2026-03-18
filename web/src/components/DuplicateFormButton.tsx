@@ -64,14 +64,14 @@ export default function DuplicateFormButton({
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
-			<div 
+			<div
 				className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
 				style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)' }}
 			>
-				<h2 className="mb-5 text-lg font-semibold text-white">Duplicate Form</h2>
+				<h2 className="mb-5 text-lg font-semibold text-white">Duplicate Template</h2>
 				<form onSubmit={onDuplicate} className="space-y-4">
 					<div>
-						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>New Form Name</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>New Template Name</label>
 						<input
 							type="text"
 							className="w-full rounded-lg px-3 py-2.5 focus:outline-none"

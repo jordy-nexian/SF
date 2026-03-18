@@ -33,7 +33,7 @@ export default async function AdminHome() {
 	return (
 		<div className="mx-auto max-w-6xl">
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold text-white">Forms</h1>
+				<h1 className="text-2xl font-bold text-white">Templates</h1>
 				<div className="flex gap-3">
 					<Link
 						href="/admin/forms/new/upload-html"
@@ -50,7 +50,7 @@ export default async function AdminHome() {
 						Templates
 					</Link>
 					<Link
-						href="/admin/new"
+						href="/admin/wizard/new"
 						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 						style={{
 							background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
@@ -58,7 +58,7 @@ export default async function AdminHome() {
 							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
 						}}
 					>
-						+ New Form
+						+ New Wizard
 					</Link>
 				</div>
 			</div>
@@ -115,7 +115,7 @@ export default async function AdminHome() {
 											rel="noopener noreferrer"
 											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
 											style={{ color: '#10b981' }}
-											title="View form"
+											title="View template"
 										>
 											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -126,7 +126,7 @@ export default async function AdminHome() {
 											href={`/admin/forms/${f.id}`}
 											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
 											style={{ color: '#94a3b8' }}
-											title="Edit form"
+											title="Edit template"
 										>
 											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -149,7 +149,7 @@ export default async function AdminHome() {
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 											</svg>
 										</div>
-										<p>No forms yet. Create one to get started.</p>
+										<p>No templates yet. Create one to get started.</p>
 									</div>
 								</td>
 							</tr>

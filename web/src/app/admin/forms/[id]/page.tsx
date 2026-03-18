@@ -45,7 +45,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 	if (!form) {
 		return (
 			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
-				Form not found.
+				Template not found.
 			</div>
 		);
 	}
@@ -115,7 +115,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 						</svg>
-						View Form
+						View Template
 					</a>
 					<Link
 						href={`/admin/forms/builder?formId=${form.id}`}
@@ -126,7 +126,7 @@ export default async function FormDetail({ params }: { params: Promise<{ id: str
 							boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
 						}}
 					>
-						✏️ Edit Form
+						✏️ Edit Template
 					</Link>
 					<DuplicateFormButton formId={form.id} formName={form.name} />
 					<Link

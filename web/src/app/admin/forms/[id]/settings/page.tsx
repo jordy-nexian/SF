@@ -131,9 +131,9 @@ export default function FormSettingsPage() {
 	return (
 		<div className="mx-auto max-w-2xl">
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold text-white">Form Settings</h1>
+				<h1 className="text-2xl font-bold text-white">Template Settings</h1>
 				<Link href={`/admin/forms/${formId}`} className="text-sm" style={{ color: '#818cf8' }}>
-					← Back to form
+					← Back to template
 				</Link>
 			</div>
 
@@ -143,7 +143,7 @@ export default function FormSettingsPage() {
 					<h2 className="mb-4 font-semibold text-white">Basic Settings</h2>
 					<div className="space-y-4">
 						<div>
-							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Name</label>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Template Name</label>
 							<input
 								type="text"
 								className="w-full rounded-lg px-3 py-2.5 focus:outline-none"

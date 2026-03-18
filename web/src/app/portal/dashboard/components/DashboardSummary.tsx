@@ -59,7 +59,7 @@ export default function DashboardSummary({
                 {/* Stats Grid */}
                 <div className="flex-1 w-full">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-lg font-semibold text-white">Form Progress</h2>
+                        <h2 className="text-lg font-semibold text-white">Template Progress</h2>
                     </div>
 
                     {/* Stats Grid - matching admin style */}

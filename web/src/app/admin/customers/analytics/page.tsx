@@ -139,12 +139,12 @@ export default function PortalAnalyticsPage() {
 
             {/* Per-Form Stats */}
             <div>
-                <h2 className="text-lg font-semibold text-white mb-4">Form Performance</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">Template Performance</h2>
                 <div className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden">
                     <table className="min-w-full text-left text-sm">
                         <thead className="bg-white/5">
                             <tr>
-                                <th className="px-6 py-3 font-medium text-slate-400">Form Name</th>
+                                <th className="px-6 py-3 font-medium text-slate-400">Template Name</th>
                                 <th className="px-6 py-3 font-medium text-slate-400">Assigned</th>
                                 <th className="px-6 py-3 font-medium text-slate-400">Completed</th>
                                 <th className="px-6 py-3 font-medium text-slate-400">Completion Rate</th>

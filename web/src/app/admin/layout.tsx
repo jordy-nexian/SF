@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							Stateless Forms
 						</Link>
 						<nav className="flex items-center gap-1 text-sm">
-							<NavLink href="/admin">Forms</NavLink>
+							<NavLink href="/admin">Templates</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
 							<NavLink href="/admin/customers">Customers</NavLink>
 							<NavLink href="/admin/assignments">Assignments</NavLink>

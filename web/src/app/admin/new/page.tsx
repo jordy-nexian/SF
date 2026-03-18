@@ -13,10 +13,10 @@ const cards = [
         shadow: "rgba(99, 102, 241, 0.25)",
     },
     {
-        title: "Build Form",
+        title: "Build Template",
         icon: "🛠️",
         description:
-            "Create a new form from scratch using the drag-and-drop builder or upload HTML directly.",
+            "Create a new template from scratch using the drag-and-drop builder or upload HTML directly.",
         href: "/admin/forms/builder",
         gradient: "linear-gradient(135deg, #3b82f6, #06b6d4)",
         shadow: "rgba(59, 130, 246, 0.25)",

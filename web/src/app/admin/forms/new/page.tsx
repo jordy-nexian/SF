@@ -21,7 +21,7 @@ const inputStyle = {
 const starterSchema: FormSchema = {
 	id: "new-form",
 	version: 1,
-	title: "Untitled form",
+	title: "Untitled template",
 	description: "Describe your form...",
 	fields: [
 		{ key: "email", type: "email", label: "Email", required: true },
@@ -35,7 +35,7 @@ function NewFormContent() {
 	const searchParams = useSearchParams();
 	const templateId = searchParams.get("template");
 
-	const [name, setName] = useState("New form");
+	const [name, setName] = useState("New template");
 	const [publicId, setPublicId] = useState("");
 	const [schemaText, setSchemaText] = useState(JSON.stringify(starterSchema, null, 2));
 	const [error, setError] = useState<string | null>(null);
@@ -117,45 +117,45 @@ function NewFormContent() {
 				<div className="space-y-4">
 					<div>
 						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Name</label>
-						<input 
-							className="w-full rounded-lg px-3 py-2.5 focus:outline-none" 
+						<input
+							className="w-full rounded-lg px-3 py-2.5 focus:outline-none"
 							style={inputStyle}
-							value={name} 
-							onChange={(e) => setName(e.target.value)} 
-							required 
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							required
 						/>
 					</div>
 					<div>
 						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Public ID (slug)</label>
-						<input 
-							className="w-full rounded-lg px-3 py-2.5 font-mono focus:outline-none" 
+						<input
+							className="w-full rounded-lg px-3 py-2.5 font-mono focus:outline-none"
 							style={inputStyle}
-							value={publicId} 
-							onChange={(e) => setPublicId(e.target.value)} 
-							placeholder="contact" 
-							required 
+							value={publicId}
+							onChange={(e) => setPublicId(e.target.value)}
+							placeholder="contact"
+							required
 						/>
 						<p className="mt-1 text-xs" style={{ color: '#64748b' }}>Public URL will be /f/{publicId || "…"}</p>
 					</div>
 					<div>
 						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Schema (JSON)</label>
-						<textarea 
-							className="h-[380px] w-full rounded-lg p-3 font-mono text-xs focus:outline-none" 
+						<textarea
+							className="h-[380px] w-full rounded-lg p-3 font-mono text-xs focus:outline-none"
 							style={inputStyle}
-							value={schemaText} 
-							onChange={(e) => setSchemaText(e.target.value)} 
+							value={schemaText}
+							onChange={(e) => setSchemaText(e.target.value)}
 						/>
 					</div>
 					<div className="flex items-center gap-4">
-						<button 
-							type="submit" 
+						<button
+							type="submit"
 							className="rounded-full px-5 py-2.5 text-sm font-medium text-white transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]"
 							style={{
 								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
 							}}
 						>
-							Create form
+							Create template
 						</button>
 						<Link href="/admin" className="text-sm" style={{ color: '#94a3b8' }}>Cancel</Link>
 						{error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}

@@ -64,12 +64,12 @@ function FormBuilderContent() {
 	const formId = searchParams.get("formId");
 	const templateId = searchParams.get("template");
 
-	const [formName, setFormName] = useState("New Form");
+	const [formName, setFormName] = useState("New Template");
 	const [publicId, setPublicId] = useState("");
 	const [schema, setSchema] = useState<FormSchema>({
 		id: "new-form",
 		version: 1,
-		title: "Untitled Form",
+		title: "Untitled Template",
 		description: "",
 		fields: [],
 		steps: [],
@@ -332,7 +332,7 @@ function FormBuilderContent() {
 		}
 
 		if (!formName.trim()) {
-			setError("Please enter a form name");
+			setError("Please enter a template name");
 			return;
 		}
 
@@ -365,7 +365,7 @@ function FormBuilderContent() {
 			const responseData = json.data ?? json;
 			const savedFormId = responseData.formId || responseData.id;
 
-			setSuccess("Form saved! Redirecting...");
+			setSuccess("Template saved! Redirecting...");
 			// Short delay to show success message
 			setTimeout(() => {
 				router.push(`/admin/forms/${savedFormId}`);
@@ -605,7 +605,7 @@ function FormBuilderContent() {
 				<div className="flex-1 overflow-auto rounded-xl p-5" style={cardStyle}>
 					<div className="mb-5 grid gap-4 sm:grid-cols-2">
 						<div>
-							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Name</label>
+							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Template Name</label>
 							<input
 								type="text"
 								className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
@@ -628,7 +628,7 @@ function FormBuilderContent() {
 					</div>
 
 					<div className="mb-4">
-						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Form Title</label>
+						<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>Template Title</label>
 						<input
 							type="text"
 							className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
@@ -726,7 +726,7 @@ function FormBuilderContent() {
 								boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
 							}}
 						>
-							{saving ? "Saving..." : "Save Form"}
+							{saving ? "Saving..." : "Save Template"}
 						</button>
 						<button
 							onClick={() => setShowPreview(true)}
@@ -967,9 +967,9 @@ function FormBuilderContent() {
 							}}
 						>
 							<div>
-								<h2 className="text-lg font-semibold" style={{ color: theme.textColor }}>Form Preview</h2>
+								<h2 className="text-lg font-semibold" style={{ color: theme.textColor }}>Template Preview</h2>
 								<p className="text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
-									This is how your form will appear to users
+									This is how your template will appear to users
 								</p>
 							</div>
 							<button

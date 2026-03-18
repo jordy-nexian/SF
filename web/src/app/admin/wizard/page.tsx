@@ -60,7 +60,7 @@ export default function WizardListPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white">WIP Wizards</h1>
                     <p className="mt-1 text-sm" style={{ color: "#94a3b8" }}>
-                        Track and manage form assignment wizards
+                        Track and manage template assignment wizards
                     </p>
                 </div>
                 <Link

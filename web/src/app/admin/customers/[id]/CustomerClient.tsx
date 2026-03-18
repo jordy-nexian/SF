@@ -231,7 +231,7 @@ export default function CustomerClient({ initialCustomer, tenantForms, isWebhook
 
                     {/* Stats */}
                     <div className="flex-1 w-full">
-                        <h2 className="text-lg font-semibold text-white mb-3">Form Progress</h2>
+                        <h2 className="text-lg font-semibold text-white mb-3">Template Progress</h2>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="text-center md:text-left">

@@ -100,7 +100,7 @@ export default function AdminSummaryCard() {
                         {/* Assignments */}
                         <div className="text-center md:text-left">
                             <div className="text-2xl font-bold text-white">{totalAssignments}</div>
-                            <div className="text-xs text-white/60">Form Assignments</div>
+                            <div className="text-xs text-white/60">Template Assignments</div>
                         </div>
 
                         {/* Status breakdown */}

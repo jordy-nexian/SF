@@ -577,7 +577,7 @@ function PublicFormContent() {
 			<div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#f8fafc' }}>
 				<div className="text-center max-w-md">
 					<div className="text-6xl mb-4">📋</div>
-					<h1 className="text-xl font-semibold text-gray-800 mb-2">Form Unavailable</h1>
+					<h1 className="text-xl font-semibold text-gray-800 mb-2">Template Unavailable</h1>
 					<p className="text-gray-600">{formError}</p>
 				</div>
 			</div>

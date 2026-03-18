@@ -317,11 +317,11 @@ export default function UploadHtmlTemplatePage() {
 
                         {/* Form details */}
                         <div className="rounded-xl p-5 space-y-4" style={cardStyle}>
-                            <h2 className="text-lg font-semibold text-white">Form Details</h2>
+                            <h2 className="text-lg font-semibold text-white">Template Details</h2>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1.5" style={{ color: '#94a3b8' }}>
-                                        Form Name
+                                        Template Name
                                     </label>
                                     <input
                                         className="w-full rounded-lg px-3 py-2.5 focus:outline-none"
@@ -470,7 +470,7 @@ export default function UploadHtmlTemplatePage() {
                                     boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
                                 }}
                             >
-                                {loading ? "Creating..." : "Create Form from Template"}
+                                {loading ? "Creating..." : "Create Template"}
                             </button>
                             <Link href="/admin" className="text-sm" style={{ color: '#94a3b8' }}>
                                 Cancel

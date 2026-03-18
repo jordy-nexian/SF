@@ -108,7 +108,7 @@ export default function TenantsPage() {
 							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Plan</th>
 							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Status</th>
 							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Users</th>
-							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Forms</th>
+							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Templates</th>
 							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Submissions</th>
 							<th className="text-left px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Created</th>
 							<th className="text-right px-4 py-3 text-xs font-medium uppercase" style={{ color: '#a78bfa' }}>Actions</th>
@@ -123,30 +123,30 @@ export default function TenantsPage() {
 									</Link>
 								</td>
 								<td className="px-4 py-3">
-									<span 
+									<span
 										className="px-2 py-0.5 rounded text-xs font-medium capitalize"
-										style={{ 
-											background: tenant.plan === 'enterprise' ? 'rgba(236, 72, 153, 0.2)' 
-												: tenant.plan === 'pro' ? 'rgba(139, 92, 246, 0.2)' 
-												: 'rgba(100, 116, 139, 0.2)',
-											color: tenant.plan === 'enterprise' ? '#f472b6' 
-												: tenant.plan === 'pro' ? '#a78bfa' 
-												: '#94a3b8'
+										style={{
+											background: tenant.plan === 'enterprise' ? 'rgba(236, 72, 153, 0.2)'
+												: tenant.plan === 'pro' ? 'rgba(139, 92, 246, 0.2)'
+													: 'rgba(100, 116, 139, 0.2)',
+											color: tenant.plan === 'enterprise' ? '#f472b6'
+												: tenant.plan === 'pro' ? '#a78bfa'
+													: '#94a3b8'
 										}}
 									>
 										{tenant.plan}
 									</span>
 								</td>
 								<td className="px-4 py-3">
-									<span 
+									<span
 										className="px-2 py-0.5 rounded text-xs font-medium"
-										style={{ 
-											background: tenant.subscriptionStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' 
+										style={{
+											background: tenant.subscriptionStatus === 'active' ? 'rgba(16, 185, 129, 0.2)'
 												: tenant.subscriptionStatus === 'past_due' ? 'rgba(245, 158, 11, 0.2)'
-												: 'rgba(100, 116, 139, 0.2)',
-											color: tenant.subscriptionStatus === 'active' ? '#10b981' 
+													: 'rgba(100, 116, 139, 0.2)',
+											color: tenant.subscriptionStatus === 'active' ? '#10b981'
 												: tenant.subscriptionStatus === 'past_due' ? '#f59e0b'
-												: '#94a3b8'
+													: '#94a3b8'
 										}}
 									>
 										{tenant.subscriptionStatus === 'none' ? 'Free' : tenant.subscriptionStatus}

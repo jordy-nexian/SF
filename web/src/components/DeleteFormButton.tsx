@@ -44,7 +44,7 @@ export default function DeleteFormButton({
 				onClick={() => setShowConfirm(true)}
 				className="p-1.5 rounded-lg transition-all hover:bg-white/10 opacity-50 hover:opacity-100 active:scale-90 active:bg-red-500/10"
 				style={{ color: '#f87171' }}
-				title="Delete form"
+				title="Delete template"
 				aria-label={`Delete ${formName}`}
 			>
 				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -55,7 +55,7 @@ export default function DeleteFormButton({
 	}
 
 	return (
-		<div 
+		<div
 			className="fixed inset-0 z-50 flex items-center justify-center p-4"
 			style={{ background: 'rgba(0, 0, 0, 0.7)' }}
 			onClick={() => !deleting && setShowConfirm(false)}
@@ -63,17 +63,17 @@ export default function DeleteFormButton({
 			aria-modal="true"
 			aria-labelledby="delete-dialog-title"
 		>
-			<div 
+			<div
 				className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
 				style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)' }}
 				onClick={(e) => e.stopPropagation()}
 			>
-				<h2 id="delete-dialog-title" className="mb-2 text-lg font-semibold text-white">Delete Form</h2>
+				<h2 id="delete-dialog-title" className="mb-2 text-lg font-semibold text-white">Delete Template</h2>
 				<p className="mb-4 text-sm" style={{ color: '#94a3b8' }}>
-					Are you sure you want to delete <strong className="text-white">{formName}</strong>? 
+					Are you sure you want to delete <strong className="text-white">{formName}</strong>?
 					This action cannot be undone.
 				</p>
-				
+
 				{error && (
 					<p className="mb-4 text-sm" style={{ color: '#f87171' }}>{error}</p>
 				)}

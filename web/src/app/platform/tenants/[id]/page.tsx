@@ -71,9 +71,9 @@ export default function TenantDetailPage() {
 
 	async function handlePlanChange() {
 		if (!tenant || newPlan === tenant.plan) return;
-		
+
 		if (!confirm(`Change plan from ${tenant.plan} to ${newPlan}?`)) return;
-		
+
 		setUpdating(true);
 		try {
 			const res = await fetch(`/api/platform/tenants/${tenantId}`, {
@@ -81,7 +81,7 @@ export default function TenantDetailPage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ plan: newPlan }),
 			});
-			
+
 			if (res.ok) {
 				const updated = await res.json();
 				setTenant(updated);
@@ -170,10 +170,10 @@ export default function TenantDetailPage() {
 						<div>
 							<label className="text-xs uppercase" style={{ color: '#a78bfa' }}>Status</label>
 							<div className="mt-1">
-								<span 
+								<span
 									className="px-2 py-1 rounded text-sm font-medium"
-									style={{ 
-										background: tenant.subscriptionStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' 
+									style={{
+										background: tenant.subscriptionStatus === 'active' ? 'rgba(16, 185, 129, 0.2)'
 											: 'rgba(100, 116, 139, 0.2)',
 										color: tenant.subscriptionStatus === 'active' ? '#10b981' : '#94a3b8'
 									}}
@@ -196,7 +196,7 @@ export default function TenantDetailPage() {
 							<div>
 								<label className="text-xs uppercase" style={{ color: '#a78bfa' }}>Stripe Customer</label>
 								<div className="text-white mt-1 font-mono text-sm">
-									<a 
+									<a
 										href={`https://dashboard.stripe.com/customers/${tenant.stripeCustomerId}`}
 										target="_blank"
 										rel="noopener noreferrer"
@@ -215,7 +215,7 @@ export default function TenantDetailPage() {
 					<h2 className="text-lg font-semibold text-white mb-4">Usage</h2>
 					<div className="space-y-4">
 						<div className="flex justify-between">
-							<span style={{ color: '#a78bfa' }}>Forms</span>
+							<span style={{ color: '#a78bfa' }}>Templates</span>
 							<span className="text-white font-medium">{tenant.usage.forms}</span>
 						</div>
 						<div className="flex justify-between">
@@ -237,21 +237,21 @@ export default function TenantDetailPage() {
 				<div className="rounded-xl p-6" style={cardStyle}>
 					<h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
 					<div className="space-y-2">
-						<button 
+						<button
 							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-white/10"
 							style={{ color: '#e9d5ff' }}
 							onClick={() => alert('Would send password reset email')}
 						>
 							📧 Send Password Reset
 						</button>
-						<button 
+						<button
 							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-white/10"
 							style={{ color: '#e9d5ff' }}
 							onClick={() => alert('Would export tenant data')}
 						>
 							📦 Export Data
 						</button>
-						<button 
+						<button
 							className="w-full px-4 py-2 rounded-lg text-sm text-left transition-all hover:bg-white/5 active:scale-[0.98] active:bg-red-500/10"
 							style={{ color: '#f87171' }}
 							onClick={() => {
@@ -273,7 +273,7 @@ export default function TenantDetailPage() {
 					<h2 className="text-lg font-semibold text-white mb-4">Users ({tenant.users.length})</h2>
 					<div className="space-y-2">
 						{tenant.users.map((user) => (
-							<div 
+							<div
 								key={user.id}
 								className="flex items-center justify-between p-3 rounded-lg"
 								style={{ background: 'rgba(139, 92, 246, 0.05)' }}
@@ -284,9 +284,9 @@ export default function TenantDetailPage() {
 										{new Date(user.createdAt).toLocaleDateString()}
 									</div>
 								</div>
-								<span 
+								<span
 									className="px-2 py-0.5 rounded text-xs capitalize"
-									style={{ 
+									style={{
 										background: user.role === 'owner' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(139, 92, 246, 0.2)',
 										color: user.role === 'owner' ? '#f472b6' : '#a78bfa'
 									}}
@@ -300,10 +300,10 @@ export default function TenantDetailPage() {
 
 				{/* Forms */}
 				<div className="rounded-xl p-6" style={cardStyle}>
-					<h2 className="text-lg font-semibold text-white mb-4">Forms ({tenant.forms.length})</h2>
+					<h2 className="text-lg font-semibold text-white mb-4">Templates ({tenant.forms.length})</h2>
 					<div className="space-y-2">
 						{tenant.forms.slice(0, 5).map((form) => (
-							<div 
+							<div
 								key={form.id}
 								className="flex items-center justify-between p-3 rounded-lg"
 								style={{ background: 'rgba(139, 92, 246, 0.05)' }}
@@ -314,9 +314,9 @@ export default function TenantDetailPage() {
 										/{form.publicId}
 									</div>
 								</div>
-								<span 
+								<span
 									className="px-2 py-0.5 rounded text-xs capitalize"
-									style={{ 
+									style={{
 										background: form.status === 'live' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)',
 										color: form.status === 'live' ? '#10b981' : '#94a3b8'
 									}}
@@ -327,7 +327,7 @@ export default function TenantDetailPage() {
 						))}
 						{tenant.forms.length > 5 && (
 							<div className="text-center text-sm" style={{ color: '#64748b' }}>
-								+{tenant.forms.length - 5} more forms
+								+{tenant.forms.length - 5} more templates
 							</div>
 						)}
 					</div>
@@ -339,7 +339,7 @@ export default function TenantDetailPage() {
 				<h2 className="text-lg font-semibold text-white mb-4">Recent Submissions</h2>
 				<div className="space-y-2">
 					{tenant.recentSubmissions.map((sub) => (
-						<div 
+						<div
 							key={sub.id}
 							className="flex items-center justify-between p-3 rounded-lg text-sm"
 							style={{ background: 'rgba(139, 92, 246, 0.03)' }}

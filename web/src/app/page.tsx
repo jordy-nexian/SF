@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen text-white overflow-hidden relative" style={{ background: '#0f172a' }}>
       {/* Background gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="absolute rounded-full"
           style={{
             width: '600px',
@@ -16,7 +16,7 @@ export default function Home() {
             left: '-200px',
           }}
         />
-        <div 
+        <div
           className="absolute rounded-full"
           style={{
             width: '500px',
@@ -27,7 +27,7 @@ export default function Home() {
             right: '-150px',
           }}
         />
-        <div 
+        <div
           className="absolute rounded-full"
           style={{
             width: '400px',
@@ -45,9 +45,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           {/* Badge */}
           <div className="flex justify-center mb-8">
-            <div 
+            <div
               className="px-4 py-2 flex items-center gap-2 text-sm rounded-full"
-              style={{ 
+              style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
               }}
@@ -60,7 +60,7 @@ export default function Home() {
           {/* Main headline */}
           <h1 className="text-5xl md:text-7xl font-bold text-center leading-tight mb-6">
             Forms that flow,{" "}
-            <span 
+            <span
               style={{
                 background: 'linear-gradient(to right, #818cf8, #a78bfa, #f472b6)',
                 WebkitBackgroundClip: 'text',
@@ -73,14 +73,14 @@ export default function Home() {
           </h1>
 
           <p className="text-xl md:text-2xl text-center max-w-3xl mx-auto mb-10" style={{ color: '#94a3b8' }}>
-            Build stunning, dynamic forms without storing a single answer. 
+            Build stunning, dynamic forms without storing a single answer.
             Submissions relay instantly to your n8n workflows—signed, secure, and seamless.
           </p>
 
           {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
-              href="/admin/forms/builder" 
+            <Link
+              href="/admin/forms/builder"
               className="text-lg px-8 py-4 rounded-full font-semibold text-white transition-all hover:-translate-y-0.5"
               style={{
                 background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
@@ -89,8 +89,8 @@ export default function Home() {
             >
               Start building free
             </Link>
-            <Link 
-              href="/features" 
+            <Link
+              href="/features"
               className="text-lg px-8 py-4 rounded-full font-semibold text-white transition-all flex items-center gap-2 hover:bg-white/5"
               style={{
                 border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -111,7 +111,7 @@ export default function Home() {
           {/* Hero visual - Form mockup */}
           <div className="mt-16 relative max-w-4xl mx-auto">
             {/* Gradient border wrapper */}
-            <div 
+            <div
               className="p-[2px] rounded-2xl"
               style={{ background: 'linear-gradient(to right, #6366f1, #8b5cf6, #ec4899)' }}
             >
@@ -123,25 +123,25 @@ export default function Home() {
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span className="ml-4 text-sm font-mono" style={{ color: '#64748b' }}>form-builder.statelessforms.io</span>
                 </div>
-                
+
                 {/* Form mockup content */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div 
+                    <div
                       className="rounded-xl p-4"
                       style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
                     >
                       <label className="text-sm block mb-2" style={{ color: '#94a3b8' }}>Full Name</label>
                       <div className="h-10 rounded-lg" style={{ background: '#1e293b', border: '1px solid #334155' }} />
                     </div>
-                    <div 
+                    <div
                       className="rounded-xl p-4"
                       style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
                     >
                       <label className="text-sm block mb-2" style={{ color: '#94a3b8' }}>Email Address</label>
                       <div className="h-10 rounded-lg" style={{ background: '#1e293b', border: '1px solid #334155' }} />
                     </div>
-                    <div 
+                    <div
                       className="rounded-xl p-4"
                       style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
                     >
@@ -150,7 +150,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex flex-col justify-center items-center text-center p-8">
-                    <div 
+                    <div
                       className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                       style={{ background: 'linear-gradient(to bottom right, #6366f1, #8b5cf6)' }}
                     >
@@ -169,15 +169,15 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
+
             {/* Floating badges */}
-            <div 
+            <div
               className="absolute -top-3 -right-3 rounded-lg px-3 py-2 text-sm shadow-xl"
               style={{ background: 'rgba(30, 41, 59, 0.9)', border: '1px solid #334155' }}
             >
               <span className="text-green-400">✓</span> HMAC Signed
             </div>
-            <div 
+            <div
               className="absolute -bottom-3 -left-3 rounded-lg px-3 py-2 text-sm shadow-xl"
               style={{ background: 'rgba(30, 41, 59, 0.9)', border: '1px solid #334155' }}
             >
@@ -193,7 +193,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
               Why teams choose{" "}
-              <span 
+              <span
                 style={{
                   background: 'linear-gradient(to right, #818cf8, #a78bfa)',
                   WebkitBackgroundClip: 'text',
@@ -248,15 +248,15 @@ export default function Home() {
                 icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
               }
             ].map((feature, i) => (
-              <div 
+              <div
                 key={i}
                 className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1"
-                style={{ 
+                style={{
                   background: 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
-                <div 
+                <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
                   style={{ background: feature.gradient }}
                 >
@@ -287,7 +287,7 @@ export default function Home() {
               { num: "3", gradient: "linear-gradient(to bottom right, #10b981, #059669)", title: "Embed & go live", desc: "Share a link, embed via iframe, or use our JS snippet. Submissions flow instantly to n8n." }
             ].map((step, i) => (
               <div key={i} className="text-center">
-                <div 
+                <div
                   className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-lg"
                   style={{ background: step.gradient }}
                 >
@@ -304,14 +304,14 @@ export default function Home() {
       {/* CTA Section */}
       <section className="relative py-24 px-6">
         <div className="max-w-4xl mx-auto">
-          <div 
+          <div
             className="p-[2px] rounded-2xl"
             style={{ background: 'linear-gradient(to right, #6366f1, #8b5cf6, #ec4899)' }}
           >
             <div className="rounded-2xl p-12 text-center relative overflow-hidden" style={{ background: '#0f172a' }}>
-              <div 
-                className="absolute inset-0" 
-                style={{ background: 'linear-gradient(to bottom right, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))' }} 
+              <div
+                className="absolute inset-0"
+                style={{ background: 'linear-gradient(to bottom right, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))' }}
               />
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to go stateless?</h2>
@@ -319,8 +319,8 @@ export default function Home() {
                   Join teams who've simplified their form infrastructure while keeping full control of their data.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link 
-                    href="/admin/forms/builder" 
+                  <Link
+                    href="/admin/forms/builder"
                     className="text-lg px-8 py-4 rounded-full font-semibold text-white transition-all"
                     style={{
                       background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
@@ -329,8 +329,8 @@ export default function Home() {
                   >
                     Start building free
                   </Link>
-                  <Link 
-                    href="/pricing" 
+                  <Link
+                    href="/pricing"
                     className="text-lg px-8 py-4 rounded-full font-semibold text-white transition-all hover:bg-white/5"
                     style={{ border: '1px solid rgba(255, 255, 255, 0.2)' }}
                   >
@@ -348,7 +348,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h4 
+              <h4
                 className="font-semibold mb-4 text-lg"
                 style={{
                   background: 'linear-gradient(to right, #818cf8, #a78bfa)',
@@ -368,7 +368,7 @@ export default function Home() {
               <ul className="space-y-2 text-sm" style={{ color: '#64748b' }}>
                 <li><Link href="/features" className="hover:text-white transition-colors">Features</Link></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="/admin/forms/builder" className="hover:text-white transition-colors">Form Builder</Link></li>
+                <li><Link href="/admin/forms/builder" className="hover:text-white transition-colors">Template Builder</Link></li>
               </ul>
             </div>
             <div>

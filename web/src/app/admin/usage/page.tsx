@@ -71,9 +71,9 @@ export default function UsagePage() {
 					</p>
 				</div>
 				<div className="flex items-center gap-3">
-					<span 
+					<span
 						className="px-3 py-1 rounded-full text-sm font-medium"
-						style={{ 
+						style={{
 							background: 'rgba(99, 102, 241, 0.2)',
 							color: '#818cf8'
 						}}
@@ -84,7 +84,7 @@ export default function UsagePage() {
 						<Link
 							href="/admin/billing"
 							className="px-4 py-2 rounded-full text-sm font-medium text-white transition-all"
-							style={{ 
+							style={{
 								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
 							}}
 						>
@@ -96,27 +96,27 @@ export default function UsagePage() {
 
 			{/* Usage Warnings */}
 			<div className="space-y-3 mb-8">
-				<UsageWarning 
-					current={usage.limits.forms.current} 
-					limit={usage.limits.forms.limit} 
-					type="forms" 
+				<UsageWarning
+					current={usage.limits.forms.current}
+					limit={usage.limits.forms.limit}
+					type="forms"
 				/>
-				<UsageWarning 
-					current={usage.limits.submissions.current} 
-					limit={usage.limits.submissions.limit} 
-					type="submissions" 
+				<UsageWarning
+					current={usage.limits.submissions.current}
+					limit={usage.limits.submissions.limit}
+					type="submissions"
 				/>
-				<UsageWarning 
-					current={usage.limits.teamMembers.current} 
-					limit={usage.limits.teamMembers.limit} 
-					type="team members" 
+				<UsageWarning
+					current={usage.limits.teamMembers.current}
+					limit={usage.limits.teamMembers.limit}
+					type="team members"
 				/>
 			</div>
 
 			{/* Usage Stats */}
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
 				<UsageCard
-					title="Forms"
+					title="Templates"
 					current={usage.limits.forms.current}
 					limit={usage.limits.forms.limit}
 					icon="📝"
@@ -146,29 +146,29 @@ export default function UsagePage() {
 			<div className="rounded-xl p-6" style={cardStyle}>
 				<h2 className="text-lg font-semibold text-white mb-4">Features</h2>
 				<div className="grid gap-4 md:grid-cols-2">
-					<FeatureRow 
-						name="A/B Testing" 
-						available={usage.features.abTesting} 
+					<FeatureRow
+						name="A/B Testing"
+						available={usage.features.abTesting}
 						plan="Pro"
 					/>
-					<FeatureRow 
-						name="Webhook Failover" 
-						available={usage.features.webhookFailover} 
+					<FeatureRow
+						name="Webhook Failover"
+						available={usage.features.webhookFailover}
 						plan="Pro"
 					/>
-					<FeatureRow 
-						name="Remove Branding" 
-						available={usage.features.removeBranding} 
+					<FeatureRow
+						name="Remove Branding"
+						available={usage.features.removeBranding}
 						plan="Pro"
 					/>
-					<FeatureRow 
-						name="API Access" 
-						available={usage.features.apiAccess} 
+					<FeatureRow
+						name="API Access"
+						available={usage.features.apiAccess}
 						plan="Pro"
 					/>
-					<FeatureRow 
-						name="Custom Domain" 
-						available={usage.features.customDomain} 
+					<FeatureRow
+						name="Custom Domain"
+						available={usage.features.customDomain}
 						plan="Enterprise"
 					/>
 				</div>
@@ -176,7 +176,7 @@ export default function UsagePage() {
 
 			{/* Quick Links */}
 			<div className="mt-8 grid gap-4 md:grid-cols-3">
-				<Link 
+				<Link
 					href="/admin/billing"
 					className="rounded-xl p-4 transition-all hover:scale-[1.02]"
 					style={cardStyle}
@@ -185,7 +185,7 @@ export default function UsagePage() {
 					<div className="font-medium text-white">Billing</div>
 					<div className="text-sm" style={{ color: '#64748b' }}>Manage subscription</div>
 				</Link>
-				<Link 
+				<Link
 					href="/admin/team"
 					className="rounded-xl p-4 transition-all hover:scale-[1.02]"
 					style={cardStyle}
@@ -194,30 +194,30 @@ export default function UsagePage() {
 					<div className="font-medium text-white">Team</div>
 					<div className="text-sm" style={{ color: '#64748b' }}>Invite members</div>
 				</Link>
-				<Link 
-					href="/admin/forms/builder"
+				<Link
+					href="/admin/wizard/new"
 					className="rounded-xl p-4 transition-all hover:scale-[1.02]"
 					style={cardStyle}
 				>
 					<div className="text-2xl mb-2">✨</div>
-					<div className="font-medium text-white">New Form</div>
-					<div className="text-sm" style={{ color: '#64748b' }}>Create a form</div>
+					<div className="font-medium text-white">New Wizard</div>
+					<div className="text-sm" style={{ color: '#64748b' }}>Start a wizard</div>
 				</Link>
 			</div>
 		</div>
 	);
 }
 
-function UsageCard({ 
-	title, 
-	current, 
-	limit, 
+function UsageCard({
+	title,
+	current,
+	limit,
 	icon,
-	subtitle 
-}: { 
-	title: string; 
-	current: number; 
-	limit: number; 
+	subtitle
+}: {
+	title: string;
+	current: number;
+	limit: number;
 	icon: string;
 	subtitle?: string;
 }) {
@@ -242,9 +242,9 @@ function UsageCard({
 				</span>
 			</div>
 			<div className="h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
-				<div 
+				<div
 					className="h-1.5 rounded-full transition-all"
-					style={{ 
+					style={{
 						width: isUnlimited ? '0%' : `${percentage}%`,
 						background: isAtLimit ? '#ef4444' : isNearLimit ? '#f59e0b' : '#6366f1'
 					}}
@@ -254,13 +254,13 @@ function UsageCard({
 	);
 }
 
-function FeatureRow({ 
-	name, 
-	available, 
-	plan 
-}: { 
-	name: string; 
-	available: boolean; 
+function FeatureRow({
+	name,
+	available,
+	plan
+}: {
+	name: string;
+	available: boolean;
 	plan: string;
 }) {
 	return (
