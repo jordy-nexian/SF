@@ -393,7 +393,7 @@ export async function POST(
 	// Expand compact customerContext from prefill token into readable fields for n8n
 	const rawMeta = (meta as Record<string, unknown>) || {};
 	const ctxCustomer = rawMeta.customerContext as { e?: string; n?: string; w?: string } | undefined;
-	const enrichedMeta = {
+	const enrichedMeta: Record<string, unknown> = {
 		...rawMeta,
 		...(customerId ? { customerId } : {}),
 		...(endCustomerId ? { endCustomerId } : {}),
