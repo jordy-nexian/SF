@@ -238,7 +238,7 @@ export default function NewWizardPage() {
 
     // --- Render ---
     return (
-        <div className={`mx-auto ${stage === 3 ? 'max-w-7xl' : 'max-w-3xl'}`}>
+        <div className={`mx-auto ${stage === 3 ? 'w-full px-2' : 'max-w-3xl'}`}>
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -516,10 +516,10 @@ export default function NewWizardPage() {
                             )}
 
                             {/* Side-by-side panels */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5" style={{ alignItems: "start" }}>
+                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5" style={{ alignItems: "start" }}>
                                 {/* LEFT — Live Preview */}
                                 <div
-                                    className="rounded-xl overflow-hidden lg:sticky lg:top-4"
+                                    className="lg:col-span-3 rounded-xl overflow-hidden lg:sticky lg:top-4"
                                     style={{ ...cardStyle, maxHeight: "80vh" }}
                                 >
                                     <div
@@ -553,7 +553,7 @@ export default function NewWizardPage() {
                                 </div>
 
                                 {/* RIGHT — Editable Fields */}
-                                <div className="space-y-4">
+                                <div className="lg:col-span-2 space-y-4">
                                     {/* Quickbase-populated fields */}
                                     {Object.entries(prefillData).filter(([, e]) => e.source === 'quickbase').length > 0 && (
                                         <div className="rounded-xl p-5" style={cardStyle}>
