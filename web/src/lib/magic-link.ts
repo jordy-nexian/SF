@@ -109,6 +109,73 @@ export async function validateMagicLinkToken(token: string): Promise<{
 /**
  * Send magic link email to end customer
  */
+/**
+ * Send a direct form invite email (used by wizard assign flow).
+ * The link goes straight to the prefilled form — no portal auth needed.
+ */
+export async function sendFormInviteEmail(
+    email: string,
+    formUrl: string,
+    tenantName?: string
+): Promise<{ success: boolean; error?: string }> {
+    const displayName = tenantName || 'Stateless Forms';
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complete your form - ${displayName}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(to right, #6366f1, #8b5cf6); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">${displayName}</h1>
+  </div>
+
+  <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 12px 12px;">
+    <h2 style="color: #1e293b; margin-top: 0;">You have a form to complete</h2>
+
+    <p>A form has been prepared for you. Click the button below to review and submit:</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${formUrl}" style="display: inline-block; background: linear-gradient(to right, #10b981, #059669); color: white; text-decoration: none; padding: 14px 32px; border-radius: 9999px; font-weight: 600;">
+        Complete Form
+      </a>
+    </div>
+
+    <p style="color: #64748b; font-size: 14px;">
+      If the button doesn't work, copy and paste this URL into your browser:<br>
+      <a href="${formUrl}" style="color: #6366f1; word-break: break-all;">${formUrl}</a>
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+      &copy; ${new Date().getFullYear()} ${displayName}. Secure forms portal.
+    </p>
+  </div>
+</body>
+</html>
+`;
+
+    const text = `
+Complete your form - ${displayName}
+
+A form has been prepared for you. Click here to review and submit:
+${formUrl}
+
+&copy; ${new Date().getFullYear()} ${displayName}
+`;
+
+    return sendEmail({
+        to: email,
+        subject: `Action required: Complete your form - ${displayName}`,
+        html,
+        text,
+    });
+}
+
 async function sendMagicLinkEmail(
     email: string,
     magicLinkUrl: string,

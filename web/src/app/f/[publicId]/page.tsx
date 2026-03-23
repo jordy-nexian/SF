@@ -53,6 +53,8 @@ function PublicFormContent() {
 	const [authLoading, setAuthLoading] = useState(false);
 	const [authSent, setAuthSent] = useState(false);
 	const [authError, setAuthError] = useState<string | null>(null);
+	// Customer context from prefill token (for submission identification)
+	const [customerContext, setCustomerContext] = useState<Record<string, string> | null>(null);
 
 	// Extract pre-fill values from URL parameters
 	// Supports both individual field params and ?data=base64(JSON)
@@ -145,7 +147,11 @@ function PublicFormContent() {
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
-		fetch(`/api/forms/${publicId}`)
+		const ctx = searchParams.get('ctx');
+		const formApiUrl = ctx
+			? `/api/forms/${publicId}?ctx=${encodeURIComponent(ctx)}`
+			: `/api/forms/${publicId}`;
+		fetch(formApiUrl)
 			.then(async (r) => {
 				const json = await r.json();
 				if (!r.ok) {
@@ -169,7 +175,8 @@ function PublicFormContent() {
 
 				// Check if form requires authentication
 				const isPublic = data.isPublic ?? true;
-				if (!isPublic) {
+				const hasCtx = !!searchParams.get('ctx');
+				if (!isPublic && !hasCtx) {
 					// Check for tenant token (grants access without session)
 					const tenantToken = searchParams.get('tenantToken');
 					if (!tenantToken) {
@@ -188,18 +195,32 @@ function PublicFormContent() {
 					}
 				}
 
-				// Initialize values: URL params > localStorage > empty
-				const fieldKeys = data.schema.fields.map((f: Field) => f.key);
+				// If API returned prefill data (from ctx token), use it directly
+				if (data.prefillData && Object.keys(data.prefillData).length > 0) {
+					setPrefillData(data.prefillData);
+					setValues(data.prefillData);
+				}
+				if (data.tokenModes && Object.keys(data.tokenModes).length > 0) {
+					setTokenModes(data.tokenModes);
+				}
+				if (data.customerContext) {
+					setCustomerContext(data.customerContext);
+				}
+
+				// Initialize values: URL params > ctx prefill > localStorage > empty
+				const fieldKeys = data.schema?.fields?.map((f: Field) => f.key) || [];
 				const prefillValues = getPrefillValues(fieldKeys);
 				const storedValues = loadFromStorage();
 
 				if (Object.keys(prefillValues).length > 0) {
 					// URL params take priority
-					setValues(prefillValues);
+					setValues(prev => ({ ...prev, ...prefillValues }));
+				} else if (data.prefillData && Object.keys(data.prefillData).length > 0) {
+					// ctx prefill already set above
 				} else if (storedValues && Object.keys(storedValues).length > 0) {
 					setValues(storedValues);
 					setRecoveredFromStorage(true);
-				} else {
+				} else if (!data.prefillData) {
 					setValues({});
 				}
 
@@ -207,36 +228,37 @@ function PublicFormContent() {
 				setActiveStepIdx(0);
 				setFormError(null);
 
-				// Fetch prefill data from webhook (if configured)
-				// Always attempt prefill - query params are forwarded if present
-				const queryParams: Record<string, string> = {};
-				const urlParams = new URLSearchParams(window.location.search);
-				urlParams.forEach((value, key) => { queryParams[key] = value; });
-				setPrefilling(true);
-				fetch(`/api/forms/${publicId}/prefill`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(queryParams),
-				})
-					.then(res => res.json())
-					.then(prefillResponse => {
-						if (prefillResponse.success && prefillResponse.data?.prefillData) {
-							const fetchedPrefillData = prefillResponse.data.prefillData;
-							const fetchedTokenModes = prefillResponse.data.tokenModes || {};
-							if (Object.keys(fetchedPrefillData).length > 0) {
-								setPrefillData(fetchedPrefillData);
-								setValues(prev => ({ ...prev, ...fetchedPrefillData }));
-							}
-							if (Object.keys(fetchedTokenModes).length > 0) {
-								setTokenModes(fetchedTokenModes);
-							}
-						}
+				// Only fetch prefill from webhook if API didn't provide it (no ctx token)
+				if (!data.prefillData || Object.keys(data.prefillData).length === 0) {
+					const queryParams: Record<string, string> = {};
+					const urlParams = new URLSearchParams(window.location.search);
+					urlParams.forEach((value, key) => { queryParams[key] = value; });
+					setPrefilling(true);
+					fetch(`/api/forms/${publicId}/prefill`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(queryParams),
 					})
-					.catch(err => {
-						console.warn('Prefill failed:', err);
-						// Silent failure - form still works
-					})
-					.finally(() => setPrefilling(false));
+						.then(res => res.json())
+						.then(prefillResponse => {
+							if (prefillResponse.success && prefillResponse.data?.prefillData) {
+								const fetchedPrefillData = prefillResponse.data.prefillData;
+								const fetchedTokenModes = prefillResponse.data.tokenModes || {};
+								if (Object.keys(fetchedPrefillData).length > 0) {
+									setPrefillData(fetchedPrefillData);
+									setValues(prev => ({ ...prev, ...fetchedPrefillData }));
+								}
+								if (Object.keys(fetchedTokenModes).length > 0) {
+									setTokenModes(fetchedTokenModes);
+								}
+							}
+						})
+						.catch(err => {
+							console.warn('Prefill failed:', err);
+							// Silent failure - form still works
+						})
+						.finally(() => setPrefilling(false));
+				}
 			})
 			.catch((e) => {
 				if (!active) return;
@@ -516,6 +538,7 @@ function PublicFormContent() {
 						language: navigator.language,
 						stepReached: activeStepIdx + 1,
 						tenantToken: searchParams.get("tenantToken") || undefined,
+						...(customerContext && { customerContext }),
 					},
 				}),
 			});
@@ -743,6 +766,7 @@ function PublicFormContent() {
 						language: navigator.language,
 						htmlTemplate: true,
 						tenantToken: searchParams.get("tenantToken") || undefined,
+						...(customerContext && { customerContext }),
 					},
 				}),
 			});

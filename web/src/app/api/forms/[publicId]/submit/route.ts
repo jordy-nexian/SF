@@ -390,11 +390,21 @@ export async function POST(
 
 	// Build base payload (htmlContent and prefillData included for webhook/transforms)
 	// Inject customerId and/or endCustomerId into meta if validated
+	// Expand compact customerContext from prefill token into readable fields for n8n
+	const rawMeta = (meta as Record<string, unknown>) || {};
+	const ctxCustomer = rawMeta.customerContext as { e?: string; n?: string; w?: string } | undefined;
 	const enrichedMeta = {
-		...(meta as Record<string, unknown> || {}),
+		...rawMeta,
 		...(customerId ? { customerId } : {}),
 		...(endCustomerId ? { endCustomerId } : {}),
+		...(ctxCustomer ? {
+			customerEmail: ctxCustomer.e,
+			customerName: ctxCustomer.n,
+			wipNumber: ctxCustomer.w,
+		} : {}),
 	};
+	// Remove compact customerContext — expanded fields above replace it
+	delete enrichedMeta.customerContext;
 
 	const basePayload = {
 		tenantId: tenant.id,

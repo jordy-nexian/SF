@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { defaultTheme, type ThemeConfig } from '@/types/theme';
 import { selectVersion, type VersionWeight } from '@/lib/ab-testing';
 import { validateFormAccessToken } from '@/lib/form-access-token';
+import { verifyPrefillToken, type PrefillTokenPayload } from '@/lib/prefill-token';
 import { getPortalSessionFromCookies } from '@/lib/portal-auth';
 import * as api from '@/lib/api-response';
 
@@ -49,50 +50,67 @@ export async function GET(
 			return api.formArchived();
 		}
 
+		// Check for prefill context token (wizard-assigned forms)
+		const ctxParam = request.nextUrl.searchParams.get('ctx');
+		let ctxPayload: PrefillTokenPayload | null = null;
+		if (ctxParam) {
+			ctxPayload = await verifyPrefillToken(ctxParam, publicId);
+			if (!ctxPayload) {
+				return api.forbidden('Invalid or expired form link. Please request a new one.');
+			}
+			if (ctxPayload.t !== form.tenantId) {
+				return api.forbidden('Form link is not valid for this form');
+			}
+		}
+
 		// Check if form is public (defaults to true for backwards compatibility)
 		const formSettings = form.settings as { isPublic?: boolean } | null;
 		const isPublic = formSettings?.isPublic ?? true;
 
 		// Security: Block access to private forms without valid token or portal session
 		if (!isPublic) {
-			const token = request.nextUrl.searchParams.get('token');
-
-			if (token) {
-				// Validate access token
-				const tokenPayload = await validateFormAccessToken(token, publicId);
-
-				if (!tokenPayload) {
-					return api.forbidden('Invalid or expired access token');
-				}
-
-				// Verify token is for this tenant's form
-				if (tokenPayload.tenantId !== form.tenantId) {
-					return api.forbidden('Access token is not valid for this form');
-				}
+			if (ctxPayload) {
+				// Valid prefill context token grants access
 			} else {
-				// No token - check for portal session as fallback
-				const portalSession = await getPortalSessionFromCookies(request.cookies);
+				const token = request.nextUrl.searchParams.get('token');
 
-				if (!portalSession) {
-					// Return 401 so frontend can show magic link request flow
-					return api.unauthorized('Authentication required to access this form');
-				}
+				if (token) {
+					// Validate access token
+					const tokenPayload = await validateFormAccessToken(token, publicId);
 
-				// Verify portal session is for this tenant
-				if (portalSession.tenantId !== form.tenantId) {
-					return api.forbidden('You do not have access to this form');
-				}
+					if (!tokenPayload) {
+						return api.forbidden('Invalid or expired access token');
+					}
 
-				// Verify user is assigned to this form
-				const assignment = await prisma.formAssignment.findFirst({
-					where: {
-						formId: form.id,
-						endCustomerId: portalSession.endCustomerId,
-					},
-				});
+					// Verify token is for this tenant's form
+					if (tokenPayload.tenantId !== form.tenantId) {
+						return api.forbidden('Access token is not valid for this form');
+					}
+				} else {
+					// No token - check for portal session as fallback
+					const portalSession = await getPortalSessionFromCookies(request.cookies);
 
-				if (!assignment) {
-					return api.forbidden('This form has not been assigned to you');
+					if (!portalSession) {
+						// Return 401 so frontend can show magic link request flow
+						return api.unauthorized('Authentication required to access this form');
+					}
+
+					// Verify portal session is for this tenant
+					if (portalSession.tenantId !== form.tenantId) {
+						return api.forbidden('You do not have access to this form');
+					}
+
+					// Verify user is assigned to this form
+					const assignment = await prisma.formAssignment.findFirst({
+						where: {
+							formId: form.id,
+							endCustomerId: portalSession.endCustomerId,
+						},
+					});
+
+					if (!assignment) {
+						return api.forbidden('This form has not been assigned to you');
+					}
 				}
 			}
 		}
@@ -161,6 +179,27 @@ export async function GET(
 		// Include Turnstile site key if configured
 		const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
 
+		// Derive token modes from template mappings when ctx token provides prefill data
+		let ctxPrefillData: Record<string, string> | undefined;
+		let ctxTokenModes: Record<string, string> | undefined;
+		let ctxCustomerContext: PrefillTokenPayload['c'] | undefined;
+
+		if (ctxPayload) {
+			ctxPrefillData = ctxPayload.v;
+			ctxCustomerContext = ctxPayload.c;
+
+			if (form.templateId) {
+				const mappings = await prisma.tokenMapping.findMany({
+					where: { templateId: form.templateId },
+					select: { tokenId: true, mode: true },
+				});
+				ctxTokenModes = {};
+				for (const m of mappings) {
+					ctxTokenModes[m.tokenId] = m.mode || 'prefill';
+				}
+			}
+		}
+
 		return api.success({
 			formId: form.id,
 			formVersion: selectedVersion.versionNumber,
@@ -172,6 +211,9 @@ export async function GET(
 			thankYouMessage: form.thankYouMessage,
 			turnstileSiteKey,
 			isPublic,
+			...(ctxPrefillData && { prefillData: ctxPrefillData }),
+			...(ctxTokenModes && { tokenModes: ctxTokenModes }),
+			...(ctxCustomerContext && { customerContext: ctxCustomerContext }),
 		});
 	} catch (err) {
 		console.error('Error fetching form:', err);

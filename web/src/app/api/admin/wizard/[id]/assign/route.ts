@@ -9,7 +9,8 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireTenantSession } from '@/lib/auth-helpers';
 import { assignSchema, canTransition } from '@/lib/wizard-validation';
-import { createAndSendMagicLink } from '@/lib/magic-link';
+import { createAndSendMagicLink, sendFormInviteEmail } from '@/lib/magic-link';
+import { generatePrefillToken, buildPrefillUrl } from '@/lib/prefill-token';
 import { logAuditEvent } from '@/lib/audit';
 import * as api from '@/lib/api-response';
 
@@ -121,21 +122,53 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Send invite/notification email
+        // Generate stateless prefill token — all assignment context travels in the URL
+        const prefillDataRaw = wizardRun.prefillData as Record<string, { value?: string }> | null;
+        const tokenValues: Record<string, string> = {};
+        if (prefillDataRaw) {
+            for (const [tokenId, entry] of Object.entries(prefillDataRaw)) {
+                if (entry?.value !== undefined && entry?.value !== null && entry.value !== '') {
+                    tokenValues[tokenId] = String(entry.value);
+                }
+            }
+        }
+
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        let formUrl: string | null = null;
+        try {
+            const prefillToken = await generatePrefillToken({
+                publicId: form.publicId,
+                tenantId: session.tenantId,
+                tokenValues,
+                customerEmail: email,
+                customerName: endCustomerName?.trim(),
+                wipNumber: wizardRun.wipNumber,
+            });
+            formUrl = buildPrefillUrl(baseUrl, form.publicId, prefillToken);
+        } catch (tokenError) {
+            console.warn('[Wizard] Prefill token generation failed:', tokenError);
+            // Fall back to magic link if token fails (e.g. payload too large)
+        }
+
+        // Send invite email — direct form link if available, magic link as fallback
         let inviteSent = false;
         if (sendInvite) {
             try {
-                // Get tenant name for email branding
                 const tenant = await prisma.tenant.findUnique({
                     where: { id: session.tenantId },
                     select: { name: true },
                 });
 
-                const result = await createAndSendMagicLink(
-                    endCustomer.id,
-                    endCustomer.email,
-                    tenant?.name
-                );
+                let result: { success: boolean; error?: string };
+                if (formUrl) {
+                    result = await sendFormInviteEmail(email, formUrl, tenant?.name);
+                } else {
+                    result = await createAndSendMagicLink(
+                        endCustomer.id,
+                        endCustomer.email,
+                        tenant?.name
+                    );
+                }
                 inviteSent = result.success;
 
                 if (!result.success) {
@@ -195,8 +228,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
             invite: {
                 sent: inviteSent,
-                method: 'magic_link',
+                method: formUrl ? 'direct_link' : 'magic_link',
             },
+            formUrl,
         }, 201);
     } catch (error) {
         console.error('[Wizard] Assign error:', error);
