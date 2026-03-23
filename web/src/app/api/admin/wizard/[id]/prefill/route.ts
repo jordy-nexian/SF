@@ -177,8 +177,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         // Apply admin overrides (if any)
         const overrides = parsed.data.overrides || {};
 
-        // Build final prefill data
-        const prefillData: Record<string, { key: string; label: string; value: string }> = {};
+        // Build final prefill data — include ALL editable tokens (prefill + manual)
+        const prefillData: Record<string, { key: string; label: string; value: string; source: string }> = {};
+
+        // Prefill-mode tokens (auto-populated from Quickbase)
         for (const mapping of prefillMappings) {
             const value = overrides[mapping.tokenId]
                 ?? n8nValues[mapping.tokenId]
@@ -187,17 +189,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 key: mapping.payloadKey,
                 label: mapping.tokenLabel,
                 value,
+                source: 'quickbase',
             };
         }
 
-        // Identify non-prefill tokens (manual/signature)
-        const nonPrefillTokens = wizardRun.template.mappings
-            .filter((m: { mode: string }) => m.mode !== 'prefill')
+        // Manual-mode tokens (admin-editable, not from Quickbase)
+        const manualMappings = wizardRun.template.mappings
+            .filter((m: { mode: string }) => m.mode === 'manual');
+        for (const mapping of manualMappings) {
+            const value = overrides[mapping.tokenId] ?? '';
+            prefillData[mapping.tokenId] = {
+                key: mapping.payloadKey,
+                label: mapping.tokenLabel,
+                value,
+                source: 'admin',
+            };
+        }
+
+        // Signature tokens remain non-editable (fund coordinator must sign)
+        const signatureTokens = wizardRun.template.mappings
+            .filter((m: { mode: string }) => m.mode === 'signature')
             .map((m: { tokenId: string; tokenLabel: string; mode: string }) => ({
                 tokenId: m.tokenId,
                 label: m.tokenLabel,
                 mode: m.mode,
-                reason: m.mode === 'signature' ? 'signature_field' : 'manual_input',
             }));
 
         // Build preview HTML by injecting values into tokens
@@ -246,7 +261,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             wizardRunId: id,
             state: 'prefilled',
             prefillData,
-            unmappedTokens: nonPrefillTokens,
+            signatureTokens,
             prefillSource,
             prefillWarning,
             htmlPreview,

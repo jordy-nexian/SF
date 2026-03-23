@@ -28,6 +28,7 @@ interface PrefillEntry {
     key: string;
     label: string;
     value: string;
+    source?: string; // 'quickbase' | 'admin'
 }
 
 // --- Styles ---
@@ -67,9 +68,8 @@ export default function NewWizardPage() {
 
     // Stage 3
     const [prefillData, setPrefillData] = useState<Record<string, PrefillEntry>>({});
-    const [unmappedTokens, setUnmappedTokens] = useState<Array<{ tokenId: string; label: string; mode: string }>>([]);
+    const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string; mode: string }>>([]);
     const [htmlPreview, setHtmlPreview] = useState<string>("");
-    const [showPrefillFields, setShowPrefillFields] = useState(false);
     const [prefillWarning, setPrefillWarning] = useState<string | null>(null);
 
     // Stage 4
@@ -185,7 +185,7 @@ export default function NewWizardPage() {
             }
 
             setPrefillData(data.data.prefillData || {});
-            setUnmappedTokens(data.data.unmappedTokens || []);
+            setSignatureTokens(data.data.signatureTokens || []);
             setHtmlPreview(data.data.htmlPreview || "");
             setPrefillWarning(data.data.prefillWarning || null);
         } catch (err) {
@@ -508,7 +508,7 @@ export default function NewWizardPage() {
                                     </div>
                                 )}
 
-                                {/* Prefill summary + toggle */}
+                                {/* Field summary */}
                                 <div
                                     className="mb-4 rounded-lg p-3"
                                     style={{
@@ -516,80 +516,121 @@ export default function NewWizardPage() {
                                         border: "1px solid rgba(16, 185, 129, 0.2)",
                                     }}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm" style={{ color: "#94a3b8" }}>
-                                            <span style={{ color: "#10b981" }}>✓</span>{" "}
-                                            {Object.values(prefillData).filter((d) => d.value).length} of{" "}
-                                            {Object.keys(prefillData).length} fields populated
-                                        </p>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPrefillFields(!showPrefillFields)}
-                                            className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
-                                            style={{
-                                                border: "1px solid #334155",
-                                                color: showPrefillFields ? "#818cf8" : "#94a3b8",
-                                                background: showPrefillFields ? "rgba(99, 102, 241, 0.1)" : "transparent",
-                                            }}
-                                        >
-                                            {showPrefillFields ? "Hide fields ▲" : "Edit values ▼"}
-                                        </button>
-                                    </div>
+                                    <p className="text-sm" style={{ color: "#94a3b8" }}>
+                                        <span style={{ color: "#10b981" }}>✓</span>{" "}
+                                        {Object.values(prefillData).filter((d) => d.value).length} of{" "}
+                                        {Object.keys(prefillData).length} fields populated
+                                    </p>
                                 </div>
 
-                                {/* Editable prefill fields (hidden by default) */}
-                                {showPrefillFields && (
-                                    <div className="mb-4 space-y-3">
-                                        {Object.entries(prefillData).map(([tokenId, entry]) => (
-                                            <div key={tokenId}>
-                                                <label
-                                                    className="mb-1 block text-xs font-medium"
-                                                    style={{ color: "#94a3b8" }}
-                                                >
-                                                    {entry.label}{" "}
-                                                    <span className="font-mono text-xs" style={{ color: "#64748b" }}>
-                                                        ({entry.key})
-                                                    </span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                                    style={inputStyle}
-                                                    value={entry.value}
-                                                    onChange={(e) =>
-                                                        setPrefillData((prev) => ({
-                                                            ...prev,
-                                                            [tokenId]: {
-                                                                ...prev[tokenId],
-                                                                value: e.target.value,
-                                                            },
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
-                                        ))}
+                                {/* Quickbase-populated fields */}
+                                {Object.entries(prefillData).filter(([, e]) => e.source === 'quickbase').length > 0 && (
+                                    <div className="mb-5">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748b" }}>
+                                            Auto-populated from Quickbase
+                                        </h3>
+                                        <div className="space-y-3">
+                                            {Object.entries(prefillData)
+                                                .filter(([, e]) => e.source === 'quickbase')
+                                                .map(([tokenId, entry]) => (
+                                                <div key={tokenId}>
+                                                    <label
+                                                        className="mb-1 block text-xs font-medium"
+                                                        style={{ color: "#94a3b8" }}
+                                                    >
+                                                        {entry.label}{" "}
+                                                        <span className="font-mono text-xs" style={{ color: "#64748b" }}>
+                                                            ({entry.key})
+                                                        </span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                                        style={inputStyle}
+                                                        value={entry.value}
+                                                        onChange={(e) =>
+                                                            setPrefillData((prev) => ({
+                                                                ...prev,
+                                                                [tokenId]: {
+                                                                    ...prev[tokenId],
+                                                                    value: e.target.value,
+                                                                },
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
-                                {/* Unmapped tokens warning */}
-                                {unmappedTokens.length > 0 && (
+                                {/* Admin-editable fields (manual tokens) */}
+                                {Object.entries(prefillData).filter(([, e]) => e.source === 'admin').length > 0 && (
+                                    <div className="mb-5">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "#818cf8" }}>
+                                            ✏️ Admin Fields
+                                        </h3>
+                                        <p className="text-xs mb-3" style={{ color: "#64748b" }}>
+                                            These fields are not populated from Quickbase. Add information here before sending.
+                                        </p>
+                                        <div className="space-y-3">
+                                            {Object.entries(prefillData)
+                                                .filter(([, e]) => e.source === 'admin')
+                                                .map(([tokenId, entry]) => (
+                                                <div key={tokenId}>
+                                                    <label
+                                                        className="mb-1 block text-xs font-medium"
+                                                        style={{ color: "#94a3b8" }}
+                                                    >
+                                                        {entry.label}{" "}
+                                                        <span className="font-mono text-xs" style={{ color: "#64748b" }}>
+                                                            ({entry.key})
+                                                        </span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                                        style={{
+                                                            ...inputStyle,
+                                                            border: "1px solid rgba(99, 102, 241, 0.3)",
+                                                        }}
+                                                        value={entry.value}
+                                                        placeholder={`Enter ${entry.label.toLowerCase()}…`}
+                                                        onChange={(e) =>
+                                                            setPrefillData((prev) => ({
+                                                                ...prev,
+                                                                [tokenId]: {
+                                                                    ...prev[tokenId],
+                                                                    value: e.target.value,
+                                                                },
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Signature tokens info */}
+                                {signatureTokens.length > 0 && (
                                     <div
                                         className="mb-4 rounded-lg p-3"
                                         style={{
-                                            background: "rgba(234, 179, 8, 0.1)",
-                                            border: "1px solid rgba(234, 179, 8, 0.3)",
+                                            background: "rgba(100, 116, 139, 0.1)",
+                                            border: "1px solid rgba(100, 116, 139, 0.2)",
                                         }}
                                     >
                                         <p
                                             className="text-sm font-medium mb-1"
-                                            style={{ color: "#eab308" }}
+                                            style={{ color: "#94a3b8" }}
                                         >
-                                            ⚠ Non-prefill tokens (will be filled by end user):
+                                            ✍️ Signature fields (completed by fund coordinator):
                                         </p>
-                                        <ul className="text-xs space-y-0.5" style={{ color: "#94a3b8" }}>
-                                            {unmappedTokens.map((t) => (
+                                        <ul className="text-xs space-y-0.5" style={{ color: "#64748b" }}>
+                                            {signatureTokens.map((t) => (
                                                 <li key={t.tokenId}>
-                                                    {t.label} ({t.mode})
+                                                    {t.label}
                                                 </li>
                                             ))}
                                         </ul>
@@ -787,7 +828,7 @@ export default function NewWizardPage() {
                                     setTemplates([]);
                                     setTokens([]);
                                     setPrefillData({});
-                                    setUnmappedTokens([]);
+                                    setSignatureTokens([]);
                                     setHtmlPreview("");
                                     setCustomerEmail("");
                                     setCustomerName("");
