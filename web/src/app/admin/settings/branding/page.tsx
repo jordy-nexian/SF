@@ -87,7 +87,7 @@ export default function BrandingSettingsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white">Portal Branding</h1>
                     <p className="text-sm text-slate-400 mt-1">
-                        Customize how your customer portal looks.
+                        Customize how your fund coordinator portal looks.
                     </p>
                 </div>
             </div>

@@ -170,13 +170,13 @@ export default function TenantSettingsPage() {
 					</div>
 				</div>
 
-				{/* Customer Data Integration */}
+				{/* Fund Coordinator Data Integration */}
 				<div className="rounded-xl p-6" style={cardStyle}>
-					<h2 className="mb-4 font-semibold text-white">Customer Data Integration</h2>
+					<h2 className="mb-4 font-semibold text-white">Fund Coordinator Data Integration</h2>
 					<div className="space-y-4">
 						<div>
 							<label className="mb-1.5 block text-sm font-medium" style={{ color: '#94a3b8' }}>
-								Customer Webhook URL
+								Fund Coordinator Webhook URL
 							</label>
 							<input
 								type="url"
@@ -187,8 +187,8 @@ export default function TenantSettingsPage() {
 								placeholder="https://hooks.example.com/webhook/customer-data"
 							/>
 							<p className="mt-2 text-xs" style={{ color: '#64748b' }}>
-								Fetch customer form data from an external source (e.g., Quickbase).
-								If set, the customer detail page will POST with the customer&apos;s email and display data from the response.
+								Fetch fund coordinator data from an external source (e.g., Quickbase).
+								If set, the fund coordinator detail page will POST with the fund coordinator&apos;s email and display data from the response.
 							</p>
 						</div>
 

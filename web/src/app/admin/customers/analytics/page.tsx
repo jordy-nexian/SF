@@ -67,14 +67,14 @@ export default function PortalAnalyticsPage() {
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-white">Portal Analytics</h1>
                 <p className="text-sm text-slate-400 mt-1">
-                    Track customer engagement and form completion rates.
+                    Track fund coordinator engagement and template completion rates.
                 </p>
             </div>
 
             {/* Overview Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <StatCard
-                    label="Total Customers"
+                    label="Total Fund Coordinators"
                     value={overview.totalCustomers}
                     subtext={`+${overview.recentCustomers} this month`}
                 />

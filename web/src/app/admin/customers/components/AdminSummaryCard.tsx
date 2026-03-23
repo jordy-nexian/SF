@@ -70,7 +70,7 @@ export default function AdminSummaryCard() {
                 border: '1px solid rgba(99, 102, 241, 0.2)'
             }}
             role="region"
-            aria-label="Customer portal overview"
+            aria-label="Fund coordinator portal overview"
         >
             <div className="flex flex-col md:flex-row items-center gap-6">
                 {/* Donut */}
@@ -91,7 +91,7 @@ export default function AdminSummaryCard() {
                         {/* Customers */}
                         <div className="text-center md:text-left">
                             <div className="text-2xl font-bold text-white">{totalCustomers}</div>
-                            <div className="text-xs text-white/60">Total Customers</div>
+                            <div className="text-xs text-white/60">Total Fund Coordinators</div>
                             {recentCustomers > 0 && (
                                 <div className="text-xs text-green-400 mt-0.5">+{recentCustomers} this month</div>
                             )}

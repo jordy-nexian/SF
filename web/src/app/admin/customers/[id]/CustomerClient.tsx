@@ -79,7 +79,7 @@ export default function CustomerClient({ initialCustomer, tenantForms, isWebhook
     }, [customer.assignments]);
 
     async function handleSendInvite() {
-        if (!confirm('Send magic link invitation to this customer?')) return;
+        if (!confirm('Send magic link invitation to this fund coordinator?')) return;
         setIsInviteLoading(true);
         try {
             const res = await fetch(`/api/admin/customers/${customer.id}/invite`, {
@@ -216,7 +216,7 @@ export default function CustomerClient({ initialCustomer, tenantForms, isWebhook
                     border: '1px solid rgba(99, 102, 241, 0.2)',
                 }}
                 role="region"
-                aria-label="Customer form progress"
+                aria-label="Fund coordinator template progress"
             >
                 <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Donut */}

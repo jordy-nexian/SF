@@ -32,9 +32,9 @@ export default async function CustomersPage() {
         <div className="mx-auto max-w-6xl space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Customers</h1>
+                    <h1 className="text-2xl font-bold text-white">Fund Coordinators</h1>
                     <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
-                        Manage portal users and assign forms.
+                        Manage portal users and assign templates.
                     </p>
                 </div>
                 <Link
@@ -47,7 +47,7 @@ export default async function CustomersPage() {
                         boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
                     }}
                 >
-                    + Add Customer
+                    + Add Fund Coordinator
                 </Link>
             </div>
 
@@ -119,7 +119,7 @@ export default async function CustomersPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                             </svg>
                                         </div>
-                                        <p>No customers yet. Invite one to get started.</p>
+                                        <p>No fund coordinators yet. Invite one to get started.</p>
                                     </div>
                                 </td>
                             </tr>

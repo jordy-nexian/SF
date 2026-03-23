@@ -48,7 +48,7 @@ export default async function AdminManagePage() {
 						<h2 className="text-lg font-semibold text-white">Assignments</h2>
 					</div>
 					<p className="text-sm" style={{ color: '#94a3b8' }}>
-						View and manage template assignments across all customers and team members.
+						View and manage template assignments across all fund coordinators and team members.
 					</p>
 				</Link>
 

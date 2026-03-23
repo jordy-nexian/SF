@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 						<nav className="flex items-center gap-1 text-sm">
 							<NavLink href="/admin">Templates</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
-							<NavLink href="/admin/customers">Customers</NavLink>
+							<NavLink href="/admin/customers">Fund Coordinators</NavLink>
 							<NavLink href="/admin/manage">Admin</NavLink>
 							<NavLink href="/admin/team">Team</NavLink>
 							<NavLink href="/admin/themes">Themes</NavLink>

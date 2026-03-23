@@ -7,7 +7,7 @@ const cards = [
         title: "WIP Assignment",
         icon: "🔍",
         description:
-            "Start from a WIP number — look up client data from Quickbase, pick a template, prefill fields, and assign to a customer.",
+            "Start from a WIP number — look up client data from Quickbase, pick a template, prefill fields, and assign to a fund coordinator.",
         href: "/admin/wizard/new",
         gradient: "linear-gradient(135deg, #6366f1, #8b5cf6)",
         shadow: "rgba(99, 102, 241, 0.25)",

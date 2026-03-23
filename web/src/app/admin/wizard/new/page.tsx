@@ -244,7 +244,7 @@ export default function NewWizardPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white">WIP Wizard</h1>
                     <p className="mt-1 text-sm" style={{ color: "#94a3b8" }}>
-                        Assign a form to a customer using WIP data from Quickbase
+                        Assign a template to a fund coordinator using WIP data from Quickbase
                     </p>
                 </div>
                 <Link
@@ -660,7 +660,7 @@ export default function NewWizardPage() {
                                 className="mb-1.5 block text-sm font-medium"
                                 style={{ color: "#94a3b8" }}
                             >
-                                Customer Email *
+                                Fund Coordinator Email *
                             </label>
                             <input
                                 type="email"
@@ -672,7 +672,7 @@ export default function NewWizardPage() {
                                 required
                             />
                             <p className="mt-1 text-xs" style={{ color: "#64748b" }}>
-                                If the customer doesn&apos;t exist, they&apos;ll be created and invited.
+                                If the fund coordinator doesn&apos;t exist, they&apos;ll be created and invited.
                             </p>
                         </div>
 
@@ -681,7 +681,7 @@ export default function NewWizardPage() {
                                 className="mb-1.5 block text-sm font-medium"
                                 style={{ color: "#94a3b8" }}
                             >
-                                Customer Name
+                                Fund Coordinator Name
                             </label>
                             <input
                                 type="text"

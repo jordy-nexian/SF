@@ -38,7 +38,7 @@ export default async function CustomerDetailsPage({ params }: PageProps) {
     });
 
     if (!customer) {
-        return <div className="p-8 text-center text-slate-500">Customer not found</div>;
+        return <div className="p-8 text-center text-slate-500">Fund coordinator not found</div>;
     }
 
     // Fetch tenant to check for webhook configuration

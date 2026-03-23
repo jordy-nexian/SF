@@ -97,7 +97,7 @@ export default function AssignmentsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white">All Assignments</h1>
                     <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
-                        View and manage form assignments across all customers and team members.
+                        View and manage form assignments across all fund coordinators and team members.
                     </p>
                 </div>
             </div>
@@ -163,7 +163,7 @@ export default function AssignmentsPage() {
                 <table className="min-w-full text-left text-sm">
                     <thead style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
                         <tr>
-                            <th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Customer</th>
+                            <th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Fund Coordinator</th>
                             <th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Form</th>
                             <th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Status</th>
                             <th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Assigned By</th>
