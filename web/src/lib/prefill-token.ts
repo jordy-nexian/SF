@@ -1,23 +1,27 @@
 /**
  * Prefill context token for wizard-assigned forms.
- * Encodes prefill values + customer identity into a signed JWT
+ * Encrypts prefill values + customer identity into a JWE token
  * that travels in the form URL (?ctx=...), keeping the system stateless.
+ * Uses AES-256-GCM — the URL is fully opaque and cannot be decoded
+ * without the server secret.
  */
 
-import { SignJWT, jwtVerify } from 'jose';
+import { EncryptJWT, jwtDecrypt } from 'jose';
+import { createHash } from 'crypto';
 
-// Reuse the same secret as form-access-token.ts (app-internal, not shared with n8n)
+// Derive a 32-byte encryption key (required for A256GCM) from the app secret
 const rawSecret = process.env.FORM_ACCESS_SECRET || process.env.NEXTAUTH_SECRET;
 if (!rawSecret && process.env.NODE_ENV === 'production') {
     throw new Error('[PrefillToken] CRITICAL: FORM_ACCESS_SECRET or NEXTAUTH_SECRET is required in production');
 }
-const PREFILL_SECRET = new TextEncoder().encode(
-    rawSecret || 'dev-only-not-for-production'
-);
+const PREFILL_KEY = createHash('sha256')
+    .update(rawSecret || 'dev-only-not-for-production')
+    .digest(); // 32-byte Buffer
+
 const PREFILL_ISSUER = 'stateless-forms-prefill';
 const DEFAULT_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
 
-/** Compact JWT payload — short keys to minimise URL length */
+/** Compact JWE payload — short keys to minimise URL length */
 export interface PrefillTokenPayload {
     f: string;                       // publicId (for route validation)
     t: string;                       // tenantId
@@ -40,7 +44,8 @@ export interface GeneratePrefillTokenOptions {
 }
 
 /**
- * Generate a signed prefill context token.
+ * Generate an encrypted prefill context token (JWE).
+ * The resulting string is opaque — it cannot be read without the server secret.
  */
 export async function generatePrefillToken(
     options: GeneratePrefillTokenOptions
@@ -53,33 +58,33 @@ export async function generatePrefillToken(
     if (options.customerName) customerContext.n = options.customerName;
     if (options.wipNumber) customerContext.w = options.wipNumber;
 
-    const jwtPayload: Record<string, unknown> = {
+    const jwePayload: Record<string, unknown> = {
         f: options.publicId,
         t: options.tenantId,
         v: options.tokenValues,
     };
     if (Object.keys(customerContext).length > 0) {
-        jwtPayload.c = customerContext;
+        jwePayload.c = customerContext;
     }
 
-    return new SignJWT(jwtPayload)
-        .setProtectedHeader({ alg: 'HS256' })
+    return new EncryptJWT(jwePayload)
+        .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
         .setIssuedAt(now)
         .setExpirationTime(now + expiresIn)
         .setIssuer(PREFILL_ISSUER)
-        .sign(PREFILL_SECRET);
+        .encrypt(PREFILL_KEY);
 }
 
 /**
- * Verify a prefill context token and return the payload.
- * Returns null on any failure (expired, tampered, wrong form).
+ * Decrypt and verify a prefill context token.
+ * Returns null on any failure (expired, tampered, wrong form, bad key).
  */
 export async function verifyPrefillToken(
     token: string,
     expectedPublicId: string
 ): Promise<PrefillTokenPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, PREFILL_SECRET, {
+        const { payload } = await jwtDecrypt(token, PREFILL_KEY, {
             issuer: PREFILL_ISSUER,
         });
 
@@ -99,7 +104,7 @@ export async function verifyPrefillToken(
         };
     } catch (error) {
         console.error(
-            '[PrefillToken] Validation failed:',
+            '[PrefillToken] Decryption failed:',
             error instanceof Error ? error.message : 'unknown'
         );
         return null;
@@ -107,7 +112,7 @@ export async function verifyPrefillToken(
 }
 
 /**
- * Build a form URL with the prefill context token.
+ * Build a form URL with the encrypted prefill context token.
  */
 export function buildPrefillUrl(
     baseUrl: string,
