@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 
@@ -70,7 +70,30 @@ export default function NewWizardPage() {
     const [prefillData, setPrefillData] = useState<Record<string, PrefillEntry>>({});
     const [signatureTokens, setSignatureTokens] = useState<Array<{ tokenId: string; label: string; mode: string }>>([]);
     const [htmlPreview, setHtmlPreview] = useState<string>("");
+    const [baseHtmlPreview, setBaseHtmlPreview] = useState<string>(""); // Original server HTML for live re-injection
     const [prefillWarning, setPrefillWarning] = useState<string | null>(null);
+
+    // Live preview: re-inject current field values into the baseline HTML as admin types
+    const livePreview = useMemo(() => {
+        if (!baseHtmlPreview) return htmlPreview;
+        let html = baseHtmlPreview;
+        for (const [tokenId, data] of Object.entries(prefillData)) {
+            if (data.value) {
+                const tokenRegex = new RegExp(
+                    `(<span[^>]*data-token-id="${tokenId}"[^>]*>)(.*?)(</span>)`,
+                    'gi'
+                );
+                // Escape HTML entities for safe preview
+                const escaped = data.value
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+                html = html.replace(tokenRegex, `$1${escaped}$3`);
+            }
+        }
+        return html;
+    }, [baseHtmlPreview, htmlPreview, prefillData]);
 
     // Stage 4
     const [customerEmail, setCustomerEmail] = useState("");
@@ -161,8 +184,8 @@ export default function NewWizardPage() {
     }
 
     // --- Stage 3: Prefill ---
-    async function handlePrefill() {
-        if (!wizardRunId) return;
+    async function handlePrefill(): Promise<boolean> {
+        if (!wizardRunId) return false;
         setLoading(true);
         setError(null);
 
@@ -186,11 +209,15 @@ export default function NewWizardPage() {
 
             setPrefillData(data.data.prefillData || {});
             setSignatureTokens(data.data.signatureTokens || []);
-            setHtmlPreview(data.data.htmlPreview || "");
+            const preview = data.data.htmlPreview || "";
+            setHtmlPreview(preview);
+            setBaseHtmlPreview(preview); // Store baseline for live re-injection
             setPrefillWarning(data.data.prefillWarning || null);
+            return true;
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to prefill form");
             setPrefillWarning(null);
+            return false;
         } finally {
             setLoading(false);
         }
@@ -539,10 +566,10 @@ export default function NewWizardPage() {
                                         className="overflow-y-auto"
                                         style={{ maxHeight: "calc(80vh - 44px)" }}
                                     >
-                                        {htmlPreview ? (
+                                        {livePreview ? (
                                             <div
                                                 className="bg-white p-6 text-sm text-black"
-                                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPreview) }}
+                                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(livePreview) }}
                                             />
                                         ) : (
                                             <div className="p-12 text-center" style={{ color: "#64748b" }}>
@@ -663,8 +690,9 @@ export default function NewWizardPage() {
                                     {/* Action buttons */}
                                     <div className="flex flex-wrap gap-3 pt-2">
                                         <button
-                                            onClick={() => {
-                                                handlePrefill().then(() => setStage(4));
+                                            onClick={async () => {
+                                                const ok = await handlePrefill();
+                                                if (ok) setStage(4);
                                             }}
                                             disabled={loading}
                                             className="rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-all"

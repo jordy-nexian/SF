@@ -39,7 +39,7 @@ type WizardState = 'wip_lookup' | 'template_selected' | 'prefilled' | 'assigned'
 const VALID_TRANSITIONS: Record<WizardState, WizardState[]> = {
     wip_lookup: ['template_selected', 'cancelled', 'error'],
     template_selected: ['prefilled', 'wip_lookup', 'cancelled', 'error'],  // allow going back to re-lookup
-    prefilled: ['assigned', 'template_selected', 'cancelled', 'error'],   // allow going back to re-select
+    prefilled: ['prefilled', 'assigned', 'template_selected', 'cancelled', 'error'],   // allow re-prefill and going back
     assigned: [],  // terminal state
     cancelled: [], // terminal state
     error: ['wip_lookup', 'cancelled'], // can retry from error
