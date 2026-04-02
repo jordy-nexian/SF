@@ -41,32 +41,6 @@ export default async function Home() {
         />
       </div>
 
-      {/* Header */}
-      <header className="relative" style={{ borderBottom: '1px solid #1e293b' }}>
-        <div className="mx-auto flex max-w-5xl items-center justify-between p-5">
-          <span
-            className="text-xl font-semibold"
-            style={{
-              background: 'linear-gradient(to right, #818cf8, #a78bfa)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Stateless Forms
-          </span>
-          <Link
-            href="/signin"
-            className="px-5 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              background: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              color: '#a5b4fc',
-            }}
-          >
-            Sign in
-          </Link>
-        </div>
-      </header>
 
       {/* Main — vertically centred */}
       <main className="relative flex-1 flex items-center justify-center px-6">
