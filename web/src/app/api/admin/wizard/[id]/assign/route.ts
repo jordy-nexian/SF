@@ -70,8 +70,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return api.notFound('No form found for this template.');
         }
 
+        // Parse wipContext early — needed for both EndCustomer naming and prefill token
+        const wipContextRaw = wizardRun.wipContext as {
+            companyName?: string;
+            wipNumber?: string | number;
+            metadata?: Record<string, unknown>;
+        } | null;
+
         // Find or create EndCustomer
+        // Use WIP company name as primary identifier, falling back to admin-provided name
         const email = endCustomerEmail.trim().toLowerCase();
+        const wipCompanyName = (wipContextRaw?.companyName as string) || null;
+        const effectiveName = wipCompanyName || endCustomerName?.trim() || null;
         let isNewCustomer = false;
 
         let endCustomer = await prisma.endCustomer.findUnique({
@@ -88,10 +98,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 data: {
                     tenantId: session.tenantId,
                     email,
-                    name: endCustomerName?.trim() || null,
+                    name: effectiveName,
                 },
             });
             isNewCustomer = true;
+        } else if (wipCompanyName && endCustomer.name !== wipCompanyName) {
+            // Update to the WIP company name so the customer is associated
+            // with the correct company for this assignment
+            endCustomer = await prisma.endCustomer.update({
+                where: { id: endCustomer.id },
+                data: { name: wipCompanyName },
+            });
         }
 
         // Check for existing assignment
@@ -132,13 +149,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 }
             }
         }
-
-        // Parse wipContext for inclusion in the prefill token (document metadata)
-        const wipContextRaw = wizardRun.wipContext as {
-            companyName?: string;
-            wipNumber?: string | number;
-            metadata?: Record<string, unknown>;
-        } | null;
 
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
         let formUrl: string | null = null;
