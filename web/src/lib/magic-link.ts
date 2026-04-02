@@ -132,11 +132,12 @@ export async function validateMagicLinkToken(rawToken: string): Promise<{
 export async function sendFormInviteEmail(
     email: string,
     formUrl: string,
-    tenantName?: string
+    tenantName?: string,
+    tenantId?: string
 ): Promise<{ success: boolean; error?: string }> {
     const displayName = tenantName || 'Stateless Forms';
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const portalUrl = `${baseUrl}/portal`;
+    const portalUrl = tenantId ? `${baseUrl}/portal?tenant=${tenantId}` : `${baseUrl}/portal`;
 
     const html = `
 <!DOCTYPE html>

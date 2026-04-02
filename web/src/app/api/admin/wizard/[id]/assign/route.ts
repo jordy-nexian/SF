@@ -190,7 +190,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 let result: { success: boolean; error?: string };
                 if (formUrl) {
                     // Send direct form invite (email template now also includes portal link)
-                    result = await sendFormInviteEmail(email, formUrl, tenant?.name);
+                    result = await sendFormInviteEmail(email, formUrl, tenant?.name, session.tenantId);
                 } else {
                     // Fallback: send magic link to portal
                     result = await createAndSendMagicLink(

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function PortalLoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const tenantId = searchParams.get('tenant');
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
@@ -19,7 +21,7 @@ export default function PortalLoginPage() {
             const res = await fetch('/api/portal/auth/request-link', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, ...(tenantId && { tenantId }) }),
             });
 
             const data = await res.json();
