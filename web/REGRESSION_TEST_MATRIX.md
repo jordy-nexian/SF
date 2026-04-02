@@ -362,6 +362,22 @@ These routes may exist as bookmarks from prior versions. Verify they either stil
 
 ---
 
+## Automated Deployment Validation (E5.3)
+
+Run the post-deployment RBAC validation script against the live Vercel URL:
+
+```bash
+# With owner + viewer credentials (full coverage):
+npx tsx scripts/validate-deployment.ts https://your-app.vercel.app owner@co.com ownerpass viewer@co.com viewerpass
+
+# Owner-only (viewer tests skipped):
+npx tsx scripts/validate-deployment.ts https://your-app.vercel.app owner@co.com ownerpass
+```
+
+The script validates: unauthenticated API blocking, unauthenticated page redirects, owner API access, owner write operations, viewer read/write restrictions, public form routes, portal auth endpoints, and security headers. Exit code 0 = all pass, 1 = failures.
+
+---
+
 ## Execution Notes
 
 - **No local dev server** — test against Vercel preview/production deployment
