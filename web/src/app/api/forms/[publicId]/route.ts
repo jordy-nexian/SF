@@ -183,10 +183,19 @@ export async function GET(
 		let ctxPrefillData: Record<string, string> | undefined;
 		let ctxTokenModes: Record<string, string> | undefined;
 		let ctxCustomerContext: PrefillTokenPayload['c'] | undefined;
+		let ctxWipContext: Record<string, unknown> | undefined;
 
 		if (ctxPayload) {
 			ctxPrefillData = ctxPayload.v;
 			ctxCustomerContext = ctxPayload.c;
+
+			// Expand compact document context to readable keys for frontend/submission
+			if (ctxPayload.d) {
+				ctxWipContext = {};
+				if (ctxPayload.d.cn !== undefined) ctxWipContext.companyName = ctxPayload.d.cn;
+				if (ctxPayload.d.wn !== undefined) ctxWipContext.wipNumber = ctxPayload.d.wn;
+				if (ctxPayload.d.md) ctxWipContext.metadata = ctxPayload.d.md;
+			}
 
 			if (form.templateId) {
 				const mappings = await prisma.tokenMapping.findMany({
@@ -214,6 +223,7 @@ export async function GET(
 			...(ctxPrefillData && { prefillData: ctxPrefillData }),
 			...(ctxTokenModes && { tokenModes: ctxTokenModes }),
 			...(ctxCustomerContext && { customerContext: ctxCustomerContext }),
+			...(ctxWipContext && { wipContext: ctxWipContext }),
 		});
 	} catch (err) {
 		console.error('Error fetching form:', err);

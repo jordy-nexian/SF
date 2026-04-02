@@ -133,6 +133,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             }
         }
 
+        // Parse wipContext for inclusion in the prefill token (document metadata)
+        const wipContextRaw = wizardRun.wipContext as {
+            companyName?: string;
+            wipNumber?: string | number;
+            metadata?: Record<string, unknown>;
+        } | null;
+
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
         let formUrl: string | null = null;
         try {
@@ -143,6 +150,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 customerEmail: email,
                 customerName: endCustomerName?.trim(),
                 wipNumber: wizardRun.wipNumber,
+                wipContext: wipContextRaw ?? undefined,
             });
             formUrl = buildPrefillUrl(baseUrl, form.publicId, prefillToken);
         } catch (tokenError) {

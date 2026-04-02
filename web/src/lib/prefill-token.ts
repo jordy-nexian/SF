@@ -31,6 +31,11 @@ export interface PrefillTokenPayload {
         n?: string;                  // name
         w?: string;                  // WIP number
     };
+    d?: {                            // document context (WIP metadata)
+        cn?: string;                 // companyName
+        wn?: string | number;        // wipNumber (original Quickbase value)
+        md?: Record<string, unknown>;// extra Quickbase fields
+    };
 }
 
 export interface GeneratePrefillTokenOptions {
@@ -40,8 +45,16 @@ export interface GeneratePrefillTokenOptions {
     customerEmail?: string;
     customerName?: string;
     wipNumber?: string;
+    wipContext?: {
+        companyName?: string;
+        wipNumber?: string | number;
+        metadata?: Record<string, unknown>;
+    };
     expiresInSeconds?: number;
 }
+
+/** Max serialised bytes for document context before it's omitted from the token */
+const MAX_WIP_CONTEXT_BYTES = 2048;
 
 /**
  * Generate an encrypted prefill context token (JWE).
@@ -58,6 +71,26 @@ export async function generatePrefillToken(
     if (options.customerName) customerContext.n = options.customerName;
     if (options.wipNumber) customerContext.w = options.wipNumber;
 
+    // Build document context from wipContext (compact keys to minimise URL)
+    let documentContext: PrefillTokenPayload['d'] | undefined;
+    if (options.wipContext) {
+        const candidate: NonNullable<PrefillTokenPayload['d']> = {};
+        if (options.wipContext.companyName) candidate.cn = options.wipContext.companyName;
+        if (options.wipContext.wipNumber !== undefined) candidate.wn = options.wipContext.wipNumber;
+        if (options.wipContext.metadata && Object.keys(options.wipContext.metadata).length > 0) {
+            candidate.md = options.wipContext.metadata;
+        }
+        if (Object.keys(candidate).length > 0) {
+            const serialised = JSON.stringify(candidate);
+            if (Buffer.byteLength(serialised, 'utf8') <= MAX_WIP_CONTEXT_BYTES) {
+                documentContext = candidate;
+            } else {
+                console.warn('[PrefillToken] wipContext exceeds size limit, omitting from token',
+                    { size: Buffer.byteLength(serialised, 'utf8'), limit: MAX_WIP_CONTEXT_BYTES });
+            }
+        }
+    }
+
     const jwePayload: Record<string, unknown> = {
         f: options.publicId,
         t: options.tenantId,
@@ -65,6 +98,9 @@ export async function generatePrefillToken(
     };
     if (Object.keys(customerContext).length > 0) {
         jwePayload.c = customerContext;
+    }
+    if (documentContext) {
+        jwePayload.d = documentContext;
     }
 
     return new EncryptJWT(jwePayload)
@@ -101,6 +137,7 @@ export async function verifyPrefillToken(
             t: payload.t as string,
             v: payload.v as Record<string, string>,
             c: payload.c as PrefillTokenPayload['c'],
+            d: payload.d as PrefillTokenPayload['d'],
         };
     } catch (error) {
         console.error(

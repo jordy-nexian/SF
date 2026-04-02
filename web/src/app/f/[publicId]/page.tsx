@@ -55,6 +55,8 @@ function PublicFormContent() {
 	const [authError, setAuthError] = useState<string | null>(null);
 	// Customer context from prefill token (for submission identification)
 	const [customerContext, setCustomerContext] = useState<Record<string, string> | null>(null);
+	// WIP document context from prefill token (enriched metadata for downstream)
+	const [wipContext, setWipContext] = useState<Record<string, unknown> | null>(null);
 
 	// Extract pre-fill values from URL parameters
 	// Supports both individual field params and ?data=base64(JSON)
@@ -205,6 +207,9 @@ function PublicFormContent() {
 				}
 				if (data.customerContext) {
 					setCustomerContext(data.customerContext);
+				}
+				if (data.wipContext) {
+					setWipContext(data.wipContext);
 				}
 
 				// Initialize values: URL params > ctx prefill > localStorage > empty
@@ -539,6 +544,7 @@ function PublicFormContent() {
 						stepReached: activeStepIdx + 1,
 						tenantToken: searchParams.get("tenantToken") || undefined,
 						...(customerContext && { customerContext }),
+						...(wipContext && { wipContext }),
 					},
 				}),
 			});
@@ -767,6 +773,7 @@ function PublicFormContent() {
 						htmlTemplate: true,
 						tenantToken: searchParams.get("tenantToken") || undefined,
 						...(customerContext && { customerContext }),
+						...(wipContext && { wipContext }),
 					},
 				}),
 			});
