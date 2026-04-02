@@ -1,9 +1,11 @@
 /**
  * Webhook URL validation to prevent SSRF attacks.
- * Blocks internal/private IP ranges and restricts to HTTPS.
+ * Blocks internal/private IP ranges, restricts to HTTPS,
+ * and resolves hostnames to IPs to prevent DNS rebinding.
  */
 
 import { URL } from "url";
+import dns from "node:dns/promises";
 
 // Private/internal IP ranges that should be blocked
 const BLOCKED_IP_PATTERNS = [
@@ -123,6 +125,59 @@ export function validateWebhookUrl(urlString: string): WebhookValidationResult {
  */
 export function isValidWebhookUrl(urlString: string): boolean {
 	return validateWebhookUrl(urlString).valid;
+}
+
+/**
+ * Check if an IP address falls in a private/blocked range.
+ */
+function isBlockedIp(ip: string): boolean {
+	return BLOCKED_IP_PATTERNS.some((pattern) => pattern.test(ip));
+}
+
+/**
+ * Resolve a webhook hostname to IPs and verify none are private/internal.
+ * Call this at request time (after the synchronous validateWebhookUrl check)
+ * to close the DNS rebinding gap.
+ *
+ * Returns { safe: true } if all resolved IPs are public,
+ * or { safe: false, error } if any resolved IP is private or resolution fails.
+ */
+export async function validateWebhookDns(urlString: string): Promise<{ safe: boolean; error?: string }> {
+	let url: URL;
+	try {
+		url = new URL(urlString);
+	} catch {
+		return { safe: false, error: 'Invalid URL' };
+	}
+
+	const hostname = url.hostname.replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+
+	// If hostname is already an IP literal, check it directly
+	if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.includes(':')) {
+		return isBlockedIp(hostname)
+			? { safe: false, error: 'Resolved IP is in a blocked range' }
+			: { safe: true };
+	}
+
+	try {
+		const addresses = await dns.resolve4(hostname).catch(() => [] as string[]);
+		const addresses6 = await dns.resolve6(hostname).catch(() => [] as string[]);
+		const allIps = [...addresses, ...addresses6];
+
+		if (allIps.length === 0) {
+			return { safe: false, error: 'Could not resolve hostname' };
+		}
+
+		for (const ip of allIps) {
+			if (isBlockedIp(ip)) {
+				return { safe: false, error: `Resolved IP ${ip} is in a blocked range` };
+			}
+		}
+
+		return { safe: true };
+	} catch (err) {
+		return { safe: false, error: 'DNS resolution failed' };
+	}
 }
 
 

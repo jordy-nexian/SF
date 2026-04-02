@@ -330,7 +330,7 @@ model FormAssignment {
 model MagicLinkToken {
   id            String    @id @default(cuid())
   endCustomerId String
-  token         String    @unique
+  token         String    @unique   // Stores SHA-256 hash of the raw token (not plaintext)
   expiresAt     DateTime
   usedAt        DateTime?
   createdAt     DateTime  @default(now())

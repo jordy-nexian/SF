@@ -116,15 +116,6 @@ export default function Header() {
         <Link href="/" className="text-lg font-semibold" style={isDarkPage ? gradientTextStyle : { color: '#111827' }}>
           Stateless Forms
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
-          <Link
-            href="/signin"
-            className="px-4 py-1.5 transition-colors"
-            style={{ color: isDarkPage ? '#94a3b8' : '#4b5563' }}
-          >
-            Log in
-          </Link>
-        </nav>
       </div>
     </header>
   );

@@ -3,7 +3,7 @@
  * Handles token generation, database storage, email sending, and validation.
  */
 
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 
@@ -11,43 +11,52 @@ import { sendEmail } from '@/lib/email';
 const MAGIC_LINK_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
 
 /**
- * Generate a secure magic link token
+ * Generate a secure magic link token (raw value sent to user).
  */
 export function generateMagicLinkToken(): string {
     return randomBytes(32).toString('hex');
 }
 
 /**
- * Create a magic link token in the database and send email
+ * Hash a raw token for storage. Only the hash is persisted;
+ * the plaintext travels in the email link and is never stored.
+ */
+export function hashToken(rawToken: string): string {
+    return createHash('sha256').update(rawToken).digest('hex');
+}
+
+/**
+ * Create a magic link token in the database and send email.
+ * The DB stores a SHA-256 hash; the plaintext goes only in the email URL.
  */
 export async function createAndSendMagicLink(
     endCustomerId: string,
     email: string,
     tenantName?: string
 ): Promise<{ success: boolean; error?: string }> {
-    const token = generateMagicLinkToken();
+    const rawToken = generateMagicLinkToken();
+    const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + MAGIC_LINK_EXPIRY_MS);
 
     try {
-        // Create token in database
+        // Store only the hash — never the plaintext
         await prisma.magicLinkToken.create({
             data: {
                 endCustomerId,
-                token,
+                token: tokenHash,
                 expiresAt,
             },
         });
 
-        // Build magic link URL
+        // Build magic link URL (raw token in URL, hash in DB)
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        const magicLinkUrl = `${baseUrl}/portal/auth/verify?token=${token}`;
+        const magicLinkUrl = `${baseUrl}/portal/auth/verify?token=${rawToken}`;
 
         // Send email
         const emailResult = await sendMagicLinkEmail(email, magicLinkUrl, tenantName);
 
         if (!emailResult.success) {
-            // Clean up token if email failed
-            await prisma.magicLinkToken.delete({ where: { token } }).catch(() => { });
+            await prisma.magicLinkToken.delete({ where: { token: tokenHash } }).catch(() => { });
             return { success: false, error: emailResult.error };
         }
 
@@ -59,16 +68,37 @@ export async function createAndSendMagicLink(
 }
 
 /**
- * Validate a magic link token and return the end customer
+ * Validate a magic link token and return the end customer.
+ * Uses hash-based lookup and a single atomic updateMany to prevent race conditions:
+ * only the first request that matches (hash + unused + not expired) wins.
  */
-export async function validateMagicLinkToken(token: string): Promise<{
+export async function validateMagicLinkToken(rawToken: string): Promise<{
     success: boolean;
     endCustomer?: { id: string; tenantId: string; email: string; name: string | null };
     error?: string;
 }> {
     try {
+        const tokenHash = hashToken(rawToken);
+
+        // Atomic consume: update only if unused and not expired.
+        // updateMany returns { count } — if count === 0 the token was already
+        // used, expired, or doesn't exist. This closes the race window.
+        const consumed = await prisma.magicLinkToken.updateMany({
+            where: {
+                token: tokenHash,
+                usedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            data: { usedAt: new Date() },
+        });
+
+        if (consumed.count === 0) {
+            return { success: false, error: 'Invalid or expired link' };
+        }
+
+        // Token was consumed — now fetch the associated customer
         const magicLink = await prisma.magicLinkToken.findUnique({
-            where: { token },
+            where: { token: tokenHash },
             include: {
                 endCustomer: {
                     select: {
@@ -81,23 +111,9 @@ export async function validateMagicLinkToken(token: string): Promise<{
             },
         });
 
-        if (!magicLink) {
-            return { success: false, error: 'Invalid or expired link' };
+        if (!magicLink?.endCustomer) {
+            return { success: false, error: 'Invalid link' };
         }
-
-        if (magicLink.usedAt) {
-            return { success: false, error: 'Link has already been used' };
-        }
-
-        if (magicLink.expiresAt < new Date()) {
-            return { success: false, error: 'Link has expired' };
-        }
-
-        // Mark token as used
-        await prisma.magicLinkToken.update({
-            where: { token },
-            data: { usedAt: new Date() },
-        });
 
         return { success: true, endCustomer: magicLink.endCustomer };
     } catch (error) {

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireTenantSession } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,9 +8,19 @@ export async function GET(
 	request: NextRequest,
 	context: { params: Promise<{ publicId: string }> }
 ) {
+	// Block entirely in production
+	if (process.env.NODE_ENV === 'production') {
+		return NextResponse.json({ error: 'Not available' }, { status: 404 });
+	}
+
+	// Require admin auth in all other environments
+	const session = await requireTenantSession();
+	if (!session) {
+		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+	}
+
 	const { publicId } = await context.params;
-	
-	// Find the form with all related data
+
 	const form = await prisma.form.findUnique({
 		where: { publicId },
 		include: {
@@ -19,39 +30,18 @@ export async function GET(
 					id: true,
 					versionNumber: true,
 					trafficWeight: true,
-					schema: true,
-				},
-			},
-			tenant: {
-				select: {
-					id: true,
-					name: true,
 				},
 			},
 		},
 	});
 
 	if (!form) {
-		// Check if any form exists with similar publicId
-		const allForms = await prisma.form.findMany({
-			select: {
-				id: true,
-				publicId: true,
-				name: true,
-				status: true,
-			},
-			take: 10,
-		});
+		return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+	}
 
-		return NextResponse.json({
-			error: 'Form not found',
-			searchedFor: publicId,
-			existingForms: allForms.map(f => ({
-				publicId: f.publicId,
-				name: f.name,
-				status: f.status,
-			})),
-		}, { status: 404 });
+	// Only return data for the caller's own tenant
+	if (form.tenantId !== session.tenantId) {
+		return NextResponse.json({ error: 'Form not found' }, { status: 404 });
 	}
 
 	return NextResponse.json({
@@ -68,22 +58,7 @@ export async function GET(
 				id: v.id,
 				versionNumber: v.versionNumber,
 				trafficWeight: v.trafficWeight,
-				hasSchema: !!v.schema,
-				schemaPreview: v.schema ? JSON.stringify(v.schema).substring(0, 200) + '...' : null,
 			})),
-			tenant: form.tenant,
 		},
 	});
 }
-
-
-
-
-
-
-
-
-
-
-
-

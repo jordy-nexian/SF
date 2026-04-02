@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createHmacSignature, buildSignatureHeaders, extractSignatureHeaders, verifyHmacSignature } from '@/lib/hmac';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
-import { validateWebhookUrl } from '@/lib/webhook-validation';
+import { validateWebhookUrl, validateWebhookDns } from '@/lib/webhook-validation';
 import { validateSubmission } from '@/lib/schema-validation';
 import { resolveWebhookUrl, type WebhookRoutingConfig } from '@/lib/webhook-routing';
 import { isIpAllowed, type IpAllowlistConfig } from '@/lib/ip-allowlist';
@@ -319,12 +319,26 @@ export async function POST(
 		defaultWebhookUrl
 	);
 
-	// Validate webhook URL for SSRF protection
+	// Validate webhook URL for SSRF protection (scheme, hostname, IP literal checks)
 	const webhookValidation = validateWebhookUrl(webhookUrl);
 	if (!webhookValidation.valid) {
-		// Mask URL in logs - show domain only for debugging without exposing full path
 		const maskedUrl = (() => { try { return new URL(webhookUrl).hostname; } catch { return '[invalid]'; } })();
 		console.error(`Invalid webhook URL for form ${form.id} (${maskedUrl}): ${webhookValidation.error}`);
+		return NextResponse.json(
+			{
+				status: 'error',
+				submissionId,
+				message: 'Form configuration error',
+			},
+			{ status: 500 }
+		);
+	}
+
+	// DNS resolution check: resolve hostname to IPs and reject private ranges
+	// (prevents DNS rebinding attacks where a public hostname resolves to internal IPs)
+	const dnsCheck = await validateWebhookDns(webhookUrl);
+	if (!dnsCheck.safe) {
+		console.error(`DNS validation failed for form ${form.id}: ${dnsCheck.error}`);
 		return NextResponse.json(
 			{
 				status: 'error',

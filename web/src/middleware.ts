@@ -11,11 +11,11 @@ function addSecurityHeaders(resp: NextResponse, isEmbed = false) {
 	}
 
 	// Content Security Policy
-	// For embeddable forms, we need to allow framing from any origin
+	// For embeddable forms, allow framing from any origin via frame-ancestors
 	const frameAncestors = isEmbed ? '*' : "'self'";
 	const csp = [
 		"default-src 'self'",
-		"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline/eval
+		"script-src 'self' 'unsafe-inline'", // Next.js requires unsafe-inline; unsafe-eval removed
 		"style-src 'self' 'unsafe-inline'", // Tailwind uses inline styles
 		"img-src 'self' data: https:",
 		"font-src 'self' https://fonts.gstatic.com",
@@ -29,7 +29,11 @@ function addSecurityHeaders(resp: NextResponse, isEmbed = false) {
 
 	// Additional security headers
 	resp.headers.set('X-Content-Type-Options', 'nosniff');
-	resp.headers.set('X-Frame-Options', isEmbed ? 'ALLOWALL' : 'SAMEORIGIN');
+	// Use CSP frame-ancestors for embed policy; X-Frame-Options only for non-embed
+	// (ALLOWALL is non-standard and ignored by modern browsers)
+	if (!isEmbed) {
+		resp.headers.set('X-Frame-Options', 'SAMEORIGIN');
+	}
 	resp.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	resp.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
