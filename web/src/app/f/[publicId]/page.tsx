@@ -233,11 +233,18 @@ function PublicFormContent() {
 				setActiveStepIdx(0);
 				setFormError(null);
 
-				// Only fetch prefill from webhook if API didn't provide it (no ctx token)
-				if (!data.prefillData || Object.keys(data.prefillData).length === 0) {
+				// Fetch prefill from webhook — fills in fields not already set by ctx token.
+				// When ctx token provides values they take priority; webhook fills gaps.
+				{
 					const queryParams: Record<string, string> = {};
 					const urlParams = new URLSearchParams(window.location.search);
 					urlParams.forEach((value, key) => { queryParams[key] = value; });
+					// Pass WIP number so the prefill API can call n8n for ctx-token forms
+					const wipNumber = data.customerContext?.w || data.wipContext?.wipNumber;
+					if (wipNumber) {
+						queryParams._wipNumber = String(wipNumber);
+					}
+					const existingTokenData = data.prefillData || {};
 					setPrefilling(true);
 					fetch(`/api/forms/${publicId}/prefill`, {
 						method: 'POST',
@@ -250,17 +257,19 @@ function PublicFormContent() {
 								const fetchedPrefillData = prefillResponse.data.prefillData;
 								const fetchedTokenModes = prefillResponse.data.tokenModes || {};
 								if (Object.keys(fetchedPrefillData).length > 0) {
-									setPrefillData(fetchedPrefillData);
-									setValues(prev => ({ ...prev, ...fetchedPrefillData }));
+									// Merge: ctx token values take priority over webhook values
+									const merged = { ...fetchedPrefillData, ...existingTokenData };
+									setPrefillData(merged);
+									setValues(prev => ({ ...prev, ...fetchedPrefillData, ...existingTokenData }));
 								}
 								if (Object.keys(fetchedTokenModes).length > 0) {
-									setTokenModes(fetchedTokenModes);
+									setTokenModes(prev => ({ ...prev, ...fetchedTokenModes }));
 								}
 							}
 						})
 						.catch(err => {
 							console.warn('Prefill failed:', err);
-							// Silent failure - form still works
+							// Silent failure - form still works with token data
 						})
 						.finally(() => setPrefilling(false));
 				}

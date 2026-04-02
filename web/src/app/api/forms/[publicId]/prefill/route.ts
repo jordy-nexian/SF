@@ -162,7 +162,61 @@ export async function POST(
             }
         }
 
-        // --- Path 2: Standard webhook-based prefill (public forms) ---
+        // --- Path 2: ctx-token form with WIP number → live n8n prefill ---
+        // When a form is opened via a prefill token (direct link), the frontend
+        // passes _wipNumber so we can fetch fresh values from n8n for any fields
+        // not already provided by the token.
+        const requestBody = await request.json().catch(() => ({}));
+        const wipNumberFromCtx = requestBody._wipNumber as string | undefined;
+
+        if (wipNumberFromCtx && form.template?.mappings) {
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: form.tenantId },
+                select: {
+                    wipPrefillWebhookUrl: true,
+                    sharedSecret: true,
+                },
+            });
+
+            if (tenant?.wipPrefillWebhookUrl) {
+                const prefillMappings = form.template.mappings.filter(
+                    (m: { mode: string }) => m.mode === 'prefill'
+                );
+
+                const fields = prefillMappings.map(
+                    (m: { payloadKey: string; tokenLabel: string; tokenId: string }) => ({
+                        key: m.payloadKey,
+                        label: m.tokenLabel,
+                        tokenId: m.tokenId,
+                    })
+                );
+
+                if (fields.length > 0) {
+                    try {
+                        const n8nResponse = await prefillFromWip(
+                            tenant.wipPrefillWebhookUrl,
+                            wipNumberFromCtx,
+                            form.tenantId,
+                            tenant.sharedSecret,
+                            fields
+                        );
+
+                        if (n8nResponse.success && n8nResponse.values) {
+                            return api.success({
+                                prefillData: n8nResponse.values,
+                                tokenModes,
+                                source: 'wip_webhook_ctx',
+                            });
+                        }
+                    } catch (error) {
+                        console.error('[Prefill] WIP webhook call failed (ctx path):', error);
+                        // Fall through to standard prefill
+                    }
+                }
+            }
+        }
+
+        // --- Path 3: Standard webhook-based prefill (public forms) ---
 
         // Only live forms can use the standard prefill webhook
         if (form.status !== 'live') {
@@ -175,8 +229,7 @@ export async function POST(
             return api.success({ prefillData: {}, tokenModes });
         }
 
-        // Forward request body parameters to webhook
-        const requestBody = await request.json().catch(() => ({}));
+        // Forward request body parameters to webhook (already parsed above)
         const webhookUrl = new URL(form.prefillWebhookUrl);
 
         // SSRF protection: validate webhook URL before fetch
