@@ -572,12 +572,31 @@ export async function POST(
 			error: success ? undefined : 'Webhook delivery failed',
 		});
 
-		// Mark form assignment as completed if endCustomerId was server-validated
-		if (success && endCustomerId) {
+		// Mark form assignment as completed on successful submission.
+		// Resolve endCustomerId from portal session OR prefill token customer email.
+		let resolvedEndCustomerId = endCustomerId;
+		if (!resolvedEndCustomerId && success && ctxCustomer?.e) {
+			try {
+				const ec = await prisma.endCustomer.findUnique({
+					where: {
+						tenantId_email: {
+							tenantId: tenant.id,
+							email: ctxCustomer.e.trim().toLowerCase(),
+						},
+					},
+					select: { id: true },
+				});
+				if (ec) resolvedEndCustomerId = ec.id;
+			} catch {
+				// Best-effort — don't block submission response
+			}
+		}
+
+		if (success && resolvedEndCustomerId) {
 			try {
 				await prisma.formAssignment.updateMany({
 					where: {
-						endCustomerId: endCustomerId,
+						endCustomerId: resolvedEndCustomerId,
 						formId: form.id,
 						status: { not: 'completed' },
 					},
@@ -586,7 +605,7 @@ export async function POST(
 						completedAt: new Date(),
 					},
 				});
-				logger.debug({ endCustomerId: meta.endCustomerId, formId: form.id }, 'Assignment marked as completed');
+				logger.debug({ endCustomerId: resolvedEndCustomerId, formId: form.id }, 'Assignment marked as completed');
 			} catch (assignmentErr) {
 				logger.error({ error: assignmentErr instanceof Error ? assignmentErr.message : 'Unknown' }, 'Failed to update assignment status');
 			}

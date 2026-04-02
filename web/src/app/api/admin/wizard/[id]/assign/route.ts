@@ -178,7 +178,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             // Fall back to magic link if token fails (e.g. payload too large)
         }
 
-        // Send invite email — direct form link if available, magic link as fallback
+        // Send invite email — direct form link + portal link, or magic link as fallback
         let inviteSent = false;
         if (sendInvite) {
             try {
@@ -189,8 +189,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
                 let result: { success: boolean; error?: string };
                 if (formUrl) {
+                    // Send direct form invite (email template now also includes portal link)
                     result = await sendFormInviteEmail(email, formUrl, tenant?.name);
                 } else {
+                    // Fallback: send magic link to portal
                     result = await createAndSendMagicLink(
                         endCustomer.id,
                         endCustomer.email,

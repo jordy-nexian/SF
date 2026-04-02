@@ -135,6 +135,8 @@ export async function sendFormInviteEmail(
     tenantName?: string
 ): Promise<{ success: boolean; error?: string }> {
     const displayName = tenantName || 'Stateless Forms';
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const portalUrl = `${baseUrl}/portal`;
 
     const html = `
 <!DOCTYPE html>
@@ -165,6 +167,12 @@ export async function sendFormInviteEmail(
       <a href="${formUrl}" style="color: #6366f1; word-break: break-all;">${formUrl}</a>
     </p>
 
+    <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; margin: 24px 0;">
+      <p style="color: #475569; font-size: 14px; margin: 0;">
+        You can also <a href="${portalUrl}" style="color: #6366f1; font-weight: 600;">sign in to your portal</a> to view all your assigned forms in one place.
+      </p>
+    </div>
+
     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
 
     <p style="color: #94a3b8; font-size: 12px; margin: 0;">
@@ -181,7 +189,10 @@ Complete your form - ${displayName}
 A form has been prepared for you. Click here to review and submit:
 ${formUrl}
 
-&copy; ${new Date().getFullYear()} ${displayName}
+You can also sign in to your portal to view all your assigned forms:
+${portalUrl}
+
+${new Date().getFullYear()} ${displayName}
 `;
 
     return sendEmail({
