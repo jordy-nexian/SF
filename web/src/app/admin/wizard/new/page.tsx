@@ -31,6 +31,15 @@ interface PrefillEntry {
     source?: string; // 'quickbase' | 'admin'
 }
 
+/** Infer HTML input type from field label */
+function inferInputType(label: string): string {
+    const lower = label.toLowerCase();
+    if (lower.includes('date')) return 'date';
+    if (lower.includes('email')) return 'email';
+    if (lower.includes('amount') || lower.includes('turnover') || lower.includes('employees')) return 'number';
+    return 'text';
+}
+
 // --- Styles ---
 const cardStyle = {
     background: "rgba(255, 255, 255, 0.05)",
@@ -597,7 +606,7 @@ export default function NewWizardPage() {
                                                             {entry.label}
                                                         </label>
                                                         <input
-                                                            type="text"
+                                                            type={inferInputType(entry.label)}
                                                             className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
                                                             style={inputStyle}
                                                             value={entry.value}
@@ -640,7 +649,7 @@ export default function NewWizardPage() {
                                                             {entry.label}
                                                         </label>
                                                         <input
-                                                            type="text"
+                                                            type={inferInputType(entry.label)}
                                                             className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
                                                             style={{
                                                                 ...inputStyle,
