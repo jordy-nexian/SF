@@ -111,7 +111,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             });
         }
 
-        // Check for existing assignment
+        // Find or create assignment — if the same customer+form pair already exists
+        // (e.g. from a prior wizard run), reset it for this new WIP assignment
         const existingAssignment = await prisma.formAssignment.findUnique({
             where: {
                 endCustomerId_formId: {
@@ -121,23 +122,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        let assignment;
         if (existingAssignment) {
-            return api.conflict('This form is already assigned to this customer', {
-                assignmentId: existingAssignment.id,
+            // Re-assign: reset status and link to the new wizard run
+            assignment = await prisma.formAssignment.update({
+                where: { id: existingAssignment.id },
+                data: {
+                    status: 'pending',
+                    prefillData: wizardRun.prefillData || undefined,
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    createdByUserId: session.userId,
+                    wizardRunId: id,
+                    completedAt: null,
+                },
+            });
+        } else {
+            assignment = await prisma.formAssignment.create({
+                data: {
+                    endCustomerId: endCustomer.id,
+                    formId: form.id,
+                    prefillData: wizardRun.prefillData || undefined,
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    createdByUserId: session.userId,
+                    wizardRunId: id,
+                },
             });
         }
-
-        // Create FormAssignment with wizard's prefill data
-        const assignment = await prisma.formAssignment.create({
-            data: {
-                endCustomerId: endCustomer.id,
-                formId: form.id,
-                prefillData: wizardRun.prefillData || undefined,
-                dueDate: dueDate ? new Date(dueDate) : null,
-                createdByUserId: session.userId,
-                wizardRunId: id,
-            },
-        });
 
         // Generate stateless prefill token — all assignment context travels in the URL
         const prefillDataRaw = wizardRun.prefillData as Record<string, { value?: string }> | null;
