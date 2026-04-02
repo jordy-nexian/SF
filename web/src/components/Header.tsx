@@ -124,16 +124,6 @@ export default function Header() {
           >
             Log in
           </Link>
-          <Link
-            href="/signup"
-            className="rounded-full px-4 py-1.5 font-medium text-white transition-all active:scale-[0.98] active:shadow-[0_1px_5px_rgba(99,102,241,0.2)]"
-            style={{
-              background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
-              boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
-            }}
-          >
-            Sign up free
-          </Link>
         </nav>
       </div>
     </header>
