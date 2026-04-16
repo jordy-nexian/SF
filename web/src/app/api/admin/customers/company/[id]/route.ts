@@ -136,12 +136,15 @@ export async function GET(
             orgIdValue === undefined || orgIdValue === null ? null : String(orgIdValue).trim();
 
         // Load forms for this company from the Mercia forms webhook.
-        // Strip the 'org-' prefix to get the raw QuickBase record ID.
-        const rawRecordId = id.startsWith('org-') ? id.slice(4) : id;
+        // Use the SF record ID (stored as WIPNumber on the Quickbase record) for the lookup.
+        const sfRecordId =
+            first.WIPNumber !== undefined && first.WIPNumber !== null
+                ? String(first.WIPNumber)
+                : id.startsWith('org-') ? id.slice(4) : id;
         let webhookForms: Record<string, unknown>[] = [];
 
         try {
-            const formsBody = JSON.stringify({ recordId: rawRecordId });
+            const formsBody = JSON.stringify({ recordId: sfRecordId });
             const formsHmac = createHmacSignature(formsBody, tenant.sharedSecret);
             const formsResponse = await fetch(COMPANY_FORMS_WEBHOOK_URL, {
                 method: 'POST',
