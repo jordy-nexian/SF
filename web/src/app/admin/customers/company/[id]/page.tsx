@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -13,11 +13,29 @@ interface CompanyInfo {
 
 type FormRecord = Record<string, unknown>;
 
-function getStatusDot(value: unknown): string {
-    const s = String(value ?? "").toLowerCase().replace(/\s+/g, "_");
-    if (s === "completed") return "bg-green-400";
-    if (s === "in_progress") return "bg-amber-400";
-    return "bg-slate-500";
+interface FormAssignment {
+    FormName?: string;
+    Email?: string;
+    DateTime?: string;
+    LookedAt?: number;
+}
+
+function getStatusConfig(lookedAt: number | undefined) {
+    if (lookedAt === 2) return { label: "Completed", bg: "rgba(34,197,94,0.15)", color: "#4ade80", dot: "#22c55e" };
+    if (lookedAt === 1) return { label: "Viewed",    bg: "rgba(251,191,36,0.15)", color: "#fbbf24", dot: "#f59e0b" };
+    return                       { label: "Not Started", bg: "rgba(100,116,139,0.15)", color: "#94a3b8", dot: "#64748b" };
+}
+
+function formatDateTime(value: string | undefined): string {
+    if (!value) return "—";
+    try {
+        return new Intl.DateTimeFormat("en-GB", {
+            day: "2-digit", month: "short", year: "numeric",
+            hour: "2-digit", minute: "2-digit",
+        }).format(new Date(value));
+    } catch {
+        return value;
+    }
 }
 
 function formatValue(value: unknown): string {
@@ -43,7 +61,7 @@ export default function CompanyDetailPage() {
     const [company, setCompany] = useState<CompanyInfo | null>(null);
     const [records, setRecords] = useState<FormRecord[]>([]);
     const [fieldKeys, setFieldKeys] = useState<string[]>([]);
-    const [assignments, setAssignments] = useState<FormRecord[]>([]);
+    const [assignments, setAssignments] = useState<FormAssignment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +80,7 @@ export default function CompanyDetailPage() {
                 setRecords(rows);
                 setFieldKeys(discoverKeys(rows));
 
-                setAssignments(Array.isArray(data.assignments) ? data.assignments : []);
+                setAssignments(Array.isArray(data.assignments) ? data.assignments as FormAssignment[] : []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load company");
             } finally {
@@ -72,13 +90,6 @@ export default function CompanyDetailPage() {
 
         fetchCompany();
     }, [id]);
-
-    const formKeys = useMemo(() => discoverKeys(assignments), [assignments]);
-
-    const statusKey = useMemo(
-        () => formKeys.find((k) => /^status$/i.test(k) || /^formstatus$/i.test(k) || /^state$/i.test(k)),
-        [formKeys]
-    );
 
     return (
         <div className="mx-auto max-w-6xl space-y-8">
@@ -167,28 +178,41 @@ export default function CompanyDetailPage() {
                                     <table className="min-w-full text-left text-sm">
                                         <thead style={{ background: "rgba(255,255,255,0.03)" }}>
                                             <tr>
-                                                {formKeys.map((k) => (
-                                                    <th key={k} className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>
-                                                        {k}
-                                                    </th>
-                                                ))}
+                                                <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Form Name</th>
+                                                <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Email</th>
+                                                <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Sent</th>
+                                                <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {assignments.map((a, i) => (
-                                                <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                                                    {formKeys.map((k) => (
-                                                        <td key={k} className="px-5 py-4 whitespace-nowrap" style={{ color: "#cbd5e1" }}>
-                                                            {k === statusKey ? (
-                                                                <span className="flex items-center gap-1.5">
-                                                                    <span className={`inline-block h-2 w-2 rounded-full ${getStatusDot(a[k])}`} />
-                                                                    {formatValue(a[k])}
-                                                                </span>
-                                                            ) : formatValue(a[k])}
+                                            {assignments.map((a, i) => {
+                                                const status = getStatusConfig(a.LookedAt);
+                                                return (
+                                                    <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                                                        <td className="px-5 py-4 whitespace-nowrap font-medium" style={{ color: "#e2e8f0" }}>
+                                                            {a.FormName ?? "—"}
                                                         </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
+                                                        <td className="px-5 py-4 whitespace-nowrap" style={{ color: "#94a3b8" }}>
+                                                            {a.Email ?? "—"}
+                                                        </td>
+                                                        <td className="px-5 py-4 whitespace-nowrap" style={{ color: "#94a3b8" }}>
+                                                            {formatDateTime(a.DateTime)}
+                                                        </td>
+                                                        <td className="px-5 py-4 whitespace-nowrap">
+                                                            <span
+                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                                                                style={{ background: status.bg, color: status.color }}
+                                                            >
+                                                                <span
+                                                                    className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
+                                                                    style={{ background: status.dot }}
+                                                                />
+                                                                {status.label}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
