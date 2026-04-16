@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface CompanyRow {
     id: string;
@@ -94,19 +95,37 @@ export default function CustomersPage() {
                                     <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Company Name</th>
                                     <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>ORG Number</th>
                                     <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Records Grouped</th>
+                                    <th className="px-5 py-3" />
                                 </tr>
                             </thead>
                             <tbody>
                                 {companies.map((company) => (
-                                    <tr key={company.id} style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                                    <tr
+                                        key={company.id}
+                                        className="group cursor-pointer hover:bg-white/[0.03] transition-colors"
+                                        style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+                                    >
                                         <td className="px-5 py-4" style={{ color: "#e2e8f0" }}>
-                                            <div className="font-medium">{company.companyName}</div>
+                                            <Link
+                                                href={`/admin/customers/company/${encodeURIComponent(company.id)}`}
+                                                className="font-medium hover:text-indigo-400 transition-colors"
+                                            >
+                                                {company.companyName}
+                                            </Link>
                                         </td>
                                         <td className="px-5 py-4" style={{ color: "#cbd5e1" }}>
                                             {company.orgNumber || "—"}
                                         </td>
                                         <td className="px-5 py-4" style={{ color: "#cbd5e1" }}>
                                             {company.sourceCount}
+                                        </td>
+                                        <td className="px-5 py-4 text-right">
+                                            <Link
+                                                href={`/admin/customers/company/${encodeURIComponent(company.id)}`}
+                                                className="text-xs text-slate-500 group-hover:text-indigo-400 transition-colors"
+                                            >
+                                                View details →
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
