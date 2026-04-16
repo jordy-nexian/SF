@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
+import prisma from '@/lib/prisma';
+import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 
 const WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/81077ef9-b372-4780-9f78-92884f3a6e83';
 
@@ -11,10 +13,26 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: session.user.tenantId },
+            select: { sharedSecret: true },
+        });
+
+        if (!tenant) {
+            return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+        }
+
+        const body = JSON.stringify({ tenantId: session.user.tenantId });
+        const hmac = createHmacSignature(body, tenant.sharedSecret);
+        const signatureHeaders = buildSignatureHeaders(hmac);
+
         const response = await fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenantId: session.user.tenantId }),
+            headers: {
+                'Content-Type': 'application/json',
+                ...signatureHeaders,
+            },
+            body,
             cache: 'no-store',
         });
 
