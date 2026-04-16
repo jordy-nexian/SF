@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function CustomersPage() {
@@ -38,25 +37,11 @@ export default function CustomersPage() {
 
     return (
         <div className="mx-auto max-w-6xl space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Fund Coordinators</h1>
-                    <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
-                        Manage portal users and assign templates.
-                    </p>
-                </div>
-                <Link
-                    href="/admin/customers/new"
-                    className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.2)]
-                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                    style={{
-                        background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
-                        color: 'white',
-                        boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
-                    }}
-                >
-                    + Add Fund Coordinator
-                </Link>
+            <div>
+                <h1 className="text-2xl font-bold text-white">Companies</h1>
+                <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
+                    Manage portal users and assign templates.
+                </p>
             </div>
 
             {/* Customers Table */}
@@ -99,7 +84,7 @@ export default function CustomersPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
-                        <p style={{ color: '#64748b' }}>No fund coordinators found.</p>
+                        <p style={{ color: '#64748b' }}>No companies found.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
