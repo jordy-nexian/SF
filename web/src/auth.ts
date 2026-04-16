@@ -17,10 +17,13 @@ const AUTH_BYPASS_ENABLED = process.env.AUTH_BYPASS === "true";
 
 async function getBypassUser(): Promise<User | null> {
 	const bypassEmail = process.env.AUTH_BYPASS_EMAIL?.trim().toLowerCase();
-
-	const user = bypassEmail
+	let user = bypassEmail
 		? await prisma.user.findFirst({ where: { email: bypassEmail } })
-		: await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
+		: null;
+
+	if (!user) {
+		user = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
+	}
 
 	if (!user) {
 		console.warn("[Auth] AUTH_BYPASS enabled but no user record was found");
