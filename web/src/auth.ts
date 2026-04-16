@@ -13,6 +13,27 @@ if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
 
 // Impersonation expiry: 1 hour
 const IMPERSONATION_MAX_DURATION_MS = 60 * 60 * 1000;
+const AUTH_BYPASS_ENABLED = process.env.AUTH_BYPASS === "true";
+
+async function getBypassUser(): Promise<User | null> {
+	const bypassEmail = process.env.AUTH_BYPASS_EMAIL?.trim().toLowerCase();
+
+	const user = bypassEmail
+		? await prisma.user.findFirst({ where: { email: bypassEmail } })
+		: await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
+
+	if (!user) {
+		console.warn("[Auth] AUTH_BYPASS enabled but no user record was found");
+		return null;
+	}
+
+	return {
+		id: user.id,
+		email: user.email,
+		tenantId: user.tenantId,
+		role: user.role as "owner" | "admin" | "viewer",
+	};
+}
 
 export const authOptions: NextAuthOptions = {
 	secret: process.env.NEXTAUTH_SECRET,
@@ -30,6 +51,10 @@ export const authOptions: NextAuthOptions = {
 			async authorize(credentials): Promise<User | null> {
 				if (!credentials?.email || !credentials?.password) {
 					return null;
+				}
+
+				if (AUTH_BYPASS_ENABLED) {
+					return getBypassUser();
 				}
 
 				// Rate limit by email to prevent brute force (distributed via Upstash Redis)

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+
+const authBypassEnabled = process.env.NEXT_PUBLIC_AUTH_BYPASS === "true";
 
 function SignInForm() {
 	const router = useRouter();
@@ -15,6 +17,50 @@ function SignInForm() {
 
 	const callbackUrl = searchParams.get("callbackUrl") || "/admin";
 	const justRegistered = searchParams.get("registered") === "true";
+
+	useEffect(() => {
+		if (!authBypassEnabled) {
+			return;
+		}
+
+		let cancelled = false;
+
+		async function signInWithBypass() {
+			setError(null);
+			setLoading(true);
+			try {
+				const res = await signIn("credentials", {
+					email: "bypass@example.com",
+					password: "bypass",
+					redirect: false,
+					callbackUrl,
+				});
+
+				if (!cancelled) {
+					if (res?.error) {
+						setError("Temporary auth bypass failed");
+					} else {
+						router.push(res?.url || callbackUrl);
+						router.refresh();
+					}
+				}
+			} catch {
+				if (!cancelled) {
+					setError("Temporary auth bypass failed");
+				}
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		}
+
+		void signInWithBypass();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [callbackUrl, router]);
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -111,6 +157,18 @@ function SignInForm() {
 					}}
 				>
 					<form className="space-y-5" onSubmit={onSubmit}>
+						{authBypassEnabled && (
+							<div 
+								className="rounded-lg p-3 text-sm text-center"
+								style={{ 
+									background: 'rgba(251, 191, 36, 0.1)',
+									border: '1px solid rgba(251, 191, 36, 0.2)',
+									color: '#fcd34d',
+								}}
+							>
+								Temporary auth bypass is enabled. Signing you in automatically.
+							</div>
+						)}
 						<div>
 							<label className="block text-sm mb-2" style={{ color: '#cbd5e1' }}>Email address</label>
 							<input
@@ -123,6 +181,7 @@ function SignInForm() {
 								placeholder="you@example.com"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
+								disabled={authBypassEnabled}
 								required
 							/>
 						</div>
@@ -147,12 +206,13 @@ function SignInForm() {
 								placeholder="••••••••"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
+								disabled={authBypassEnabled}
 								required
 							/>
 						</div>
 						<button
 							type="submit"
-							disabled={loading}
+							disabled={loading || authBypassEnabled}
 							className="w-full py-3 rounded-full font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] active:shadow-[0_2px_8px_rgba(99,102,241,0.3)]"
 							style={{
 								background: 'linear-gradient(to right, #6366f1, #8b5cf6)',
