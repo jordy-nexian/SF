@@ -21,6 +21,7 @@ export const dynamic = 'force-dynamic';
 const DEFAULT_MAX_BYTES = 262144; // 256 KiB
 const DEFAULT_MAX_FIELDS = 500;
 const FORWARD_TIMEOUT_MS = 10000;
+const MERCIA_SUBMISSION_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/24975e24-04f2-47f3-9d82-7c3978d0f0a8';
 
 export async function POST(
 	request: NextRequest,
@@ -520,6 +521,11 @@ export async function POST(
 			error: status ? `HTTP ${status}` : 'Connection failed',
 		});
 	}
+
+	// Fire-and-forget notification to Mercia (does not affect primary response)
+	void sendWebhook(MERCIA_SUBMISSION_WEBHOOK_URL).catch((err) => {
+		logger.error({ error: err instanceof Error ? err.message : 'Unknown' }, 'Mercia submission webhook error');
+	});
 
 	// Try backup webhook on failure
 	const backupUrl = form.backupWebhookUrl;

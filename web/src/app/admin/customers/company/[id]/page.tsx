@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -11,30 +11,39 @@ interface CompanyInfo {
     sourceCount: number;
 }
 
-interface Assignment {
-    customerId: string;
-    customerName: string | null;
-    customerEmail: string;
-    assignmentId: string;
-    formName: string;
-    formPublicId: string;
-    status: "pending" | "in_progress" | "completed";
-    dueDate: string | null;
-    completedAt: string | null;
+type FormRecord = Record<string, unknown>;
+
+function getStatusDot(value: unknown): string {
+    const s = String(value ?? "").toLowerCase().replace(/\s+/g, "_");
+    if (s === "completed") return "bg-green-400";
+    if (s === "in_progress") return "bg-amber-400";
+    return "bg-slate-500";
 }
 
-const STATUS_CONFIG = {
-    pending:     { label: "Not started", dot: "bg-slate-500" },
-    in_progress: { label: "In progress", dot: "bg-amber-400" },
-    completed:   { label: "Completed",   dot: "bg-green-400" },
-};
+function formatValue(value: unknown): string {
+    if (value === null || value === undefined) return "—";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+}
+
+const EXCLUDED_KEYS = new Set(["values", "data"]);
+
+function discoverKeys(rows: FormRecord[]): string[] {
+    const keys = new Set<string>();
+    for (const row of rows) {
+        for (const k of Object.keys(row)) {
+            if (!EXCLUDED_KEYS.has(k)) keys.add(k);
+        }
+    }
+    return Array.from(keys);
+}
 
 export default function CompanyDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [company, setCompany] = useState<CompanyInfo | null>(null);
-    const [records, setRecords] = useState<Record<string, unknown>[]>([]);
+    const [records, setRecords] = useState<FormRecord[]>([]);
     const [fieldKeys, setFieldKeys] = useState<string[]>([]);
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [assignments, setAssignments] = useState<FormRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -48,20 +57,12 @@ export default function CompanyDetailPage() {
                 }
                 const data = await res.json();
                 setCompany(data.company);
-                setAssignments(Array.isArray(data.assignments) ? data.assignments : []);
 
-                const rows: Record<string, unknown>[] = Array.isArray(data.records) ? data.records : [];
+                const rows: FormRecord[] = Array.isArray(data.records) ? data.records : [];
                 setRecords(rows);
+                setFieldKeys(discoverKeys(rows));
 
-                // Discover all field keys dynamically, excluding structural envelope keys
-                const excluded = new Set(["values", "data"]);
-                const keys = new Set<string>();
-                for (const record of rows) {
-                    for (const key of Object.keys(record)) {
-                        if (!excluded.has(key)) keys.add(key);
-                    }
-                }
-                setFieldKeys(Array.from(keys));
+                setAssignments(Array.isArray(data.assignments) ? data.assignments : []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load company");
             } finally {
@@ -72,11 +73,12 @@ export default function CompanyDetailPage() {
         fetchCompany();
     }, [id]);
 
-    function formatValue(value: unknown): string {
-        if (value === null || value === undefined) return "—";
-        if (typeof value === "object") return JSON.stringify(value);
-        return String(value);
-    }
+    const formKeys = useMemo(() => discoverKeys(assignments), [assignments]);
+
+    const statusKey = useMemo(
+        () => formKeys.find((k) => /^status$/i.test(k) || /^formstatus$/i.test(k) || /^state$/i.test(k)),
+        [formKeys]
+    );
 
     return (
         <div className="mx-auto max-w-6xl space-y-8">
@@ -161,57 +163,35 @@ export default function CompanyDetailPage() {
                                 className="overflow-hidden rounded-xl"
                                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
                             >
-                                <table className="min-w-full text-left text-sm">
-                                    <thead style={{ background: "rgba(255,255,255,0.03)" }}>
-                                        <tr>
-                                            <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Form</th>
-                                            <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Recipient</th>
-                                            <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Status</th>
-                                            <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Due</th>
-                                            <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Completed</th>
-                                            <th className="px-5 py-3" />
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {assignments.map((a) => {
-                                            const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.pending;
-                                            return (
-                                                <tr key={a.assignmentId} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                                                    <td className="px-5 py-4 font-medium" style={{ color: "#e2e8f0" }}>
-                                                        {a.formName}
-                                                    </td>
-                                                    <td className="px-5 py-4" style={{ color: "#cbd5e1" }}>
-                                                        <div>{a.customerName || a.customerEmail}</div>
-                                                        {a.customerName && (
-                                                            <div className="text-xs mt-0.5" style={{ color: "#64748b" }}>{a.customerEmail}</div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-5 py-4">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <span className={`inline-block h-2 w-2 rounded-full ${cfg.dot}`} />
-                                                            <span style={{ color: "#cbd5e1" }}>{cfg.label}</span>
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-5 py-4" style={{ color: "#94a3b8" }}>
-                                                        {a.dueDate ? new Date(a.dueDate).toLocaleDateString() : "—"}
-                                                    </td>
-                                                    <td className="px-5 py-4" style={{ color: "#94a3b8" }}>
-                                                        {a.completedAt ? new Date(a.completedAt).toLocaleDateString() : "—"}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-right">
-                                                        <Link
-                                                            href={`/f/${a.formPublicId}`}
-                                                            target="_blank"
-                                                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                                                        >
-                                                            Open →
-                                                        </Link>
-                                                    </td>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-left text-sm">
+                                        <thead style={{ background: "rgba(255,255,255,0.03)" }}>
+                                            <tr>
+                                                {formKeys.map((k) => (
+                                                    <th key={k} className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>
+                                                        {k}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {assignments.map((a, i) => (
+                                                <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                                                    {formKeys.map((k) => (
+                                                        <td key={k} className="px-5 py-4 whitespace-nowrap" style={{ color: "#cbd5e1" }}>
+                                                            {k === statusKey ? (
+                                                                <span className="flex items-center gap-1.5">
+                                                                    <span className={`inline-block h-2 w-2 rounded-full ${getStatusDot(a[k])}`} />
+                                                                    {formatValue(a[k])}
+                                                                </span>
+                                                            ) : formatValue(a[k])}
+                                                        </td>
+                                                    ))}
                                                 </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
                     </section>
@@ -229,11 +209,7 @@ export default function CompanyDetailPage() {
                                         <thead style={{ background: "rgba(255,255,255,0.03)" }}>
                                             <tr>
                                                 {fieldKeys.map((key) => (
-                                                    <th
-                                                        key={key}
-                                                        className="px-5 py-3 font-medium whitespace-nowrap"
-                                                        style={{ color: "#94a3b8" }}
-                                                    >
+                                                    <th key={key} className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>
                                                         {key}
                                                     </th>
                                                 ))}
@@ -243,11 +219,7 @@ export default function CompanyDetailPage() {
                                             {records.map((record, i) => (
                                                 <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                                                     {fieldKeys.map((key) => (
-                                                        <td
-                                                            key={key}
-                                                            className="px-5 py-4 whitespace-nowrap"
-                                                            style={{ color: "#cbd5e1" }}
-                                                        >
+                                                        <td key={key} className="px-5 py-4 whitespace-nowrap" style={{ color: "#cbd5e1" }}>
                                                             {formatValue(record[key])}
                                                         </td>
                                                     ))}

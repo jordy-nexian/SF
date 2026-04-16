@@ -10,6 +10,7 @@ import {
 } from '@/lib/hmac';
 
 const WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/81077ef9-b372-4780-9f78-92884f3a6e83';
+const COMPANY_FORMS_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/c1d5487f-6273-45c7-a5f5-1f74d7d7c419';
 
 function slugify(value: string): string {
     return value
@@ -134,48 +135,50 @@ export async function GET(
         const orgNumber =
             orgIdValue === undefined || orgIdValue === null ? null : String(orgIdValue).trim();
 
-        // Look up EndCustomers linked to this company via externalId = orgNumber,
-        // then pull their form assignments so the detail page can show sent forms.
-        const assignments: {
-            customerId: string;
-            customerName: string | null;
-            customerEmail: string;
-            assignmentId: string;
-            formName: string;
-            formPublicId: string;
-            status: string;
-            dueDate: string | null;
-            completedAt: string | null;
-        }[] = [];
+        // Load forms for this company from the Mercia forms webhook.
+        // Strip the 'org-' prefix to get the raw QuickBase record ID.
+        const rawRecordId = id.startsWith('org-') ? id.slice(4) : id;
+        let webhookForms: Record<string, unknown>[] = [];
 
-        if (orgNumber) {
-            const customers = await prisma.endCustomer.findMany({
-                where: { tenantId: session.user.tenantId, externalId: orgNumber },
-                include: {
-                    assignments: {
-                        include: {
-                            form: { select: { name: true, publicId: true } },
-                        },
-                        orderBy: { createdAt: 'desc' },
-                    },
+        try {
+            const formsBody = JSON.stringify({ recordId: rawRecordId });
+            const formsHmac = createHmacSignature(formsBody, tenant.sharedSecret);
+            const formsResponse = await fetch(COMPANY_FORMS_WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...buildSignatureHeaders(formsHmac),
                 },
+                body: formsBody,
+                cache: 'no-store',
             });
 
-            for (const customer of customers) {
-                for (const a of customer.assignments) {
-                    assignments.push({
-                        customerId: customer.id,
-                        customerName: customer.name,
-                        customerEmail: customer.email,
-                        assignmentId: a.id,
-                        formName: a.form.name,
-                        formPublicId: a.form.publicId,
-                        status: a.status,
-                        dueDate: a.dueDate?.toISOString() ?? null,
-                        completedAt: a.completedAt?.toISOString() ?? null,
-                    });
+            if (formsResponse.ok) {
+                const formsRawBody = await formsResponse.text();
+                const formsSigHeaders = extractSignatureHeaders(formsResponse);
+                if (formsSigHeaders) {
+                    const formsVerification = verifyHmacSignature(formsRawBody, formsSigHeaders, tenant.sharedSecret);
+                    if (formsVerification.valid) {
+                        const formsData = JSON.parse(formsRawBody) as unknown;
+                        if (Array.isArray(formsData)) {
+                            webhookForms = formsData as Record<string, unknown>[];
+                        } else if (formsData && typeof formsData === 'object') {
+                            const obj = formsData as Record<string, unknown>;
+                            if (Array.isArray(obj.data)) webhookForms = obj.data as Record<string, unknown>[];
+                            else if (Array.isArray(obj.forms)) webhookForms = obj.forms as Record<string, unknown>[];
+                            else webhookForms = [obj];
+                        }
+                    } else {
+                        console.error('[Company Forms] HMAC verification failed:', formsVerification.error);
+                    }
+                } else {
+                    console.error('[Company Forms] Missing HMAC signature headers on response');
                 }
+            } else {
+                console.error('[Company Forms] Webhook returned', formsResponse.status);
             }
+        } catch (formsErr) {
+            console.error('[Company Forms] Error fetching forms:', formsErr);
         }
 
         return NextResponse.json({
@@ -186,7 +189,7 @@ export async function GET(
                 sourceCount: matchingRecords.length,
             },
             records: matchingRecords,
-            assignments,
+            assignments: webhookForms,
         });
     } catch (error) {
         console.error('[Company Detail] Error:', error);
