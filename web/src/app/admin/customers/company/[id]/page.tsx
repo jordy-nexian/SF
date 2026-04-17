@@ -18,6 +18,7 @@ interface FormAssignment {
     Email?: string;
     DateTime?: string;
     LookedAt?: number;
+    PublicId?: string;
 }
 
 function getStatusConfig(lookedAt: number | undefined) {
@@ -62,6 +63,7 @@ export default function CompanyDetailPage() {
     const [records, setRecords] = useState<FormRecord[]>([]);
     const [fieldKeys, setFieldKeys] = useState<string[]>([]);
     const [assignments, setAssignments] = useState<FormAssignment[]>([]);
+    const [viewingForm, setViewingForm] = useState<FormAssignment | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -182,6 +184,7 @@ export default function CompanyDetailPage() {
                                                 <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Email</th>
                                                 <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Sent</th>
                                                 <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Status</th>
+                                                <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}><span className="sr-only">Actions</span></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -209,6 +212,25 @@ export default function CompanyDetailPage() {
                                                                 />
                                                                 {status.label}
                                                             </span>
+                                                        </td>
+                                                        <td className="px-5 py-4 whitespace-nowrap text-right">
+                                                            {a.PublicId ? (
+                                                                <button
+                                                                    onClick={() => setViewingForm(a)}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                                                    style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8" }}
+                                                                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.25)"; }}
+                                                                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.15)"; }}
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                    View
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-xs" style={{ color: "#475569" }}>—</span>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -256,6 +278,61 @@ export default function CompanyDetailPage() {
                         </section>
                     )}
                 </>
+            )}
+
+            {/* Form viewer slide-over */}
+            {viewingForm?.PublicId && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 transition-opacity"
+                        style={{ background: "rgba(0,0,0,0.6)" }}
+                        onClick={() => setViewingForm(null)}
+                    />
+
+                    {/* Panel */}
+                    <div
+                        className="relative flex flex-col w-full max-w-3xl h-full shadow-2xl"
+                        style={{ background: "#0f172a", borderLeft: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                        {/* Panel header */}
+                        <div
+                            className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+                            style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                        >
+                            <div className="min-w-0">
+                                <h3 className="text-base font-semibold text-white truncate">
+                                    {viewingForm.FormName ?? "Form"}
+                                </h3>
+                                <p className="text-xs mt-0.5 truncate" style={{ color: "#64748b" }}>
+                                    {viewingForm.Email ?? ""}
+                                    {viewingForm.Email && viewingForm.DateTime ? " · " : ""}
+                                    {formatDateTime(viewingForm.DateTime)}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setViewingForm(null)}
+                                className="ml-4 flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-white/10"
+                                style={{ color: "#94a3b8" }}
+                                aria-label="Close panel"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Form iframe */}
+                        <div className="flex-1 overflow-hidden">
+                            <iframe
+                                src={`/f/${viewingForm.PublicId}`}
+                                className="w-full h-full border-0"
+                                title={`Form: ${viewingForm.FormName ?? "Preview"}`}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
