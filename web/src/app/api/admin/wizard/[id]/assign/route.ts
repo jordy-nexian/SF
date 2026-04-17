@@ -12,7 +12,10 @@ import { assignSchema, canTransition } from '@/lib/wizard-validation';
 import { createAndSendMagicLink, sendFormInviteEmail } from '@/lib/magic-link';
 import { generatePrefillToken, buildPrefillUrl } from '@/lib/prefill-token';
 import { logAuditEvent } from '@/lib/audit';
+import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 import * as api from '@/lib/api-response';
+
+const FORM_CREATED_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/24975e24-04f2-47f3-9d82-7c3978d0f0a8';
 
 export const dynamic = 'force-dynamic';
 
@@ -239,6 +242,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 formName: form.name,
             },
         });
+
+        // Notify QuickBase that a form has been assigned (fire-and-forget)
+        try {
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: session.tenantId },
+                select: { sharedSecret: true },
+            });
+            if (tenant) {
+                const webhookBody = JSON.stringify({
+                    publicId: form.publicId,
+                    formName: form.name,
+                    wipNumber: wizardRun.wipNumber,
+                    companyName: wipContextRaw?.companyName ?? null,
+                    customerEmail: email,
+                    assignmentId: assignment.id,
+                    tenantId: session.tenantId,
+                    formValues: tokenValues,
+                });
+                const hmac = createHmacSignature(webhookBody, tenant.sharedSecret);
+                fetch(FORM_CREATED_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...buildSignatureHeaders(hmac),
+                    },
+                    body: webhookBody,
+                    cache: 'no-store',
+                }).catch((err) => {
+                    console.error('[Wizard] QuickBase form-created webhook failed:', err);
+                });
+            }
+        } catch (webhookErr) {
+            console.error('[Wizard] QuickBase form-created webhook error:', webhookErr);
+        }
 
         return api.success({
             wizardRunId: id,

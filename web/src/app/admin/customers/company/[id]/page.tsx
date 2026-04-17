@@ -324,10 +324,11 @@ export default function CompanyDetailPage() {
                         </div>
 
                         {/* Form iframe */}
-                        <div className="flex-1 overflow-hidden">
+                        <div className="relative flex-1 min-h-0">
                             <iframe
                                 src={`/f/${viewingForm.PublicId}`}
-                                className="w-full h-full border-0"
+                                className="absolute inset-0 w-full h-full border-0"
+                                style={{ background: "#f8fafc" }}
                                 title={`Form: ${viewingForm.FormName ?? "Preview"}`}
                             />
                         </div>
