@@ -254,11 +254,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 select: { sharedSecret: true },
             });
             if (tenant) {
+                const metadata = wipContextRaw?.metadata ?? {};
+                const orgIdValue = metadata.OrgID ?? metadata.OrgId ?? metadata.ORGNumber ?? null;
                 const webhookBody = JSON.stringify({
                     publicId: form.publicId,
                     formName: form.name,
                     wipNumber: wizardRun.wipNumber,
+                    orgId: orgIdValue === null ? null : String(orgIdValue),
                     companyName: wipContextRaw?.companyName ?? null,
+                    wipMetadata: metadata,
                     customerEmail: email,
                     assignmentId: assignment.id,
                     tenantId: session.tenantId,
