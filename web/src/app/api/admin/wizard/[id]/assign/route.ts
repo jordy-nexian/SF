@@ -114,23 +114,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             });
         }
 
-        // Find or create assignment — if the same customer+form pair already exists
-        // (e.g. from a prior wizard run), reset it for this new WIP assignment
-        const existingAssignment = await prisma.formAssignment.findUnique({
+        // Find existing assignment either by customer+form pair or by this wizardRun.
+        // wizardRunId is unique on FormAssignment, so if this wizard already produced
+        // one (e.g. from a retry), we must reuse it instead of creating a duplicate.
+        const existingAssignment = await prisma.formAssignment.findFirst({
             where: {
-                endCustomerId_formId: {
-                    endCustomerId: endCustomer.id,
-                    formId: form.id,
-                },
+                OR: [
+                    { endCustomerId: endCustomer.id, formId: form.id },
+                    { wizardRunId: id },
+                ],
             },
         });
 
         let assignment;
         if (existingAssignment) {
-            // Re-assign: reset status and link to the new wizard run
+            // Re-assign: reset status and ensure it points at the current wizard run,
+            // customer, and form (in case any of those changed across retries).
             assignment = await prisma.formAssignment.update({
                 where: { id: existingAssignment.id },
                 data: {
+                    endCustomerId: endCustomer.id,
+                    formId: form.id,
                     status: 'pending',
                     prefillData: wizardRun.prefillData || undefined,
                     dueDate: dueDate ? new Date(dueDate) : null,
@@ -243,7 +247,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             },
         });
 
-        // Notify QuickBase that a form has been assigned (fire-and-forget)
+        // Notify QuickBase that a form has been assigned
         try {
             const tenant = await prisma.tenant.findUnique({
                 where: { id: session.tenantId },
@@ -261,7 +265,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                     formValues: tokenValues,
                 });
                 const hmac = createHmacSignature(webhookBody, tenant.sharedSecret);
-                fetch(FORM_CREATED_WEBHOOK_URL, {
+                console.log('[Wizard] Posting form-created webhook to QuickBase:', FORM_CREATED_WEBHOOK_URL);
+                const res = await fetch(FORM_CREATED_WEBHOOK_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -269,9 +274,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                     },
                     body: webhookBody,
                     cache: 'no-store',
-                }).catch((err) => {
-                    console.error('[Wizard] QuickBase form-created webhook failed:', err);
                 });
+                console.log('[Wizard] QuickBase form-created webhook responded:', res.status);
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    console.error('[Wizard] QuickBase webhook non-OK body:', text.slice(0, 500));
+                }
+            } else {
+                console.warn('[Wizard] Skipping QuickBase webhook — tenant not found');
             }
         } catch (webhookErr) {
             console.error('[Wizard] QuickBase form-created webhook error:', webhookErr);
