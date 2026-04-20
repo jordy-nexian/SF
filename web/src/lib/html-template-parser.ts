@@ -161,11 +161,21 @@ export function replaceTokensWithModes(
                 }
                 return match;
             } else {
-                // Prefill mode: display as text
-                if (value !== undefined) {
-                    return `<span${attrs} class="prefill-token-value" style="color: black; background: transparent; padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
-                }
-                return match; // Keep original if no value provided
+                // Prefill mode: editable input, pre-populated with the value so the user can adjust before submitting
+                const fieldType = inferFieldType(label);
+                const inputType = fieldType === 'email' ? 'email' :
+                    fieldType === 'number' ? 'number' : 'text';
+                const placeholder = escapeHtml(label);
+                const existingValue = value !== undefined ? escapeHtml(value) : '';
+                return `<input type="${inputType}"
+                    name="${tokenId}"
+                    class="prefill-token-input"
+                    data-token-id="${tokenId}"
+                    data-token-label="${placeholder}"
+                    placeholder="${placeholder}"
+                    value="${existingValue}"
+                    style="border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px; min-width: 150px; font-size: inherit; font-family: inherit; background: #ffffff;"
+                />`;
             }
         }
     );
