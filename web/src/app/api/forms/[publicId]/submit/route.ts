@@ -146,9 +146,9 @@ export async function POST(
 		// ignore field count errors
 	}
 
-	// Lookup form and tenant
-	const form = await prisma.form.findUnique({
-		where: { publicId },
+	// Lookup form and tenant (accept either publicId slug OR internal id)
+	const form = await prisma.form.findFirst({
+		where: { OR: [{ publicId }, { id: publicId }] },
 		include: {
 			tenant: true,
 			currentVersion: true,

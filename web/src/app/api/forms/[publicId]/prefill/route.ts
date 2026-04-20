@@ -36,8 +36,9 @@ export async function POST(
         const { publicId } = await context.params;
 
         // Get form with prefill config AND linked template with its mappings
-        const form = await prisma.form.findUnique({
-            where: { publicId },
+        // (accept either publicId slug OR internal id)
+        const form = await prisma.form.findFirst({
+            where: { OR: [{ publicId }, { id: publicId }] },
             select: {
                 id: true,
                 status: true,

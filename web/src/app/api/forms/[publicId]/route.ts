@@ -15,8 +15,9 @@ export async function GET(
 ) {
 	try {
 		const { publicId } = await context.params;
-		const form = await prisma.form.findUnique({
-			where: { publicId },
+		// Accept either publicId slug OR internal id (covers QB storing either value)
+		const form = await prisma.form.findFirst({
+			where: { OR: [{ publicId }, { id: publicId }] },
 			include: {
 				currentVersion: true,
 				versions: {
