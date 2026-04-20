@@ -70,6 +70,9 @@ function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
  * @returns Result indicating if request is allowed
  */
 export async function rateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
+	// Redis rate limiting temporarily disabled
+	return { success: true, limit: config.limit, remaining: config.limit, resetAt: 0 };
+
 	const limiter = getRateLimiter(config);
 
 	// Fail-closed: if Redis not configured, reject requests (security-first)
