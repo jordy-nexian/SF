@@ -91,7 +91,7 @@ function FormBuilderContent() {
 		tokenId: string;
 		label: string;
 		payloadKey: string;
-		mode: "prefill" | "manual" | "signature";
+		mode: "prefill" | "prefill_readonly" | "manual" | "signature";
 	}>>([]);
 	const [savingMappings, setSavingMappings] = useState(false);
 
@@ -162,7 +162,7 @@ function FormBuilderContent() {
 			// Fallback: Extract tokens directly from HTML content if no template linked
 			if (htmlContent) {
 				const tokenRegex = /\[([^\]]+)\]/g;
-				const foundTokens: Array<{ tokenId: string; label: string; payloadKey: string; mode: "prefill" | "manual" | "signature" }> = [];
+				const foundTokens: Array<{ tokenId: string; label: string; payloadKey: string; mode: "prefill" | "prefill_readonly" | "manual" | "signature" }> = [];
 				const seen = new Set<string>();
 				let match;
 				while ((match = tokenRegex.exec(htmlContent)) !== null) {
@@ -207,14 +207,15 @@ function FormBuilderContent() {
 	const cycleTokenMode = (tokenId: string) => {
 		setTokenMappings(prev => prev.map(m => {
 			if (m.tokenId !== tokenId) return m;
-			const nextMode = m.mode === "prefill" ? "manual" : m.mode === "manual" ? "signature" : "prefill";
+			const nextMode = m.mode === "prefill" ? "prefill_readonly" : m.mode === "prefill_readonly" ? "manual" : m.mode === "manual" ? "signature" : "prefill";
 			return { ...m, mode: nextMode };
 		}));
 	};
 
-	const getModeDisplay = (mode: "prefill" | "manual" | "signature") => {
+	const getModeDisplay = (mode: "prefill" | "prefill_readonly" | "manual" | "signature") => {
 		switch (mode) {
 			case "prefill": return { icon: "🔄", label: "Prefill", bg: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc", border: "rgba(99, 102, 241, 0.3)" };
+			case "prefill_readonly": return { icon: "🔒", label: "Prefill (Locked)", bg: "rgba(14, 165, 233, 0.2)", color: "#38bdf8", border: "rgba(14, 165, 233, 0.3)" };
 			case "manual": return { icon: "✏️", label: "Manual", bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", border: "rgba(34, 197, 94, 0.3)" };
 			case "signature": return { icon: "✍️", label: "Signature", bg: "rgba(251, 146, 60, 0.2)", color: "#fb923c", border: "rgba(251, 146, 60, 0.3)" };
 		}
@@ -443,7 +444,7 @@ function FormBuilderContent() {
 														color: display.color,
 														border: `1px solid ${display.border}`,
 													}}
-													title="Click to cycle: Prefill → Manual → Signature"
+													title="Click to cycle: Prefill → Prefill (Locked) → Manual → Signature"
 												>
 													{display.icon} {display.label}
 												</button>
