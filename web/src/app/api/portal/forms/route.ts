@@ -150,7 +150,16 @@ export async function GET() {
                     }
                 }
 
-                const webhookData: WebhookFormData[] = JSON.parse(rawBody);
+                // Parse body — handle both plain array and n8n's wrapped format: [{ body: "stringified-json" }]
+                let webhookData: WebhookFormData[];
+                const parsed = JSON.parse(rawBody);
+                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0]?.body === 'string') {
+                    webhookData = JSON.parse(parsed[0].body);
+                } else if (parsed && typeof parsed === 'object' && typeof (parsed as { body?: unknown }).body === 'string') {
+                    webhookData = JSON.parse((parsed as { body: string }).body);
+                } else {
+                    webhookData = parsed;
+                }
 
                 // Transform webhook data to match expected format, generating ctx tokens where WIP is available
                 const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
