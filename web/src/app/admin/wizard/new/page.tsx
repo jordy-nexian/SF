@@ -623,6 +623,35 @@ export default function NewWizardPage() {
                                         </div>
                                     )}
 
+                                    {/* Locked prefill fields (prefill_readonly) */}
+                                    {Object.entries(prefillData).filter(([, e]) => e.source === 'quickbase_readonly').length > 0 && (
+                                        <div className="rounded-xl p-5" style={{ ...cardStyle, border: "1px solid rgba(14, 165, 233, 0.2)", background: "rgba(14, 165, 233, 0.04)" }}>
+                                            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: "#38bdf8" }}>
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                Locked (Read-Only)
+                                            </h3>
+                                            <p className="text-xs mb-3" style={{ color: "#64748b" }}>These values are sourced from Quickbase and cannot be changed.</p>
+                                            <div className="space-y-2.5">
+                                                {Object.entries(prefillData)
+                                                    .filter(([, e]) => e.source === 'quickbase_readonly')
+                                                    .map(([tokenId, entry]) => (
+                                                    <div key={tokenId}>
+                                                        <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>
+                                                            {entry.label}
+                                                        </label>
+                                                        <div
+                                                            className="w-full rounded-lg px-3 py-2 text-sm flex items-center gap-2"
+                                                            style={{ background: "rgba(14, 165, 233, 0.08)", border: "1px solid rgba(14, 165, 233, 0.2)", color: "#cbd5e1" }}
+                                                        >
+                                                            <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "#38bdf8" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                            <span>{entry.value || <span style={{ color: "#475569" }}>—</span>}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Admin-editable fields */}
                                     {Object.entries(prefillData).filter(([, e]) => e.source === 'admin').length > 0 && (
                                         <div

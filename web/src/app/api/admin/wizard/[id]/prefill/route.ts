@@ -81,9 +81,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return api.badRequest('Pinned version no longer exists. Please re-select the template.');
         }
 
-        // Extract prefill-eligible fields (mode = "prefill")
+        // Extract prefill-eligible fields (mode = "prefill" or "prefill_readonly")
         const prefillMappings = wizardRun.template.mappings.filter(
-            (m: { mode: string }) => m.mode === 'prefill'
+            (m: { mode: string }) => m.mode === 'prefill' || m.mode === 'prefill_readonly'
         );
 
         const fields = prefillMappings.map((m: { payloadKey: string; tokenLabel: string; tokenId: string }) => ({
@@ -182,14 +182,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Prefill-mode tokens (auto-populated from Quickbase)
         for (const mapping of prefillMappings) {
-            const value = overrides[mapping.tokenId]
-                ?? n8nValues[mapping.tokenId]
-                ?? '';
+            const isReadOnly = mapping.mode === 'prefill_readonly';
+            // Read-only tokens ignore admin overrides — value is locked to QB data
+            const value = isReadOnly
+                ? (n8nValues[mapping.tokenId] ?? '')
+                : (overrides[mapping.tokenId] ?? n8nValues[mapping.tokenId] ?? '');
             prefillData[mapping.tokenId] = {
                 key: mapping.payloadKey,
                 label: mapping.tokenLabel,
                 value,
-                source: 'quickbase',
+                source: isReadOnly ? 'quickbase_readonly' : 'quickbase',
             };
         }
 

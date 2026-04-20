@@ -154,6 +154,12 @@ export function replaceTokensWithModes(
                     required
                     style="border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px; min-width: 150px; font-size: inherit; font-family: inherit;"
                 />`;
+            } else if (mode === 'prefill_readonly') {
+                // Locked prefill: display as text, not editable by user
+                if (value !== undefined) {
+                    return `<span${attrs} class="prefill-token-value prefill-token-readonly" style="color: black; background: rgba(14,165,233,0.07); border: 1px solid rgba(14,165,233,0.25); padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
+                }
+                return match;
             } else {
                 // Prefill mode: display as text
                 if (value !== undefined) {

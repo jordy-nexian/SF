@@ -25,7 +25,7 @@ interface TokenMapping {
     tokenId: string;
     label: string;
     payloadKey: string;
-    mode: "prefill" | "manual" | "signature";
+    mode: "prefill" | "prefill_readonly" | "manual" | "signature";
     required?: boolean;
 }
 
@@ -111,24 +111,27 @@ export default function UploadHtmlTemplatePage() {
         );
     };
 
-    const updateMappingMode = (tokenId: string, mode: "prefill" | "manual" | "signature") => {
+    const updateMappingMode = (tokenId: string, mode: "prefill" | "prefill_readonly" | "manual" | "signature") => {
         setMappings(prev =>
             prev.map(m => m.tokenId === tokenId ? { ...m, mode, required: mode === "manual" } : m)
         );
     };
 
-    // Cycle through modes: prefill -> manual -> signature -> prefill
-    const cycleMode = (currentMode: "prefill" | "manual" | "signature") => {
-        if (currentMode === "prefill") return "manual";
+    // Cycle through modes: prefill -> prefill_readonly -> manual -> signature -> prefill
+    const cycleMode = (currentMode: "prefill" | "prefill_readonly" | "manual" | "signature") => {
+        if (currentMode === "prefill") return "prefill_readonly";
+        if (currentMode === "prefill_readonly") return "manual";
         if (currentMode === "manual") return "signature";
         return "prefill";
     };
 
     // Get mode display info
-    const getModeDisplay = (mode: "prefill" | "manual" | "signature") => {
+    const getModeDisplay = (mode: "prefill" | "prefill_readonly" | "manual" | "signature") => {
         switch (mode) {
             case "prefill":
                 return { icon: "🔄", label: "Prefill", bg: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc", border: "rgba(99, 102, 241, 0.3)" };
+            case "prefill_readonly":
+                return { icon: "🔒", label: "Prefill (Locked)", bg: "rgba(14, 165, 233, 0.2)", color: "#38bdf8", border: "rgba(14, 165, 233, 0.3)" };
             case "manual":
                 return { icon: "✏️", label: "Manual", bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", border: "rgba(34, 197, 94, 0.3)" };
             case "signature":
@@ -443,7 +446,7 @@ export default function UploadHtmlTemplatePage() {
                                                         color: display.color,
                                                         border: `1px solid ${display.border}`,
                                                     }}
-                                                    title="Click to cycle: Prefill → Manual → Signature"
+                                                    title="Click to cycle: Prefill → Prefill (Locked) → Manual → Signature"
                                                 >
                                                     {display.icon} {display.label}
                                                 </button>
