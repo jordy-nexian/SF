@@ -124,7 +124,7 @@ export async function POST(
                     if (tenant?.wipPrefillWebhookUrl && wizardRun.template?.mappings) {
                         // Build prefill fields from template mappings (same as wizard Stage 3)
                         const prefillMappings = wizardRun.template.mappings.filter(
-                            (m: { mode: string }) => m.mode === 'prefill'
+                            (m: { mode: string }) => m.mode === 'prefill' || m.mode === 'prefill_readonly'
                         );
 
                         const fields = prefillMappings.map(
@@ -181,7 +181,7 @@ export async function POST(
 
             if (tenant?.wipPrefillWebhookUrl) {
                 const prefillMappings = form.template.mappings.filter(
-                    (m: { mode: string }) => m.mode === 'prefill'
+                    (m: { mode: string }) => m.mode === 'prefill' || m.mode === 'prefill_readonly'
                 );
 
                 const fields = prefillMappings.map(
