@@ -16,6 +16,7 @@ interface FormAssignment {
     dueDate: string | null;
     completedAt: string | null;
     createdAt: string;
+    formUrl?: string;
 }
 
 type SortKey = 'name' | 'status' | 'dueDate' | 'createdAt';
@@ -122,7 +123,8 @@ export default function PortalDashboard() {
                 handleFormOpened(form.formId);
             } catch { /* best-effort */ }
         }
-        router.push(`/f/${form.publicId}`);
+        const url = form.formUrl || `/f/${form.publicId}`;
+        router.push(url);
     }
 
     function formatDate(d: string | null) {
@@ -199,6 +201,7 @@ export default function PortalDashboard() {
                     if (f) handleOpen(f);
                     else router.push(`/f/${publicId}`);
                 }}
+
             />
 
             {/* Assignments Table */}

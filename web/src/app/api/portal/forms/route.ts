@@ -17,12 +17,14 @@ import {
     extractSignatureHeaders,
     verifyHmacSignature,
 } from '@/lib/hmac';
+import { generatePrefillToken, buildPrefillUrl } from '@/lib/prefill-token';
 
 // Webhook response shape (same as admin customer page)
 interface WebhookFormData {
     formName: string;
     status: string;
     publicId: string;
+    wipNumber?: string | number | null;
     dueDate?: string | null;
     completedAt?: string | null;
 }
@@ -150,16 +152,36 @@ export async function GET() {
 
                 const webhookData: WebhookFormData[] = JSON.parse(rawBody);
 
-                // Transform webhook data to match expected format
-                webhookForms = webhookData.map((wf, index) => ({
-                    assignmentId: `webhook-${index}`,
-                    formId: wf.publicId,
-                    publicId: wf.publicId,
-                    name: wf.formName,
-                    status: mapWebhookStatus(wf.status),
-                    dueDate: wf.dueDate || null,
-                    completedAt: wf.completedAt || null,
-                    createdAt: new Date().toISOString(),
+                // Transform webhook data to match expected format, generating ctx tokens where WIP is available
+                const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+                webhookForms = await Promise.all(webhookData.map(async (wf, index) => {
+                    let formUrl: string | undefined;
+                    if (wf.wipNumber) {
+                        try {
+                            const token = await generatePrefillToken({
+                                publicId: wf.publicId,
+                                tenantId: session.tenantId,
+                                tokenValues: {},
+                                customerEmail: customer.email,
+                                customerName: customer.name || undefined,
+                                wipNumber: String(wf.wipNumber),
+                            });
+                            formUrl = buildPrefillUrl(baseUrl, wf.publicId, token);
+                        } catch {
+                            // fall back to plain URL if token generation fails
+                        }
+                    }
+                    return {
+                        assignmentId: `webhook-${index}`,
+                        formId: wf.publicId,
+                        publicId: wf.publicId,
+                        name: wf.formName,
+                        status: mapWebhookStatus(wf.status),
+                        dueDate: wf.dueDate || null,
+                        completedAt: wf.completedAt || null,
+                        createdAt: new Date().toISOString(),
+                        formUrl,
+                    };
                 }));
 
                 source = 'merged';
