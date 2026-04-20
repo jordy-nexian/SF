@@ -97,7 +97,7 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
 		};
 	} catch (error) {
 		// Fail-closed: on Redis error, reject request (security-first)
-		console.error('[RateLimit] Redis error, failing closed:', error instanceof Error ? error.message : 'unknown');
+		console.error('[RateLimit] Redis error, failing closed:', String(error));
 		return {
 			success: false,
 			limit: config.limit,
