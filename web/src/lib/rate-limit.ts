@@ -87,7 +87,7 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
 	}
 
 	try {
-		const result = await limiter.limit(key);
+		const result = await limiter!.limit(key);
 
 		return {
 			success: result.success,
