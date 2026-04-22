@@ -97,7 +97,7 @@ export function replaceTokensWithModes(
             if (mode === 'prefill_signature') {
                 // R12: Display a previously captured signature as a read-only image
                 // Value should be a base64 data URL (e.g., "data:image/jpeg;base64,...")
-                if (value && value.startsWith('data:image')) {
+                if (value && typeof value === 'string' && value.startsWith('data:image')) {
                     const placeholder = escapeHtml(label);
                     return `<div 
                         class="prefill-signature-display" 
@@ -140,7 +140,7 @@ export function replaceTokensWithModes(
                 const inputType = fieldType === 'email' ? 'email' :
                     fieldType === 'number' ? 'number' : 'text';
                 const placeholder = escapeHtml(label);
-                const existingValue = value ? escapeHtml(value) : '';
+                const existingValue = value != null ? escapeHtml(String(value)) : '';
 
                 // Mark with special class and data attributes for form submission
                 // The name attribute uses tokenId so FormData can collect it
@@ -156,8 +156,8 @@ export function replaceTokensWithModes(
                 />`;
             } else if (mode === 'prefill_readonly') {
                 // Locked prefill: display as text, not editable by user
-                if (value !== undefined) {
-                    return `<span${attrs} class="prefill-token-value prefill-token-readonly" style="color: black; background: rgba(14,165,233,0.07); border: 1px solid rgba(14,165,233,0.25); padding: 2px 6px; border-radius: 4px;">${escapeHtml(value)}</span>`;
+                if (value != null) {
+                    return `<span${attrs} class="prefill-token-value prefill-token-readonly" style="color: black; background: rgba(14,165,233,0.07); border: 1px solid rgba(14,165,233,0.25); padding: 2px 6px; border-radius: 4px;">${escapeHtml(String(value))}</span>`;
                 }
                 return match;
             } else {
@@ -166,7 +166,7 @@ export function replaceTokensWithModes(
                 const inputType = fieldType === 'email' ? 'email' :
                     fieldType === 'number' ? 'number' : 'text';
                 const placeholder = escapeHtml(label);
-                const existingValue = value !== undefined ? escapeHtml(value) : '';
+                const existingValue = value != null ? escapeHtml(String(value)) : '';
                 return `<input type="${inputType}"
                     name="${tokenId}"
                     class="prefill-token-input"
