@@ -175,25 +175,19 @@ function PublicFormContent() {
 				setThankYouMessage(data.thankYouMessage);
 				setTurnstileSiteKey(data.turnstileSiteKey || null);
 
-				// Check if form requires authentication
-				const isPublic = data.isPublic ?? true;
-				const hasCtx = !!searchParams.get('ctx');
-				if (!isPublic && !hasCtx) {
-					// Check for tenant token (grants access without session)
-					const tenantToken = searchParams.get('tenantToken');
-					if (!tenantToken) {
-						// Check for portal session
-						try {
-							const sessionRes = await fetch('/api/portal/auth/session');
-							if (!sessionRes.ok) {
-								// No valid session - require authentication
-								setRequiresAuth(true);
-								return; // Don't continue loading form
-							}
-						} catch {
+				// Authentication is always required — ctx token alone does NOT grant access
+				// Only a valid portal session OR a tenant access token can bypass the sign-in wall
+				const tenantToken = searchParams.get('tenantToken');
+				if (!tenantToken) {
+					try {
+						const sessionRes = await fetch('/api/portal/auth/session');
+						if (!sessionRes.ok) {
 							setRequiresAuth(true);
-							return;
+							return; // Don't continue loading form
 						}
+					} catch {
+						setRequiresAuth(true);
+						return;
 					}
 				}
 

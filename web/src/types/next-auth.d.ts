@@ -7,7 +7,7 @@ declare module "next-auth" {
 			id: string;
 			email: string;
 			tenantId: string;
-			role: "owner" | "admin" | "viewer";
+			role: "owner" | "admin" | "fund_coordinator" | "viewer";
 		} & DefaultSession["user"];
 	}
 
@@ -15,7 +15,7 @@ declare module "next-auth" {
 		id: string;
 		email: string;
 		tenantId: string;
-		role: "owner" | "admin" | "viewer";
+		role: "owner" | "admin" | "fund_coordinator" | "viewer";
 	}
 }
 
@@ -23,7 +23,7 @@ declare module "next-auth/jwt" {
 	interface JWT extends DefaultJWT {
 		id: string;
 		tenantId: string;
-		role: "owner" | "admin" | "viewer";
+		role: "owner" | "admin" | "fund_coordinator" | "viewer";
 	}
 }
 

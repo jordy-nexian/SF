@@ -183,6 +183,7 @@ export default function TeamPage() {
 									style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
 								>
 									<option value="viewer">User - Can view and submit</option>
+									<option value="fund_coordinator">Fund Coordinator - Manages forms and companies</option>
 									<option value="admin">Administrator - Full access to all features</option>
 								</select>
 							</div>
@@ -225,15 +226,23 @@ export default function TeamPage() {
 							<tr key={member.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
 								<td className="px-4 py-3 text-sm text-white">{member.email}</td>
 								<td className="px-4 py-3">
-									<span
-										className="px-2 py-0.5 rounded text-xs font-medium"
-										style={{
-											background: member.role === 'owner' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-											color: member.role === 'owner' ? '#a78bfa' : '#818cf8'
-										}}
-									>
-										{member.role === 'owner' ? 'Administrator (Owner)' : member.role === 'admin' ? 'Administrator' : 'User'}
-									</span>
+									{(() => {
+										const badgeStyles: Record<string, { bg: string; color: string; label: string }> = {
+											owner: { bg: 'rgba(139, 92, 246, 0.2)', color: '#a78bfa', label: 'Administrator (Owner)' },
+											admin: { bg: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', label: 'Administrator' },
+											fund_coordinator: { bg: 'rgba(16, 185, 129, 0.2)', color: '#34d399', label: 'Fund Coordinator' },
+											viewer: { bg: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', label: 'User' },
+										};
+										const s = badgeStyles[member.role] || badgeStyles.viewer;
+										return (
+											<span
+												className="px-2 py-0.5 rounded text-xs font-medium"
+												style={{ background: s.bg, color: s.color }}
+											>
+												{s.label}
+											</span>
+										);
+									})()}
 								</td>
 								<td className="px-4 py-3 text-sm" style={{ color: '#64748b' }}>
 									{new Date(member.createdAt).toLocaleDateString()}

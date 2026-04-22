@@ -1,0 +1,176 @@
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
+import prisma from "@/lib/prisma";
+import DeleteFormButton from "@/components/DeleteFormButton";
+
+export const dynamic = "force-dynamic";
+
+export default async function TemplatesPage() {
+	const session = await getServerSession(authOptions);
+	const tenantId = session?.user?.tenantId;
+
+	if (!tenantId) {
+		return (
+			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
+				Not authenticated
+			</div>
+		);
+	}
+
+	const forms = await prisma.form.findMany({
+		where: { tenantId },
+		orderBy: { updatedAt: "desc" },
+		select: {
+			id: true,
+			name: true,
+			publicId: true,
+			status: true,
+			updatedAt: true,
+		},
+	});
+
+	return (
+		<div className="mx-auto max-w-6xl">
+			<div className="mb-6 flex items-center justify-between">
+				<div>
+					<Link href="/admin/manage" className="text-xs mb-2 inline-flex items-center gap-1" style={{ color: '#64748b' }}>
+						<svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+						Back to Admin
+					</Link>
+					<h1 className="text-2xl font-bold text-white">Templates</h1>
+				</div>
+				<div className="flex gap-3">
+					<Link
+						href="/admin/forms/new/upload-html"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
+						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+					>
+						📄 Upload HTML
+					</Link>
+					<Link
+						href="/admin/forms/new/templates"
+						className="rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] active:bg-[rgba(255,255,255,0.05)]"
+						style={{ border: '1px solid #334155', color: '#cbd5e1' }}
+					>
+						Templates
+					</Link>
+				</div>
+			</div>
+
+			<div
+				className="overflow-hidden rounded-xl"
+				style={{
+					background: 'rgba(255, 255, 255, 0.05)',
+					border: '1px solid rgba(255, 255, 255, 0.1)',
+				}}
+			>
+				<table className="min-w-full text-left text-sm">
+					<thead style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
+						<tr>
+							<th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Name</th>
+							<th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Public URL</th>
+							<th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Status</th>
+							<th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}>Updated</th>
+							<th className="px-5 py-3 font-medium" style={{ color: '#94a3b8' }}></th>
+						</tr>
+					</thead>
+					<tbody>
+						{forms.map((f) => (
+							<tr key={f.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+								<td className="px-5 py-4 font-medium">
+									<Link
+										href={`/admin/forms/${f.id}`}
+										className="text-white transition-colors hover:text-purple-400"
+									>
+										{f.name}
+									</Link>
+								</td>
+								<td className="px-5 py-4">
+									<Link
+										href={`/f/${f.publicId}`}
+										target="_blank"
+										className="font-mono text-sm transition-colors"
+										style={{ color: '#818cf8' }}
+									>
+										/f/{f.publicId}
+									</Link>
+								</td>
+								<td className="px-5 py-4">
+									<StatusBadge status={f.status} />
+								</td>
+								<td className="px-5 py-4" style={{ color: '#64748b' }}>
+									{new Date(f.updatedAt).toLocaleDateString()}
+								</td>
+								<td className="px-5 py-4">
+									<div className="flex items-center gap-2">
+										<a
+											href={`/f/${f.publicId}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
+											style={{ color: '#10b981' }}
+											title="View template"
+										>
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+											</svg>
+										</a>
+										<Link
+											href={`/admin/forms/${f.id}`}
+											className="p-1.5 rounded-lg transition-all hover:bg-white/10 active:scale-90 active:bg-white/15"
+											style={{ color: '#94a3b8' }}
+											title="Edit template"
+										>
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+											</svg>
+										</Link>
+										<DeleteFormButton formId={f.id} formName={f.name} />
+									</div>
+								</td>
+							</tr>
+						))}
+						{forms.length === 0 && (
+							<tr>
+								<td className="px-5 py-12 text-center" colSpan={5} style={{ color: '#64748b' }}>
+									<div className="flex flex-col items-center gap-3">
+										<div
+											className="w-12 h-12 rounded-full flex items-center justify-center"
+											style={{ background: 'rgba(255, 255, 255, 0.05)' }}
+										>
+											<svg className="w-6 h-6" fill="none" stroke="#64748b" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+											</svg>
+										</div>
+										<p>No templates yet. Create one to get started.</p>
+									</div>
+								</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
+}
+
+function StatusBadge({ status }: { status: string }) {
+	const styles: Record<string, { bg: string; text: string; dot: string }> = {
+		live: { bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', dot: '#10b981' },
+		draft: { bg: 'rgba(234, 179, 8, 0.1)', text: '#eab308', dot: '#eab308' },
+		archived: { bg: 'rgba(100, 116, 139, 0.1)', text: '#64748b', dot: '#64748b' },
+	};
+	const style = styles[status] || styles.draft;
+
+	return (
+		<span
+			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize"
+			style={{ background: style.bg, color: style.text }}
+		>
+			<span className="w-1.5 h-1.5 rounded-full" style={{ background: style.dot }} />
+			{status}
+		</span>
+	);
+}

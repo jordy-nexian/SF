@@ -30,7 +30,7 @@ export async function GET() {
 
 const inviteSchema = z.object({
 	email: z.string().email(),
-	role: z.enum(["admin", "viewer"]).optional().default("viewer"),
+	role: z.enum(["admin", "fund_coordinator", "viewer"]).optional().default("viewer"),
 });
 
 // POST invite team member

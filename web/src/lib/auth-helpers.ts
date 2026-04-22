@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 export type TenantSession = {
 	userId: string;
 	tenantId: string;
-	role: "owner" | "admin" | "viewer";
+	role: "owner" | "admin" | "fund_coordinator" | "viewer";
 };
 
 export async function requireTenantSession(): Promise<TenantSession | null> {

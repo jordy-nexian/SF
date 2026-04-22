@@ -14,7 +14,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 		redirect(`/signin?callbackUrl=/admin`);
 	}
 	const userEmail = session.user?.email ?? "user";
+	const userRole = session.user?.role ?? "viewer";
 	const showBilling = isPlatformAdminEmail(userEmail);
+	// Fund Coordinators cannot see the Admin hub (Templates / Assignments / Settings / Themes)
+	const canSeeAdminHub = userRole !== "fund_coordinator" && userRole !== "viewer";
 
 	return (
 		<div className="min-h-screen" style={{ background: '#0f172a' }}>
@@ -33,13 +36,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							Stateless Forms
 						</Link>
 						<nav className="flex items-center gap-1 text-sm">
-							<NavLink href="/admin">Templates</NavLink>
-							<NavLink href="/admin/wizard/new">New Wizard</NavLink>
+							<NavLink href="/admin">Home</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
-							<NavLink href="/admin/customers">Companies</NavLink>
-							<NavLink href="/admin/manage">Admin</NavLink>
+							{canSeeAdminHub && <NavLink href="/admin/manage">Admin</NavLink>}
 							<NavLink href="/admin/team">Team</NavLink>
-							<NavLink href="/admin/themes">Themes</NavLink>
 							{showBilling && <NavLink href="/admin/billing">Billing</NavLink>}
 						</nav>
 					</div>

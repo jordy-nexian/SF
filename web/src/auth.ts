@@ -34,7 +34,7 @@ async function getBypassUser(): Promise<User | null> {
 		id: user.id,
 		email: user.email,
 		tenantId: user.tenantId,
-		role: user.role as "owner" | "admin" | "viewer",
+		role: user.role as "owner" | "admin" | "fund_coordinator" | "viewer",
 	};
 }
 
@@ -91,7 +91,7 @@ export const authOptions: NextAuthOptions = {
 					id: user.id,
 					email: user.email,
 					tenantId: user.tenantId,
-					role: user.role as "owner" | "admin" | "viewer",
+					role: user.role as "owner" | "admin" | "fund_coordinator" | "viewer",
 				};
 			},
 		}),
@@ -114,7 +114,7 @@ export const authOptions: NextAuthOptions = {
 						token.id = token.originalAdminId as string;
 						token.email = token.originalAdminEmail as string;
 						token.tenantId = token.originalAdminTenantId as string;
-						token.role = token.originalAdminRole as "owner" | "admin" | "viewer";
+						token.role = token.originalAdminRole as "owner" | "admin" | "fund_coordinator" | "viewer";
 						// Clear impersonation fields
 						delete (token as any).impersonatingFrom;
 						delete (token as any).isImpersonating;
@@ -151,7 +151,7 @@ export const authOptions: NextAuthOptions = {
 					// Set impersonated user from verified token
 					token.id = verified.targetUserId;
 					token.tenantId = verified.targetTenantId;
-					token.role = verified.targetRole as "owner" | "admin" | "viewer";
+					token.role = verified.targetRole as "owner" | "admin" | "fund_coordinator" | "viewer";
 					token.email = verified.targetEmail;
 					(token as any).impersonatingFrom = verified.impersonatingFrom;
 					(token as any).isImpersonating = true;
@@ -162,7 +162,7 @@ export const authOptions: NextAuthOptions = {
 						token.id = token.originalAdminId as string;
 						token.email = token.originalAdminEmail as string;
 						token.tenantId = token.originalAdminTenantId as string;
-						token.role = token.originalAdminRole as "owner" | "admin" | "viewer";
+						token.role = token.originalAdminRole as "owner" | "admin" | "fund_coordinator" | "viewer";
 						delete (token as any).impersonatingFrom;
 						delete (token as any).isImpersonating;
 						delete (token as any).impersonationStartedAt;
@@ -181,7 +181,7 @@ export const authOptions: NextAuthOptions = {
 				id: token.id as string,
 				email: (token.email as string) ?? "",
 				tenantId: token.tenantId as string,
-				role: token.role as "owner" | "admin" | "viewer",
+				role: token.role as "owner" | "admin" | "fund_coordinator" | "viewer",
 			};
 
 			// Add impersonation info to session

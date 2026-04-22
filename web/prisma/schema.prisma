@@ -37,6 +37,7 @@ enum SubscriptionStatus {
 enum Role {
   owner
   admin
+  fund_coordinator
   viewer
 }
 
