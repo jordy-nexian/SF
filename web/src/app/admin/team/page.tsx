@@ -104,7 +104,7 @@ export default function TeamPage() {
 			const data = await res.json().catch(() => ({}));
 			if (res.ok) {
 				setSuccess(data.message || `Password reset link sent to ${email}`);
-				setTimeout(() => setSuccess(null), 4000);
+				setTimeout(() => setSuccess(""), 4000);
 			} else {
 				setError(data.error || "Failed to send password reset link");
 			}
