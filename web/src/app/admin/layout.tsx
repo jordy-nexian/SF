@@ -39,7 +39,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							<NavLink href="/admin">Home</NavLink>
 							<NavLink href="/admin/usage">Usage</NavLink>
 							{canSeeAdminHub && <NavLink href="/admin/manage">Admin</NavLink>}
-							<NavLink href="/admin/team">Team</NavLink>
 							{showBilling && <NavLink href="/admin/billing">Billing</NavLink>}
 						</nav>
 					</div>

@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 const authBypassEnabled = process.env.NEXT_PUBLIC_AUTH_BYPASS === "true";
+const azureSsoEnabled = process.env.NEXT_PUBLIC_SSO_AZURE === "true";
 
 function SignInForm() {
 	const router = useRouter();
@@ -232,9 +233,9 @@ function SignInForm() {
 							)}
 						</button>
 						{error && (
-							<div 
+							<div
 								className="p-3 rounded-lg text-sm text-center"
-								style={{ 
+								style={{
 									background: 'rgba(239, 68, 68, 0.1)',
 									border: '1px solid rgba(239, 68, 68, 0.2)',
 									color: '#f87171',
@@ -244,6 +245,35 @@ function SignInForm() {
 							</div>
 						)}
 					</form>
+
+					{azureSsoEnabled && (
+						<>
+							<div className="my-6 flex items-center gap-3">
+								<div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+								<span className="text-xs uppercase tracking-wider" style={{ color: '#64748b' }}>or</span>
+								<div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+							</div>
+							<button
+								type="button"
+								onClick={() => signIn('azure-ad', { callbackUrl })}
+								disabled={loading}
+								className="w-full py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98]"
+								style={{
+									background: 'rgba(255,255,255,0.05)',
+									border: '1px solid rgba(255,255,255,0.1)',
+									color: '#e2e8f0',
+								}}
+							>
+								<svg className="w-5 h-5" viewBox="0 0 23 23" fill="none">
+									<path fill="#f25022" d="M1 1h10v10H1z" />
+									<path fill="#7fba00" d="M12 1h10v10H12z" />
+									<path fill="#00a4ef" d="M1 12h10v10H1z" />
+									<path fill="#ffb900" d="M12 12h10v10H12z" />
+								</svg>
+								Sign in with Microsoft
+							</button>
+						</>
+					)}
 				</div>
 
 				{/* Footer */}

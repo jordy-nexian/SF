@@ -1,10 +1,28 @@
 import type { NextAuthOptions } from "next-auth";
-import type { User } from "next-auth";
+import type { User, Profile } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import AzureAD from "next-auth/providers/azure-ad";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { verifyImpersonationToken } from "@/lib/impersonation-token";
+
+// Microsoft Entra ID (formerly Azure AD) SSO.
+// Activates when AZURE_AD_CLIENT_ID + AZURE_AD_CLIENT_SECRET are set.
+// Optional AZURE_AD_TENANT_ID defaults to 'common' (multi-tenant / personal accounts).
+// We never auto-provision accounts — admins invite users first, then users can SSO in.
+const ssoProviders = (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET)
+	? [AzureAD({
+		clientId: process.env.AZURE_AD_CLIENT_ID,
+		clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+		tenantId: process.env.AZURE_AD_TENANT_ID || 'common',
+		allowDangerousEmailAccountLinking: true,
+	})]
+	: [];
+
+export const enabledSsoProviders = {
+	azure: !!(process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET),
+};
 
 // Validate NEXTAUTH_SECRET at module load time (fail-fast security check)
 if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
@@ -95,8 +113,35 @@ export const authOptions: NextAuthOptions = {
 				};
 			},
 		}),
+		...ssoProviders,
 	],
 	callbacks: {
+		async signIn({ user, account, profile }) {
+			// For credentials, the authorize() callback already validated — just let it through
+			if (!account || account.provider === 'credentials') return true;
+
+			// For SSO providers: only allow sign-in if a User with the same email already exists.
+			// We don't auto-provision accounts — admins must invite users first.
+			const providerEmail = (user.email || (profile as Profile | undefined)?.email || '').toLowerCase().trim();
+			if (!providerEmail) return '/signin?error=OAuthNoEmail';
+
+			const existing = await prisma.user.findUnique({
+				where: { email: providerEmail },
+				select: { id: true, email: true, tenantId: true, role: true },
+			});
+
+			if (!existing) {
+				console.warn(`[SSO] Rejected sign-in for ${providerEmail} — no invited user record`);
+				return '/signin?error=AccessDenied';
+			}
+
+			// Hand our DB user's id/tenant/role back to jwt() so the session is correct
+			user.id = existing.id;
+			user.email = existing.email;
+			(user as User).tenantId = existing.tenantId;
+			(user as User).role = existing.role as User['role'];
+			return true;
+		},
 		async jwt({ token, user, trigger, session: sessionData }) {
 			if (user) {
 				token.id = user.id;

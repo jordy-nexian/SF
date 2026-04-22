@@ -99,6 +99,28 @@ export default async function AdminManagePage() {
 					</Link>
 				)}
 
+				{/* Team Card */}
+				<Link
+					href="/admin/team"
+					className="rounded-xl p-6 transition-all hover:scale-[1.02] active:scale-[0.98]"
+					style={cardStyle}
+				>
+					<div className="flex items-center gap-3 mb-3">
+						<div
+							className="w-10 h-10 rounded-full flex items-center justify-center"
+							style={{ background: 'rgba(236, 72, 153, 0.2)' }}
+						>
+							<svg className="w-5 h-5" style={{ color: '#f472b6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+							</svg>
+						</div>
+						<h2 className="text-lg font-semibold text-white">Team</h2>
+					</div>
+					<p className="text-sm" style={{ color: '#94a3b8' }}>
+						Invite team members, assign roles, and reset passwords.
+					</p>
+				</Link>
+
 				{/* Themes Card */}
 				<Link
 					href="/admin/themes"

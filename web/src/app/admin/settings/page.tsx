@@ -315,6 +315,39 @@ export default function TenantSettingsPage() {
 					{success && <p className="text-sm" style={{ color: '#10b981' }}>{success}</p>}
 				</div>
 			</form>
+
+			{/* SSO Setup */}
+			<div className="rounded-xl p-6 mt-6" style={cardStyle}>
+				<h2 className="mb-2 font-semibold text-white">Single Sign-On (Microsoft Entra ID)</h2>
+				<p className="text-sm mb-4" style={{ color: '#94a3b8' }}>
+					Let your team sign in with their work Microsoft account. Only users that have
+					already been invited to the team can sign in via SSO — we never auto-create accounts.
+				</p>
+				<div className="space-y-3">
+					<div>
+						<p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#64748b' }}>
+							Redirect URI (register this in Entra ID)
+						</p>
+						<code className="block rounded-lg px-3 py-2 text-xs font-mono break-all" style={{ background: '#0f172a', border: '1px solid #334155', color: '#cbd5e1' }}>
+							{typeof window !== 'undefined' ? `${window.location.origin}/api/auth/callback/azure-ad` : '/api/auth/callback/azure-ad'}
+						</code>
+					</div>
+					<div>
+						<p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#64748b' }}>
+							Required environment variables
+						</p>
+						<div className="rounded-lg px-3 py-2 text-xs font-mono space-y-1" style={{ background: '#0f172a', border: '1px solid #334155', color: '#cbd5e1' }}>
+							<div>AZURE_AD_CLIENT_ID=&lt;your app registration client id&gt;</div>
+							<div>AZURE_AD_CLIENT_SECRET=&lt;client secret value&gt;</div>
+							<div>AZURE_AD_TENANT_ID=&lt;your directory tenant id&gt;   <span style={{ color: '#64748b' }}># or &apos;common&apos; for multi-tenant</span></div>
+							<div>NEXT_PUBLIC_SSO_AZURE=true   <span style={{ color: '#64748b' }}># shows the button on /signin</span></div>
+						</div>
+					</div>
+					<p className="text-xs" style={{ color: '#64748b' }}>
+						After setting these on your deployment, redeploy and the &quot;Sign in with Microsoft&quot; button will appear on the sign-in page.
+					</p>
+				</div>
+			</div>
 		</div>
 	);
 }

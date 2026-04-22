@@ -36,7 +36,7 @@ type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed';
 export default function AdminHomePage() {
     const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
     const [aggregates, setAggregates] = useState<AssignmentAggregate[]>([]);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [coordinators, setCoordinators] = useState<Coordinator[]>([]);
     const [stats, setStats] = useState<StatsSummary>({ total: 0, pending: 0, inProgress: 0, completed: 0 });
     const [statsLoading, setStatsLoading] = useState(true);
@@ -82,7 +82,7 @@ export default function AdminHomePage() {
                 const res = await fetch("/api/auth/session");
                 if (res.ok) {
                     const s = await res.json();
-                    setCurrentUserId(s?.user?.id ?? null);
+                    setCurrentUserEmail((s?.user?.email ?? '').toLowerCase() || null);
                 }
             } catch { /* silent */ }
         }
@@ -107,32 +107,44 @@ export default function AdminHomePage() {
         fetchStats();
     }, []);
 
+    // Resolve the email we're filtering by — "me" means the logged-in user's email,
+    // otherwise look up the coordinator's email from the selected user id.
+    const resolvedFilterEmail = useMemo(() => {
+        if (assignedByFilter === 'all') return null;
+        if (assignedByFilter === 'me') return currentUserEmail;
+        const coord = coordinators.find(c => c.id === assignedByFilter);
+        return coord?.email.toLowerCase() ?? null;
+    }, [assignedByFilter, currentUserEmail, coordinators]);
+
+    function matchesCoordinator(aggregateEmail: string | null): boolean {
+        if (!resolvedFilterEmail) return true;
+        return (aggregateEmail || '').toLowerCase() === resolvedFilterEmail;
+    }
+
     // Derive filtered companies client-side
     const companies = useMemo(() => {
         // No filters active → show the full company list
         const noFilters = statusFilter === 'all' && assignedByFilter === 'all';
         if (noFilters) return allCompanies;
 
-        const resolvedUserId = assignedByFilter === 'me' ? currentUserId : (assignedByFilter !== 'all' ? assignedByFilter : null);
-
         // Build the set of company keys that have assignments matching the filters
         const matchingKeys = new Set<string>();
         for (const a of aggregates) {
             if (statusFilter !== 'all' && a.status !== statusFilter) continue;
-            if (resolvedUserId && a.assignedByUserId !== resolvedUserId) continue;
+            if (!matchesCoordinator(a.assignedByEmail)) continue;
             const key = a.orgNumber ? `org-${a.orgNumber}` : `company-${(a.companyName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'company'}`;
             matchingKeys.add(key);
         }
 
         return allCompanies.filter(c => matchingKeys.has(c.id));
-    }, [allCompanies, aggregates, statusFilter, assignedByFilter, currentUserId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allCompanies, aggregates, statusFilter, assignedByFilter, resolvedFilterEmail]);
 
-    // Build per-company breakdown (only over the matching assignments for active filters)
+    // Build per-company breakdown (only over the matching assignments for the active coordinator filter)
     const breakdownByCompany = useMemo(() => {
         const map = new Map<string, { pending: number; inProgress: number; completed: number }>();
-        const resolvedUserId = assignedByFilter === 'me' ? currentUserId : (assignedByFilter !== 'all' ? assignedByFilter : null);
         for (const a of aggregates) {
-            if (resolvedUserId && a.assignedByUserId !== resolvedUserId) continue;
+            if (!matchesCoordinator(a.assignedByEmail)) continue;
             const key = a.orgNumber ? `org-${a.orgNumber}` : `company-${(a.companyName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'company'}`;
             let b = map.get(key);
             if (!b) { b = { pending: 0, inProgress: 0, completed: 0 }; map.set(key, b); }
@@ -141,7 +153,8 @@ export default function AdminHomePage() {
             else if (a.status === 'completed') b.completed++;
         }
         return map;
-    }, [aggregates, assignedByFilter, currentUserId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [aggregates, resolvedFilterEmail]);
 
     const completionPct = useMemo(() => {
         if (stats.total === 0) return 0;

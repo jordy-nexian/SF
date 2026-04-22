@@ -97,6 +97,22 @@ export default function TeamPage() {
 		}
 	}
 
+	async function handleResetPassword(id: string, email: string) {
+		if (!confirm(`Send a password reset link to ${email}?`)) return;
+		try {
+			const res = await fetch(`/api/admin/team/${id}/reset-password`, { method: "POST" });
+			const data = await res.json().catch(() => ({}));
+			if (res.ok) {
+				setSuccess(data.message || `Password reset link sent to ${email}`);
+				setTimeout(() => setSuccess(null), 4000);
+			} else {
+				setError(data.error || "Failed to send password reset link");
+			}
+		} catch {
+			setError("Failed to send password reset link");
+		}
+	}
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-64" style={{ color: '#94a3b8' }}>
@@ -248,15 +264,24 @@ export default function TeamPage() {
 									{new Date(member.createdAt).toLocaleDateString()}
 								</td>
 								<td className="px-4 py-3 text-right">
-									{member.role !== 'owner' && (
+									<div className="flex items-center justify-end gap-3">
 										<button
-											onClick={() => handleRemove(member.id)}
+											onClick={() => handleResetPassword(member.id, member.email)}
 											className="text-sm transition-colors"
-											style={{ color: '#f87171' }}
+											style={{ color: '#818cf8' }}
 										>
-											Remove
+											Reset password
 										</button>
-									)}
+										{member.role !== 'owner' && (
+											<button
+												onClick={() => handleRemove(member.id)}
+												className="text-sm transition-colors"
+												style={{ color: '#f87171' }}
+											>
+												Remove
+											</button>
+										)}
+									</div>
 								</td>
 							</tr>
 						))}
