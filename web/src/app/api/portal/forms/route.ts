@@ -38,6 +38,28 @@ function mapWebhookStatus(status: string): 'pending' | 'in_progress' | 'complete
     return 'pending'; // "not started" → pending
 }
 
+// Extract a scalar from values like 123, "123", { value: 123 } (QB API shape)
+function pickScalar(v: unknown): string | null {
+    if (v == null) return null;
+    if (typeof v === 'string' || typeof v === 'number') return String(v);
+    if (typeof v === 'object' && 'value' in (v as Record<string, unknown>)) {
+        const inner = (v as { value: unknown }).value;
+        if (inner != null && (typeof inner === 'string' || typeof inner === 'number')) {
+            return String(inner);
+        }
+    }
+    return null;
+}
+
+// Check several possible key names on the webhook object — n8n/QB may use any of these
+function pickKey(obj: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const k of keys) {
+        const val = pickScalar(obj[k]);
+        if (val != null) return val;
+    }
+    return null;
+}
+
 export async function GET() {
     try {
         const cookieStore = await cookies();
@@ -183,6 +205,7 @@ export async function GET() {
                             // fall back to plain URL if token generation fails
                         }
                     }
+                    const wfObj = wf as unknown as Record<string, unknown>;
                     return {
                         assignmentId: `webhook-${index}`,
                         formId: wf.publicId,
@@ -193,8 +216,8 @@ export async function GET() {
                         completedAt: wf.completedAt || null,
                         createdAt: new Date().toISOString(),
                         formUrl,
-                        wipNumber: wf.wipNumber != null ? String(wf.wipNumber) : null,
-                        recordId: wf.recordId != null ? String(wf.recordId) : null,
+                        wipNumber: pickKey(wfObj, 'wipNumber', 'WIPNumber', 'wip_number'),
+                        recordId: pickKey(wfObj, 'recordId', 'FORM_RECORD_ID', 'formRecordId', 'form_record_id'),
                     };
                 }));
 
