@@ -218,6 +218,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             }
         }
 
+        // Before linking this wizard run to the assignment, detach any other wizard run
+        // that still holds this assignmentId (covers retry / re-assignment flows where
+        // the same FormAssignment was previously owned by a different WizardRun).
+        await prisma.wizardRun.updateMany({
+            where: {
+                tenantId: session.tenantId,
+                assignmentId: assignment.id,
+                NOT: { id },
+            },
+            data: { assignmentId: null },
+        });
+
         // Update wizard run to completed
         await prisma.wizardRun.update({
             where: { id },
@@ -288,6 +300,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
                 // Also populate the QB forms table with this assignment
                 try {
+                    // Look up the logged-in fund coordinator / admin performing the assignment
+                    const assigningUser = await prisma.user.findUnique({
+                        where: { id: session.userId },
+                        select: { email: true, role: true },
+                    });
+
                     const formsTableBody = JSON.stringify({
                         customerEmail: email,
                         customerName: endCustomer.name || endCustomerName?.trim() || null,
@@ -302,6 +320,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                         dueDate: dueDate || null,
                         tenantId: session.tenantId,
                         assignedAt: new Date().toISOString(),
+                        assignedBy: {
+                            userId: session.userId,
+                            email: assigningUser?.email ?? null,
+                            role: assigningUser?.role ?? session.role,
+                        },
                         formValues: tokenValues,
                     });
                     const formsHmac = createHmacSignature(formsTableBody, tenant.sharedSecret);
