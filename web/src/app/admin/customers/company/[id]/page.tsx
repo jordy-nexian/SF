@@ -258,46 +258,11 @@ export default function CompanyDetailPage() {
                         )}
                     </section>
 
-                    {/* Company Records from webhook */}
-                    {records.length > 0 && (
-                        <section className="space-y-3">
-                            <h2 className="text-lg font-semibold text-white">Company Records</h2>
-                            <div
-                                className="overflow-hidden rounded-xl"
-                                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
-                            >
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full text-left text-sm">
-                                        <thead style={{ background: "rgba(255,255,255,0.03)" }}>
-                                            <tr>
-                                                {fieldKeys.map((key) => (
-                                                    <th key={key} className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>
-                                                        {key}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {records.map((record, i) => (
-                                                <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                                                    {fieldKeys.map((key) => (
-                                                        <td key={key} className="px-5 py-4 whitespace-nowrap" style={{ color: "#cbd5e1" }}>
-                                                            {formatValue(record[key])}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </section>
-                    )}
                 </>
             )}
 
             {/* Form viewer slide-over */}
-            {viewingForm?.PublicId && (
+            {(viewingForm?.publicId || viewingForm?.PublicId) && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     {/* Backdrop */}
                     <div
