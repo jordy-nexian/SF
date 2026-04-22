@@ -25,6 +25,7 @@ interface WebhookFormData {
     status: string;
     publicId: string;
     wipNumber?: string | number | null;
+    recordId?: string | number | null;
     dueDate?: string | null;
     completedAt?: string | null;
 }
@@ -92,6 +93,7 @@ export async function GET() {
                         thankYouMessage: true,
                     },
                 },
+                wizardRun: { select: { wipNumber: true } },
             },
             orderBy: [
                 { status: 'asc' }, // pending first, then in_progress, then completed
@@ -109,6 +111,7 @@ export async function GET() {
             dueDate: a.dueDate?.toISOString() || null,
             completedAt: a.completedAt?.toISOString() || null,
             createdAt: a.createdAt.toISOString(),
+            wipNumber: a.wizardRun?.wipNumber ?? null,
         }));
 
         // If tenant has webhook configured, fetch from external source and merge
@@ -190,6 +193,8 @@ export async function GET() {
                         completedAt: wf.completedAt || null,
                         createdAt: new Date().toISOString(),
                         formUrl,
+                        wipNumber: wf.wipNumber != null ? String(wf.wipNumber) : null,
+                        recordId: wf.recordId != null ? String(wf.recordId) : null,
                     };
                 }));
 

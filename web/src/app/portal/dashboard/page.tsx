@@ -17,6 +17,8 @@ interface FormAssignment {
     completedAt: string | null;
     createdAt: string;
     formUrl?: string;
+    wipNumber?: string | null;
+    recordId?: string | null;
 }
 
 type SortKey = 'name' | 'status' | 'dueDate' | 'createdAt';
@@ -117,12 +119,22 @@ export default function PortalDashboard() {
     }, [forms, sortKey, sortDir]);
 
     async function handleOpen(form: FormAssignment) {
-        if (form.status === 'pending') {
-            try {
-                await fetch(`/api/portal/forms/${form.formId}/start`, { method: 'POST' });
+        // Always notify "start" (also fires the QB "form started" webhook with wipNumber)
+        try {
+            await fetch(`/api/portal/forms/${form.formId}/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wipNumber: form.wipNumber ?? null,
+                    recordId: form.recordId ?? null,
+                    publicId: form.publicId,
+                    formName: form.name,
+                }),
+            });
+            if (form.status === 'pending') {
                 handleFormOpened(form.formId);
-            } catch { /* best-effort */ }
-        }
+            }
+        } catch { /* best-effort */ }
         const url = form.formUrl || `/f/${form.publicId}`;
         router.push(url);
     }
