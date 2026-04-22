@@ -8,6 +8,16 @@ interface CompanyRow {
     companyName: string;
     orgNumber: string | null;
     sourceCount: number;
+    pending?: number;
+    inProgress?: number;
+    completed?: number;
+    assignedBy?: string[];
+}
+
+interface Coordinator {
+    id: string;
+    email: string;
+    role: string;
 }
 
 interface StatsSummary {
@@ -17,24 +27,36 @@ interface StatsSummary {
     completed: number;
 }
 
+type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed';
+
 export default function AdminHomePage() {
     const [companies, setCompanies] = useState<CompanyRow[]>([]);
+    const [coordinators, setCoordinators] = useState<Coordinator[]>([]);
     const [stats, setStats] = useState<StatsSummary>({ total: 0, pending: 0, inProgress: 0, completed: 0 });
     const [statsLoading, setStatsLoading] = useState(true);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Filters — default to "my assignments", any status
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [assignedByFilter, setAssignedByFilter] = useState<string>('me');
+
     useEffect(() => {
         async function fetchCustomers() {
+            setLoading(true);
             try {
-                const res = await fetch("/api/admin/customers/webhook");
+                const params = new URLSearchParams();
+                if (statusFilter !== 'all') params.set('status', statusFilter);
+                if (assignedByFilter !== 'all') params.set('assignedBy', assignedByFilter);
+                const res = await fetch(`/api/admin/customers/filtered?${params.toString()}`);
                 if (!res.ok) {
                     const body = await res.json().catch(() => ({}));
                     throw new Error(body.error || `Request failed (${res.status})`);
                 }
                 const data = await res.json();
-                const rows: CompanyRow[] = Array.isArray(data.customers) ? data.customers : [];
-                setCompanies(rows);
+                setCompanies(Array.isArray(data.customers) ? data.customers : []);
+                setCoordinators(Array.isArray(data.coordinators) ? data.coordinators : []);
+                setError(null);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load companies");
             } finally {
@@ -58,7 +80,7 @@ export default function AdminHomePage() {
 
         fetchCustomers();
         fetchStats();
-    }, []);
+    }, [statusFilter, assignedByFilter]);
 
     const completionPct = useMemo(() => {
         if (stats.total === 0) return 0;
@@ -120,6 +142,48 @@ export default function AdminHomePage() {
                 </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <label className="text-xs uppercase tracking-wider" style={{ color: "#64748b" }}>Status</label>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                        className="rounded-lg px-3 py-1.5 text-sm"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0" }}
+                    >
+                        <option value="all">All</option>
+                        <option value="pending">Not Started</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-xs uppercase tracking-wider" style={{ color: "#64748b" }}>Fund Coordinator</label>
+                    <select
+                        value={assignedByFilter}
+                        onChange={(e) => setAssignedByFilter(e.target.value)}
+                        className="rounded-lg px-3 py-1.5 text-sm"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0" }}
+                    >
+                        <option value="me">Just me</option>
+                        <option value="all">Everyone</option>
+                        {coordinators.map(c => (
+                            <option key={c.id} value={c.id}>{c.email}</option>
+                        ))}
+                    </select>
+                </div>
+                {(statusFilter !== 'all' || assignedByFilter !== 'me') && (
+                    <button
+                        onClick={() => { setStatusFilter('all'); setAssignedByFilter('me'); }}
+                        className="text-xs transition-colors"
+                        style={{ color: "#818cf8" }}
+                    >
+                        Reset to default
+                    </button>
+                )}
+            </div>
+
             {/* Companies table */}
             <div
                 className="overflow-hidden rounded-xl"
@@ -160,7 +224,11 @@ export default function AdminHomePage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
-                        <p style={{ color: "#64748b" }}>No companies found.</p>
+                        <p style={{ color: "#64748b" }}>
+                            {assignedByFilter === 'me'
+                                ? "You haven't sent any forms yet."
+                                : "No companies match the current filters."}
+                        </p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -169,7 +237,8 @@ export default function AdminHomePage() {
                                 <tr>
                                     <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Company Name</th>
                                     <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>ORG Number</th>
-                                    <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Records Grouped</th>
+                                    <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Forms</th>
+                                    <th className="px-5 py-3 font-medium whitespace-nowrap" style={{ color: "#94a3b8" }}>Breakdown</th>
                                     <th className="px-5 py-3" />
                                 </tr>
                             </thead>
@@ -193,6 +262,25 @@ export default function AdminHomePage() {
                                         </td>
                                         <td className="px-5 py-4" style={{ color: "#cbd5e1" }}>
                                             {company.sourceCount}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-2 text-xs">
+                                                {(company.pending ?? 0) > 0 && (
+                                                    <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(148,163,184,0.15)", color: "#94a3b8" }}>
+                                                        {company.pending} pending
+                                                    </span>
+                                                )}
+                                                {(company.inProgress ?? 0) > 0 && (
+                                                    <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                                                        {company.inProgress} in progress
+                                                    </span>
+                                                )}
+                                                {(company.completed ?? 0) > 0 && (
+                                                    <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80" }}>
+                                                        {company.completed} done
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-5 py-4 text-right">
                                             <Link

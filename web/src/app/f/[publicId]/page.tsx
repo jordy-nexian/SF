@@ -175,13 +175,22 @@ function PublicFormContent() {
 				setThankYouMessage(data.thankYouMessage);
 				setTurnstileSiteKey(data.turnstileSiteKey || null);
 
-				// Authentication is always required — ctx token alone does NOT grant access
-				// Only a valid portal session OR a tenant access token can bypass the sign-in wall
+				// Authentication is always required — ctx token alone does NOT grant access.
+				// Valid auth: tenant access token, portal (end-user) session, OR admin NextAuth session.
 				const tenantToken = searchParams.get('tenantToken');
 				if (!tenantToken) {
 					try {
-						const sessionRes = await fetch('/api/portal/auth/session');
-						if (!sessionRes.ok) {
+						const [portalRes, adminRes] = await Promise.all([
+							fetch('/api/portal/auth/session').catch(() => null),
+							fetch('/api/auth/session').catch(() => null),
+						]);
+						const portalOk = !!portalRes && portalRes.ok;
+						let adminOk = false;
+						if (adminRes && adminRes.ok) {
+							const adminJson = await adminRes.json().catch(() => null);
+							adminOk = !!(adminJson && adminJson.user);
+						}
+						if (!portalOk && !adminOk) {
 							setRequiresAuth(true);
 							return; // Don't continue loading form
 						}

@@ -14,6 +14,16 @@ interface CompanyInfo {
 type FormRecord = Record<string, unknown>;
 
 interface FormAssignment {
+    formName?: string | null;
+    publicId?: string | null;
+    status?: string | null;
+    customerEmail?: string | null;
+    dueDate?: string | null;
+    completedAt?: string | null;
+    wipNumber?: string | null;
+    recordId?: string | null;
+    formUrl?: string | null;
+    // Legacy shape (kept for backwards compat with older webhook responses):
     FormName?: string;
     Email?: string;
     DateTime?: string;
@@ -21,10 +31,12 @@ interface FormAssignment {
     PublicId?: string;
 }
 
-function getStatusConfig(lookedAt: number | undefined) {
-    if (lookedAt === 2) return { label: "Completed", bg: "rgba(34,197,94,0.15)", color: "#4ade80", dot: "#22c55e" };
-    if (lookedAt === 1) return { label: "Viewed",    bg: "rgba(251,191,36,0.15)", color: "#fbbf24", dot: "#f59e0b" };
-    return                       { label: "Not Started", bg: "rgba(100,116,139,0.15)", color: "#94a3b8", dot: "#64748b" };
+function getStatusConfig(status: string | null | undefined, lookedAt?: number) {
+    const normalized = (status || '').toLowerCase().replace(/\s+/g, '_');
+    const effective = normalized || (lookedAt === 2 ? 'completed' : lookedAt === 1 ? 'in_progress' : 'pending');
+    if (effective === 'completed') return { label: "Completed", bg: "rgba(34,197,94,0.15)", color: "#4ade80", dot: "#22c55e" };
+    if (effective === 'in_progress' || effective === 'viewed') return { label: "In Progress", bg: "rgba(251,191,36,0.15)", color: "#fbbf24", dot: "#f59e0b" };
+    return { label: "Not Started", bg: "rgba(100,116,139,0.15)", color: "#94a3b8", dot: "#64748b" };
 }
 
 function formatDateTime(value: string | undefined): string {
@@ -189,17 +201,21 @@ export default function CompanyDetailPage() {
                                         </thead>
                                         <tbody>
                                             {assignments.map((a, i) => {
-                                                const status = getStatusConfig(a.LookedAt);
+                                                const formName = a.formName ?? a.FormName ?? "—";
+                                                const email = a.customerEmail ?? a.Email ?? "—";
+                                                const dateStr = a.dueDate ?? a.completedAt ?? a.DateTime;
+                                                const publicId = a.publicId ?? a.PublicId ?? null;
+                                                const status = getStatusConfig(a.status, a.LookedAt);
                                                 return (
                                                     <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                                                         <td className="px-5 py-4 whitespace-nowrap font-medium" style={{ color: "#e2e8f0" }}>
-                                                            {a.FormName ?? "—"}
+                                                            {formName}
                                                         </td>
                                                         <td className="px-5 py-4 whitespace-nowrap" style={{ color: "#94a3b8" }}>
-                                                            {a.Email ?? "—"}
+                                                            {email}
                                                         </td>
                                                         <td className="px-5 py-4 whitespace-nowrap" style={{ color: "#94a3b8" }}>
-                                                            {formatDateTime(a.DateTime)}
+                                                            {formatDateTime(dateStr)}
                                                         </td>
                                                         <td className="px-5 py-4 whitespace-nowrap">
                                                             <span
@@ -214,7 +230,7 @@ export default function CompanyDetailPage() {
                                                             </span>
                                                         </td>
                                                         <td className="px-5 py-4 whitespace-nowrap text-right">
-                                                            {a.PublicId ? (
+                                                            {publicId ? (
                                                                 <button
                                                                     onClick={() => setViewingForm(a)}
                                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -302,12 +318,12 @@ export default function CompanyDetailPage() {
                         >
                             <div className="min-w-0">
                                 <h3 className="text-base font-semibold text-white truncate">
-                                    {viewingForm.FormName ?? "Form"}
+                                    {viewingForm.formName ?? viewingForm.FormName ?? "Form"}
                                 </h3>
                                 <p className="text-xs mt-0.5 truncate" style={{ color: "#64748b" }}>
-                                    {viewingForm.Email ?? ""}
-                                    {viewingForm.Email && viewingForm.DateTime ? " · " : ""}
-                                    {formatDateTime(viewingForm.DateTime)}
+                                    {(viewingForm.customerEmail ?? viewingForm.Email) || ""}
+                                    {(viewingForm.customerEmail ?? viewingForm.Email) && (viewingForm.dueDate ?? viewingForm.DateTime) ? " · " : ""}
+                                    {formatDateTime(viewingForm.dueDate ?? viewingForm.DateTime)}
                                 </p>
                             </div>
 
@@ -323,13 +339,13 @@ export default function CompanyDetailPage() {
                             </button>
                         </div>
 
-                        {/* Form iframe */}
+                        {/* Form iframe — prefer formUrl (with ctx prefill token) so the admin sees the same experience the end user gets */}
                         <div className="relative flex-1 min-h-0">
                             <iframe
-                                src={`/f/${viewingForm.PublicId}`}
+                                src={viewingForm.formUrl || `/f/${viewingForm.publicId ?? viewingForm.PublicId}`}
                                 className="absolute inset-0 w-full h-full border-0"
                                 style={{ background: "#f8fafc" }}
-                                title={`Form: ${viewingForm.FormName ?? "Preview"}`}
+                                title={`Form: ${viewingForm.formName ?? viewingForm.FormName ?? "Preview"}`}
                             />
                         </div>
                     </div>

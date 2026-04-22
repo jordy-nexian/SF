@@ -8,9 +8,30 @@ import {
     extractSignatureHeaders,
     verifyHmacSignature,
 } from '@/lib/hmac';
+import { generatePrefillToken, buildPrefillUrl } from '@/lib/prefill-token';
 
 const WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/81077ef9-b372-4780-9f78-92884f3a6e83';
-const COMPANY_FORMS_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/c1d5487f-6273-45c7-a5f5-1f74d7d7c419';
+
+// Extract a scalar from values like 123, "123", { value: 123 } (QB API shape)
+function pickScalar(v: unknown): string | null {
+    if (v == null) return null;
+    if (typeof v === 'string' || typeof v === 'number') return String(v);
+    if (typeof v === 'object' && 'value' in (v as Record<string, unknown>)) {
+        const inner = (v as { value: unknown }).value;
+        if (inner != null && (typeof inner === 'string' || typeof inner === 'number')) {
+            return String(inner);
+        }
+    }
+    return null;
+}
+
+function pickKey(obj: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const k of keys) {
+        const val = pickScalar(obj[k]);
+        if (val != null) return val;
+    }
+    return null;
+}
 
 function slugify(value: string): string {
     return value
@@ -64,7 +85,7 @@ export async function GET(
 
         const tenant = await prisma.tenant.findUnique({
             where: { id: session.user.tenantId },
-            select: { sharedSecret: true },
+            select: { sharedSecret: true, customerWebhookUrl: true },
         });
 
         if (!tenant) {
@@ -135,53 +156,118 @@ export async function GET(
         const orgNumber =
             orgIdValue === undefined || orgIdValue === null ? null : String(orgIdValue).trim();
 
-        // Load forms for this company from the Mercia forms webhook.
-        // Use the SF record ID (stored as WIPNumber on the Quickbase record) for the lookup.
-        const sfRecordId =
-            first.WIPNumber !== undefined && first.WIPNumber !== null
-                ? String(first.WIPNumber)
-                : id.startsWith('org-') ? id.slice(4) : id;
-        let webhookForms: Record<string, unknown>[] = [];
+        // Look up an EndCustomer for this company so we can generate ctx prefill tokens
+        // matching the portal flow (ctx tokens require a customerEmail).
+        const endCustomer = await prisma.endCustomer.findFirst({
+            where: {
+                tenantId: session.user.tenantId,
+                name: companyName,
+            },
+            select: { email: true, name: true },
+            orderBy: { createdAt: 'desc' },
+        });
 
-        try {
-            const formsBody = JSON.stringify({ recordId: sfRecordId });
-            const formsHmac = createHmacSignature(formsBody, tenant.sharedSecret);
-            const formsResponse = await fetch(COMPANY_FORMS_WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...buildSignatureHeaders(formsHmac),
-                },
-                body: formsBody,
-                cache: 'no-store',
-            });
+        // Load forms using the tenant's customer webhook — same one the end-user portal calls.
+        // n8n filters by email/companyName and returns the forms list.
+        let webhookForms: Array<{
+            formName: string | null;
+            publicId: string | null;
+            status: string | null;
+            dueDate: string | null;
+            completedAt: string | null;
+            wipNumber: string | null;
+            recordId: string | null;
+            customerEmail: string | null;
+            formUrl: string | null;
+        }> = [];
 
-            if (formsResponse.ok) {
-                const formsRawBody = await formsResponse.text();
-                const formsSigHeaders = extractSignatureHeaders(formsResponse);
-                if (formsSigHeaders) {
-                    const formsVerification = verifyHmacSignature(formsRawBody, formsSigHeaders, tenant.sharedSecret);
-                    if (formsVerification.valid) {
-                        const formsData = JSON.parse(formsRawBody) as unknown;
-                        if (Array.isArray(formsData)) {
-                            webhookForms = formsData as Record<string, unknown>[];
-                        } else if (formsData && typeof formsData === 'object') {
-                            const obj = formsData as Record<string, unknown>;
-                            if (Array.isArray(obj.data)) webhookForms = obj.data as Record<string, unknown>[];
-                            else if (Array.isArray(obj.forms)) webhookForms = obj.forms as Record<string, unknown>[];
-                            else webhookForms = [obj];
+        if (tenant.customerWebhookUrl) {
+            try {
+                const formsBody = JSON.stringify({
+                    email: endCustomer?.email ?? null,
+                    companyName,
+                });
+                const formsHmac = createHmacSignature(formsBody, tenant.sharedSecret);
+                const formsResponse = await fetch(tenant.customerWebhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...buildSignatureHeaders(formsHmac),
+                    },
+                    body: formsBody,
+                    cache: 'no-store',
+                });
+
+                if (formsResponse.ok) {
+                    const formsRawBody = await formsResponse.text();
+                    const formsSigHeaders = extractSignatureHeaders(formsResponse);
+                    if (formsSigHeaders) {
+                        const formsVerification = verifyHmacSignature(formsRawBody, formsSigHeaders, tenant.sharedSecret);
+                        if (!formsVerification.valid) {
+                            console.warn('[Company Forms] Signature mismatch — proceeding anyway:', formsVerification.error);
                         }
-                    } else {
-                        console.error('[Company Forms] HMAC verification failed:', formsVerification.error);
                     }
+
+                    // Parse — handle plain array, wrapped { body: "json-string" }, or { data: [...] }
+                    let rawForms: Record<string, unknown>[] = [];
+                    const parsed = JSON.parse(formsRawBody) as unknown;
+                    if (Array.isArray(parsed) && parsed.length > 0 && typeof (parsed[0] as Record<string, unknown>)?.body === 'string') {
+                        rawForms = JSON.parse((parsed[0] as { body: string }).body);
+                    } else if (parsed && typeof parsed === 'object' && typeof (parsed as { body?: unknown }).body === 'string') {
+                        rawForms = JSON.parse((parsed as { body: string }).body);
+                    } else if (Array.isArray(parsed)) {
+                        rawForms = parsed as Record<string, unknown>[];
+                    } else if (parsed && typeof parsed === 'object') {
+                        const obj = parsed as Record<string, unknown>;
+                        if (Array.isArray(obj.data)) rawForms = obj.data as Record<string, unknown>[];
+                        else if (Array.isArray(obj.forms)) rawForms = obj.forms as Record<string, unknown>[];
+                        else rawForms = [obj];
+                    }
+
+                    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+                    webhookForms = await Promise.all(rawForms.map(async (wf) => {
+                        const publicId = pickKey(wf, 'publicId', 'PublicId', 'PublicID');
+                        const wipNumber = pickKey(wf, 'wipNumber', 'WIPNumber', 'wip_number');
+                        const recordId = pickKey(wf, 'recordId', 'FORM_RECORD_ID', 'formRecordId', 'form_record_id');
+                        const customerEmail = pickKey(wf, 'customerEmail', 'Email', 'email') ?? endCustomer?.email ?? null;
+
+                        let formUrl: string | null = null;
+                        if (publicId && wipNumber && customerEmail) {
+                            try {
+                                const token = await generatePrefillToken({
+                                    publicId,
+                                    tenantId: session.user.tenantId,
+                                    tokenValues: {},
+                                    customerEmail,
+                                    customerName: endCustomer?.name || companyName,
+                                    wipNumber,
+                                });
+                                formUrl = buildPrefillUrl(baseUrl, publicId, token);
+                            } catch {
+                                // fall through — table still shows the row without a link
+                            }
+                        }
+
+                        return {
+                            formName: pickKey(wf, 'formName', 'FormName'),
+                            publicId,
+                            status: pickKey(wf, 'status', 'Status'),
+                            dueDate: pickKey(wf, 'dueDate', 'DueDate'),
+                            completedAt: pickKey(wf, 'completedAt', 'CompletedAt'),
+                            wipNumber,
+                            recordId,
+                            customerEmail,
+                            formUrl,
+                        };
+                    }));
                 } else {
-                    console.error('[Company Forms] Missing HMAC signature headers on response');
+                    console.error('[Company Forms] Webhook returned', formsResponse.status);
                 }
-            } else {
-                console.error('[Company Forms] Webhook returned', formsResponse.status);
+            } catch (formsErr) {
+                console.error('[Company Forms] Error fetching forms:', formsErr);
             }
-        } catch (formsErr) {
-            console.error('[Company Forms] Error fetching forms:', formsErr);
+        } else {
+            console.warn('[Company Forms] No customerWebhookUrl configured on tenant — skipping forms load');
         }
 
         return NextResponse.json({
