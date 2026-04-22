@@ -8,10 +8,14 @@ interface CompanyRow {
     companyName: string;
     orgNumber: string | null;
     sourceCount: number;
-    pending?: number;
-    inProgress?: number;
-    completed?: number;
-    assignedBy?: string[];
+}
+
+interface AssignmentAggregate {
+    companyName: string;
+    orgNumber: string | null;
+    status: 'pending' | 'in_progress' | 'completed';
+    assignedByUserId: string | null;
+    assignedByEmail: string | null;
 }
 
 interface Coordinator {
@@ -30,7 +34,9 @@ interface StatsSummary {
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed';
 
 export default function AdminHomePage() {
-    const [companies, setCompanies] = useState<CompanyRow[]>([]);
+    const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+    const [aggregates, setAggregates] = useState<AssignmentAggregate[]>([]);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [coordinators, setCoordinators] = useState<Coordinator[]>([]);
     const [stats, setStats] = useState<StatsSummary>({ total: 0, pending: 0, inProgress: 0, completed: 0 });
     const [statsLoading, setStatsLoading] = useState(true);
@@ -43,25 +49,42 @@ export default function AdminHomePage() {
 
     useEffect(() => {
         async function fetchCustomers() {
-            setLoading(true);
             try {
-                const params = new URLSearchParams();
-                if (statusFilter !== 'all') params.set('status', statusFilter);
-                if (assignedByFilter !== 'all') params.set('assignedBy', assignedByFilter);
-                const res = await fetch(`/api/admin/customers/filtered?${params.toString()}`);
+                const res = await fetch("/api/admin/customers/webhook");
                 if (!res.ok) {
                     const body = await res.json().catch(() => ({}));
                     throw new Error(body.error || `Request failed (${res.status})`);
                 }
                 const data = await res.json();
-                setCompanies(Array.isArray(data.customers) ? data.customers : []);
-                setCoordinators(Array.isArray(data.coordinators) ? data.coordinators : []);
-                setError(null);
+                setAllCompanies(Array.isArray(data.customers) ? data.customers : []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load companies");
             } finally {
                 setLoading(false);
             }
+        }
+
+        async function fetchAggregates() {
+            try {
+                const res = await fetch("/api/admin/customers/filtered");
+                if (res.ok) {
+                    const data = await res.json();
+                    setAggregates(Array.isArray(data.aggregates) ? data.aggregates : []);
+                    setCoordinators(Array.isArray(data.coordinators) ? data.coordinators : []);
+                }
+            } catch {
+                // silent — filters just won't narrow the list
+            }
+        }
+
+        async function fetchSession() {
+            try {
+                const res = await fetch("/api/auth/session");
+                if (res.ok) {
+                    const s = await res.json();
+                    setCurrentUserId(s?.user?.id ?? null);
+                }
+            } catch { /* silent */ }
         }
 
         async function fetchStats() {
@@ -79,8 +102,46 @@ export default function AdminHomePage() {
         }
 
         fetchCustomers();
+        fetchAggregates();
+        fetchSession();
         fetchStats();
-    }, [statusFilter, assignedByFilter]);
+    }, []);
+
+    // Derive filtered companies client-side
+    const companies = useMemo(() => {
+        // No filters active → show the full company list
+        const noFilters = statusFilter === 'all' && assignedByFilter === 'all';
+        if (noFilters) return allCompanies;
+
+        const resolvedUserId = assignedByFilter === 'me' ? currentUserId : (assignedByFilter !== 'all' ? assignedByFilter : null);
+
+        // Build the set of company keys that have assignments matching the filters
+        const matchingKeys = new Set<string>();
+        for (const a of aggregates) {
+            if (statusFilter !== 'all' && a.status !== statusFilter) continue;
+            if (resolvedUserId && a.assignedByUserId !== resolvedUserId) continue;
+            const key = a.orgNumber ? `org-${a.orgNumber}` : `company-${(a.companyName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'company'}`;
+            matchingKeys.add(key);
+        }
+
+        return allCompanies.filter(c => matchingKeys.has(c.id));
+    }, [allCompanies, aggregates, statusFilter, assignedByFilter, currentUserId]);
+
+    // Build per-company breakdown (only over the matching assignments for active filters)
+    const breakdownByCompany = useMemo(() => {
+        const map = new Map<string, { pending: number; inProgress: number; completed: number }>();
+        const resolvedUserId = assignedByFilter === 'me' ? currentUserId : (assignedByFilter !== 'all' ? assignedByFilter : null);
+        for (const a of aggregates) {
+            if (resolvedUserId && a.assignedByUserId !== resolvedUserId) continue;
+            const key = a.orgNumber ? `org-${a.orgNumber}` : `company-${(a.companyName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'company'}`;
+            let b = map.get(key);
+            if (!b) { b = { pending: 0, inProgress: 0, completed: 0 }; map.set(key, b); }
+            if (a.status === 'pending') b.pending++;
+            else if (a.status === 'in_progress') b.inProgress++;
+            else if (a.status === 'completed') b.completed++;
+        }
+        return map;
+    }, [aggregates, assignedByFilter, currentUserId]);
 
     const completionPct = useMemo(() => {
         if (stats.total === 0) return 0;
@@ -243,7 +304,9 @@ export default function AdminHomePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {companies.map((company) => (
+                                {companies.map((company) => {
+                                    const b = breakdownByCompany.get(company.id) || { pending: 0, inProgress: 0, completed: 0 };
+                                    return (
                                     <tr
                                         key={company.id}
                                         className="group cursor-pointer hover:bg-white/[0.03] transition-colors"
@@ -265,19 +328,19 @@ export default function AdminHomePage() {
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-2 text-xs">
-                                                {(company.pending ?? 0) > 0 && (
+                                                {b.pending > 0 && (
                                                     <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(148,163,184,0.15)", color: "#94a3b8" }}>
-                                                        {company.pending} pending
+                                                        {b.pending} pending
                                                     </span>
                                                 )}
-                                                {(company.inProgress ?? 0) > 0 && (
+                                                {b.inProgress > 0 && (
                                                     <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
-                                                        {company.inProgress} in progress
+                                                        {b.inProgress} in progress
                                                     </span>
                                                 )}
-                                                {(company.completed ?? 0) > 0 && (
+                                                {b.completed > 0 && (
                                                     <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80" }}>
-                                                        {company.completed} done
+                                                        {b.completed} done
                                                     </span>
                                                 )}
                                             </div>
@@ -291,7 +354,8 @@ export default function AdminHomePage() {
                                             </Link>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
