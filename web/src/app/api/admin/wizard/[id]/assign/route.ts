@@ -16,6 +16,7 @@ import { createHmacSignature, buildSignatureHeaders } from '@/lib/hmac';
 import * as api from '@/lib/api-response';
 
 const FORM_CREATED_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/24975e24-04f2-47f3-9d82-7c3978d0f0a8';
+const FORMS_TABLE_WEBHOOK_URL = 'https://hooks.mercia.co.uk/webhook/4d7a98e5-1af8-41b2-88ab-64e8c693345b';
 
 export const dynamic = 'force-dynamic';
 
@@ -283,6 +284,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 if (!res.ok) {
                     const text = await res.text().catch(() => '');
                     console.error('[Wizard] QuickBase webhook non-OK body:', text.slice(0, 500));
+                }
+
+                // Also populate the QB forms table with this assignment
+                try {
+                    const formsTableBody = JSON.stringify({
+                        customerEmail: email,
+                        customerName: endCustomer.name || endCustomerName?.trim() || null,
+                        companyName: wipContextRaw?.companyName ?? null,
+                        orgId: orgIdValue === null ? null : String(orgIdValue),
+                        wipNumber: wizardRun.wipNumber,
+                        wipMetadata: metadata,
+                        formName: form.name,
+                        publicId: form.publicId,
+                        formId: form.id,
+                        assignmentId: assignment.id,
+                        dueDate: dueDate || null,
+                        tenantId: session.tenantId,
+                        assignedAt: new Date().toISOString(),
+                        formValues: tokenValues,
+                    });
+                    const formsHmac = createHmacSignature(formsTableBody, tenant.sharedSecret);
+                    console.log('[Wizard] Posting to QB forms table:', FORMS_TABLE_WEBHOOK_URL);
+                    const formsRes = await fetch(FORMS_TABLE_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...buildSignatureHeaders(formsHmac),
+                        },
+                        body: formsTableBody,
+                        cache: 'no-store',
+                    });
+                    console.log('[Wizard] QB forms table webhook responded:', formsRes.status);
+                    if (!formsRes.ok) {
+                        const text = await formsRes.text().catch(() => '');
+                        console.error('[Wizard] QB forms table webhook non-OK body:', text.slice(0, 500));
+                    }
+                } catch (formsErr) {
+                    console.error('[Wizard] QB forms table webhook error:', formsErr);
                 }
             } else {
                 console.warn('[Wizard] Skipping QuickBase webhook — tenant not found');
