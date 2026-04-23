@@ -86,13 +86,24 @@ export function replaceTokensWithValues(
 export function replaceTokensWithModes(
     html: string,
     tokenValues: Record<string, string>,
-    tokenModes: Record<string, string>
+    tokenModes: Record<string, string>,
+    options: { completed?: boolean } = {}
 ): string {
+    const { completed = false } = options;
     return html.replace(
         /<span([^>]*class=["'][^"']*fe-token[^"']*["'][^>]*data-token-id=["']([^"']+)["'][^>]*)>([^<]*)<\/span>/gi,
         (match, attrs, tokenId, label) => {
-            const mode = tokenModes[tokenId] || 'prefill';
+            let mode = tokenModes[tokenId] || 'prefill';
             const value = tokenValues[tokenId];
+
+            // When the form is completed, coerce every mode to a read-only preview:
+            //   - manual / prefill (editable) → plain text
+            //   - signature → prefill_signature (displays the captured image)
+            //   - prefill_readonly stays the same
+            if (completed) {
+                if (mode === 'signature') mode = 'prefill_signature';
+                else if (mode === 'manual' || mode === 'prefill') mode = 'prefill_readonly';
+            }
 
             if (mode === 'prefill_signature') {
                 // R12: Display a previously captured signature as a read-only image
@@ -155,9 +166,11 @@ export function replaceTokensWithModes(
                     style="border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px; min-width: 150px; font-size: inherit; font-family: inherit;"
                 />`;
             } else if (mode === 'prefill_readonly') {
-                // Locked prefill: display as text, not editable by user
+                // Locked prefill: display as plain text. Don't reuse the original ${attrs}
+                // (which includes class="fe-token") so the template's purple highlight CSS
+                // doesn't bleed through.
                 if (value != null) {
-                    return `<span${attrs} class="prefill-token-value prefill-token-readonly" style="color: black; background: rgba(14,165,233,0.07); border: 1px solid rgba(14,165,233,0.25); padding: 2px 6px; border-radius: 4px;">${escapeHtml(String(value))}</span>`;
+                    return `<span data-token-id="${tokenId}" class="prefill-token-value prefill-token-readonly" style="color: inherit; background: transparent; padding: 0; border: none;">${escapeHtml(String(value))}</span>`;
                 }
                 return match;
             } else {

@@ -44,6 +44,10 @@ function PublicFormContent() {
 	const [prefilling, setPrefilling] = useState(false);
 	const [prefillData, setPrefillData] = useState<Record<string, any>>({});
 	const [tokenModes, setTokenModes] = useState<Record<string, string>>({});
+	// When the assignment is already completed, render the form as a read-only preview
+	// and expose a Download PDF button instead of Submit.
+	// TODO: wire this flag to the actual assignment/QB status — for now set it via ?completed=1.
+	const [isCompleted, setIsCompleted] = useState(false);
 	// Signature pad refs for form submission
 	const signaturePadRefs = useRef<Map<string, SignaturePadHandle>>(new Map());
 	const formContainerRef = useRef<HTMLDivElement>(null);
@@ -149,6 +153,9 @@ function PublicFormContent() {
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
+		// TODO: replace the query-param flag with real status detection
+		// (e.g. from the portal forms webhook / FormAssignment status on the server).
+		setIsCompleted(searchParams.get('completed') === '1');
 		const ctx = searchParams.get('ctx');
 		const formApiUrl = ctx
 			? `/api/forms/${publicId}?ctx=${encodeURIComponent(ctx)}`
@@ -305,9 +312,10 @@ function PublicFormContent() {
 	// Prefill tokens display as text, manual tokens render as input fields
 	const processedHtmlContent = useMemo(() => {
 		if (!htmlContent) return null;
-		// Use replaceTokensWithModes to handle both prefill and manual tokens
-		return replaceTokensWithModes(htmlContent, prefillData, tokenModes);
-	}, [htmlContent, prefillData, tokenModes]);
+		// Use replaceTokensWithModes to handle prefill, manual, and signature tokens.
+		// When completed=true, all modes render as a read-only preview (inc. signature image).
+		return replaceTokensWithModes(htmlContent, prefillData, tokenModes, { completed: isCompleted });
+	}, [htmlContent, prefillData, tokenModes, isCompleted]);
 
 	// Initialize SignaturePad directly in DOM placeholders (bypass React portals)
 	useEffect(() => {
@@ -892,7 +900,25 @@ function PublicFormContent() {
 					>
 						{/* Status area (left side) */}
 						<div style={{ flex: 1 }}>
-							{prefilling && (
+							{isCompleted && (
+								<div
+									style={{
+										padding: "8px 12px",
+										borderRadius: "6px",
+										backgroundColor: "#ecfdf5",
+										border: "1px solid #a7f3d0",
+										color: "#047857",
+										fontSize: "14px",
+										display: "inline-flex",
+										alignItems: "center",
+										gap: "8px",
+									}}
+								>
+									<span>✓</span>
+									This form has been completed and can no longer be edited.
+								</div>
+							)}
+							{!isCompleted && prefilling && (
 								<div
 									style={{
 										padding: "8px 12px",
@@ -910,7 +936,7 @@ function PublicFormContent() {
 									Prefilling form data...
 								</div>
 							)}
-							{!prefilling && submitError && (
+							{!isCompleted && !prefilling && submitError && (
 								<div
 									style={{
 										padding: "8px 12px",
@@ -926,26 +952,59 @@ function PublicFormContent() {
 							)}
 						</div>
 
-						{/* Submit button (right side) */}
-						<button
-							type="submit"
-							form="html-template-form"
-							style={{
-								padding: "12px 32px",
-								fontSize: "16px",
-								fontWeight: 600,
-								color: "#fff",
-								background: "linear-gradient(to right, #6366f1, #8b5cf6)",
-								border: "none",
-								borderRadius: "8px",
-								cursor: "pointer",
-								transition: "all 0.2s",
-								boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
-								whiteSpace: "nowrap",
-							}}
-						>
-							Submit Form →
-						</button>
+						{/* Action button (right side) — Download PDF when completed, Submit otherwise */}
+						{isCompleted ? (
+							<button
+								type="button"
+								onClick={() => {
+									// TODO: wire up real PDF generation/download
+									alert('Download PDF — not yet implemented');
+								}}
+								style={{
+									padding: "12px 32px",
+									fontSize: "16px",
+									fontWeight: 600,
+									color: "#fff",
+									background: "linear-gradient(to right, #10b981, #059669)",
+									border: "none",
+									borderRadius: "8px",
+									cursor: "pointer",
+									transition: "all 0.2s",
+									boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
+									whiteSpace: "nowrap",
+									display: "inline-flex",
+									alignItems: "center",
+									gap: "8px",
+								}}
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+									<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+									<polyline points="7 10 12 15 17 10" />
+									<line x1="12" y1="15" x2="12" y2="3" />
+								</svg>
+								Download PDF
+							</button>
+						) : (
+							<button
+								type="submit"
+								form="html-template-form"
+								style={{
+									padding: "12px 32px",
+									fontSize: "16px",
+									fontWeight: 600,
+									color: "#fff",
+									background: "linear-gradient(to right, #6366f1, #8b5cf6)",
+									border: "none",
+									borderRadius: "8px",
+									cursor: "pointer",
+									transition: "all 0.2s",
+									boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
+									whiteSpace: "nowrap",
+								}}
+							>
+								Submit Form →
+							</button>
+						)}
 					</div>
 				</div>
 			</div>
